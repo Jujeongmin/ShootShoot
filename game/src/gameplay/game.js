@@ -5,6 +5,7 @@ import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot } from './scoring.js';
+import { sfx, resumeAudio } from '../audio/sfx.js';
 import { CONFIG } from '../config.js';
 
 export function createGame(container) {
@@ -19,6 +20,7 @@ export function createGame(container) {
   targetManager.spawnRound(1);
 
   function handleShot(ndcX, ndcY) {
+    sfx.shoot();
     raycaster.setFromCamera({ x: ndcX, y: ndcY }, engine.camera);
     const intersections = raycaster.intersectObjects(targetManager.getRaycastMeshes(), false);
 
@@ -39,9 +41,20 @@ export function createGame(container) {
       if (monkey) monkey.hit(hit.part);
     }
 
+    if (outcome.isMiss) {
+      sfx.miss();
+    } else if (outcome.penetrationCount > 1) {
+      sfx.combo();
+    } else if (outcome.hits[0].part === 'head') {
+      sfx.headshot();
+    } else {
+      sfx.hit();
+    }
+
     console.log('score:', scoreState.score, 'streak:', scoreState.streak, 'misses:', scoreState.misses);
   }
 
+  input.onAimDown(() => resumeAudio());
   input.onAimUp(handleShot);
 
   function start() {
