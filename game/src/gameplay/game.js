@@ -4,9 +4,10 @@ import { createInputController } from '../core/input.js';
 import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
-import { createScoreState, applyShot } from './scoring.js';
+import { createScoreState, applyShot, createHighScoreStore } from './scoring.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
+import { createScreens } from '../ui/screens.js';
 import { CONFIG } from '../config.js';
 
 export function createGame(container) {
@@ -15,23 +16,48 @@ export function createGame(container) {
   createWorld(engine.scene);
   const targetManager = createTargetManager(engine.scene, CONFIG);
   const hud = createHud(container);
-
+  const screens = createScreens(container);
+  const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const raycaster = new THREE.Raycaster();
-  let scoreState = createScoreState();
 
-  targetManager.spawnRound(1);
-  updateHud();
+  let phase = 'menu';
+  let scoreState = createScoreState();
+  let round = 1;
+  let timeRemaining = 0;
+
+  function beginRound(roundNumber) {
+    round = roundNumber;
+    const roundParams = targetManager.spawnRound(roundNumber);
+    timeRemaining = roundParams.timeLimit;
+  }
+
+  function startGame() {
+    scoreState = createScoreState();
+    phase = 'playing';
+    beginRound(1);
+    screens.hide();
+    updateHud();
+  }
+
+  function endGame() {
+    phase = 'gameover';
+    targetManager.clear();
+    const highScore = highScoreStore.submit(scoreState.score);
+    const isNewHighScore = highScore === scoreState.score && scoreState.score > 0;
+    screens.showGameOver({ score: scoreState.score, highScore, isNewHighScore }, startGame);
+  }
 
   function updateHud() {
     hud.render({
       score: scoreState.score,
       streak: scoreState.streak,
-      round: 1,
-      timeRemaining: CONFIG.round.baseTimeLimit,
+      round,
+      timeRemaining: Math.max(timeRemaining, 0),
     });
   }
 
   function handleShot(ndcX, ndcY) {
+    if (phase !== 'playing') return;
     sfx.shoot();
     raycaster.setFromCamera({ x: ndcX, y: ndcY }, engine.camera);
     const intersections = raycaster.intersectObjects(targetManager.getRaycastMeshes(), false);
@@ -64,14 +90,36 @@ export function createGame(container) {
     }
 
     updateHud();
+
+    if (scoreState.misses >= CONFIG.missLimit) {
+      endGame();
+      return;
+    }
+
+    if (targetManager.allCleared()) {
+      sfx.roundClear();
+      beginRound(round + 1);
+      updateHud();
+    }
   }
 
   input.onAimDown(() => resumeAudio());
   input.onAimUp(handleShot);
 
   function start() {
+    screens.showMenu(startGame);
     engine.start((dt) => {
       targetManager.update(dt);
+
+      if (phase === 'playing') {
+        timeRemaining -= dt;
+        if (timeRemaining <= 0) {
+          endGame();
+        } else {
+          updateHud();
+        }
+      }
+
       engine.setFov(input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov);
     });
   }
