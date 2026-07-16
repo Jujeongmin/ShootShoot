@@ -42,8 +42,9 @@ export function createGame(container) {
   function endGame() {
     phase = 'gameover';
     targetManager.clear();
+    const previousHighScore = highScoreStore.get();
     const highScore = highScoreStore.submit(scoreState.score);
-    const isNewHighScore = highScore === scoreState.score && scoreState.score > 0;
+    const isNewHighScore = scoreState.score > previousHighScore && scoreState.score > 0;
     screens.showGameOver({ score: scoreState.score, highScore, isNewHighScore }, startGame);
   }
 
@@ -95,12 +96,6 @@ export function createGame(container) {
       endGame();
       return;
     }
-
-    if (targetManager.allCleared()) {
-      sfx.roundClear();
-      beginRound(round + 1);
-      updateHud();
-    }
   }
 
   input.onAimDown(() => resumeAudio());
@@ -117,6 +112,11 @@ export function createGame(container) {
           endGame();
         } else {
           updateHud();
+          if (targetManager.allCleared()) {
+            sfx.roundClear();
+            beginRound(round + 1);
+            updateHud();
+          }
         }
       }
 
