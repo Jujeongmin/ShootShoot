@@ -6,6 +6,7 @@ import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot } from './scoring.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
+import { createHud } from '../ui/hud.js';
 import { CONFIG } from '../config.js';
 
 export function createGame(container) {
@@ -13,11 +14,22 @@ export function createGame(container) {
   const input = createInputController(engine.domElement);
   createWorld(engine.scene);
   const targetManager = createTargetManager(engine.scene, CONFIG);
+  const hud = createHud(container);
 
   const raycaster = new THREE.Raycaster();
   let scoreState = createScoreState();
 
   targetManager.spawnRound(1);
+  updateHud();
+
+  function updateHud() {
+    hud.render({
+      score: scoreState.score,
+      streak: scoreState.streak,
+      round: 1,
+      timeRemaining: CONFIG.round.baseTimeLimit,
+    });
+  }
 
   function handleShot(ndcX, ndcY) {
     sfx.shoot();
@@ -51,7 +63,7 @@ export function createGame(container) {
       sfx.hit();
     }
 
-    console.log('score:', scoreState.score, 'streak:', scoreState.streak, 'misses:', scoreState.misses);
+    updateHud();
   }
 
   input.onAimDown(() => resumeAudio());
