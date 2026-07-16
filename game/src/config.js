@@ -1,0 +1,28 @@
+export const CONFIG = {
+  score: {
+    baseHit: 100,
+    headshotBonus: 150,
+    comboMultiplierPerPenetration: 0.5,
+    streakMultiplierStep: 0.1,
+    streakMultiplierCap: 2.0,
+  },
+  round: {
+    baseTimeLimit: 30,
+    timeLimitDecreasePerRound: 1,
+    minTimeLimit: 12,
+    baseMonkeyCount: 3,
+    monkeyCountIncreasePerRound: 1,
+    maxMonkeyCount: 10,
+    baseMonkeySpeed: 0.5,
+    monkeySpeedIncreasePerRound: 0.08,
+    baseMonkeyScale: 1.0,
+    monkeyScaleDecreasePerRound: 0.03,
+    minMonkeyScale: 0.5,
+  },
+  missLimit: 5,
+  aim: {
+    normalFov: 60,
+    aimFov: 35,
+  },
+  highScoreStorageKey: 'shootshoot.highscore',
+};
