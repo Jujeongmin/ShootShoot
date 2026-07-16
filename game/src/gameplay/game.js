@@ -4,17 +4,28 @@ import { createInputController } from '../core/input.js';
 import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
-import { createScoreState, applyShot, createHighScoreStore } from './scoring.js';
+import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
+import { createEffects } from './effects.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
 import { createScreens } from '../ui/screens.js';
 import { CONFIG } from '../config.js';
+
+function worldToScreen(position, camera, container) {
+  const vector = position.clone().project(camera);
+  const rect = container.getBoundingClientRect();
+  return {
+    x: rect.left + (vector.x * 0.5 + 0.5) * rect.width,
+    y: rect.top + (-vector.y * 0.5 + 0.5) * rect.height,
+  };
+}
 
 export function createGame(container) {
   const engine = createEngine(container);
   const input = createInputController(engine.domElement);
   createWorld(engine.scene);
   const targetManager = createTargetManager(engine.scene, CONFIG);
+  const effects = createEffects(engine.scene);
   const hud = createHud(container);
   const screens = createScreens(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
@@ -73,11 +84,18 @@ export function createGame(container) {
     }
 
     const outcome = resolveShot(hits);
+    const gained = calculateShotScore(outcome, scoreState.streak, CONFIG);
     scoreState = applyShot(scoreState, outcome, CONFIG);
 
+    let popupWorldPosition = null;
     for (const hit of outcome.hits) {
       const monkey = targetManager.findMonkey(hit.monkeyId);
-      if (monkey) monkey.hit(hit.part);
+      if (monkey) {
+        const worldPos = monkey.getWorldPosition();
+        if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
+        effects.spawnHitBurst(worldPos);
+        monkey.hit(hit.part);
+      }
     }
 
     if (outcome.isMiss) {
@@ -88,6 +106,11 @@ export function createGame(container) {
       sfx.headshot();
     } else {
       sfx.hit();
+    }
+
+    if (!outcome.isMiss && popupWorldPosition) {
+      const screenPos = worldToScreen(popupWorldPosition, engine.camera, container);
+      hud.showScorePopup(`+${gained}`, screenPos.x, screenPos.y);
     }
 
     updateHud();
@@ -105,6 +128,7 @@ export function createGame(container) {
     screens.showMenu(startGame);
     engine.start((dt) => {
       targetManager.update(dt);
+      effects.update(dt);
 
       if (phase === 'playing') {
         timeRemaining -= dt;

@@ -16,9 +16,26 @@ export function createHud(container) {
     `;
   }
 
+  function showScorePopup(text, clientX, clientY) {
+    const popup = document.createElement('div');
+    popup.textContent = text;
+    popup.style.cssText = `
+      position: absolute; left: ${clientX}px; top: ${clientY}px; transform: translate(-50%, -50%);
+      color: #ffdd55; font-weight: bold; font-size: 24px; pointer-events: none;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8); transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+      z-index: 15;
+    `;
+    container.appendChild(popup);
+    requestAnimationFrame(() => {
+      popup.style.transform = 'translate(-50%, -120%)';
+      popup.style.opacity = '0';
+    });
+    setTimeout(() => popup.remove(), 650);
+  }
+
   function dispose() {
     el.remove();
   }
 
-  return { render, dispose };
+  return { render, showScorePopup, dispose };
 }
