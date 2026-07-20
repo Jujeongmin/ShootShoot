@@ -64,14 +64,16 @@ npm run build
 
 Expected: succeeds with no errors (this task doesn't touch any source module, just deps/assets).
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit — including the animated model asset files**
+
+The `game/public/textures/Monkey_animated/` folder (8 files: `monkey.FBX` + 7 textures, ~10MB) is currently untracked. It must be committed now — the game fetches these files at runtime via HTTP, so if they're not in git, a fresh clone of this repo won't have a working game.
 
 ```bash
-git add package.json package-lock.json
-git commit -m "chore: add fflate dependency, remove redundant static monkey asset"
+git add package.json package-lock.json game/public/textures/Monkey_animated
+git commit -m "chore: add fflate dependency, commit animated monkey model asset, remove redundant static duplicate"
 ```
 
-(The `git rm` from Step 2 is already staged; include it in the same commit.)
+(The `git rm` from Step 2 is already staged; it's included in this same commit.)
 
 ---
 
