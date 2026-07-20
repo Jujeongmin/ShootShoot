@@ -7,6 +7,7 @@ import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
+import { loadRifleViewmodel } from './rifleViewmodel.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
 import { createScreens } from '../ui/screens.js';
@@ -32,6 +33,7 @@ export function createGame(container) {
   const raycaster = new THREE.Raycaster();
 
   let targetManager = null;
+  let rifleViewmodel = null;
   let phase = 'menu';
   let scoreState = createScoreState();
   let round = 1;
@@ -72,6 +74,7 @@ export function createGame(container) {
   function handleShot(ndcX, ndcY) {
     if (phase !== 'playing') return;
     sfx.shoot();
+    rifleViewmodel.triggerRecoil();
     raycaster.setFromCamera({ x: ndcX, y: ndcY }, engine.camera);
     const intersections = raycaster.intersectObjects(targetManager.getRaycastMeshes(), false);
 
@@ -134,6 +137,10 @@ export function createGame(container) {
       if (targetManager) {
         targetManager.update(dt);
       }
+      if (rifleViewmodel) {
+        rifleViewmodel.update(dt);
+        rifleViewmodel.setVisible(!input.isAiming());
+      }
       effects.update(dt);
 
       if (phase === 'playing') {
@@ -153,10 +160,13 @@ export function createGame(container) {
       engine.setFov(input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov);
     });
 
-    loadMonkeyModel().then((monkeyModel) => {
-      targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
-      screens.showMenu(startGame);
-    });
+    Promise.all([loadMonkeyModel(), loadRifleViewmodel(engine.camera)]).then(
+      ([monkeyModel, resolvedRifleViewmodel]) => {
+        targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
+        rifleViewmodel = resolvedRifleViewmodel;
+        screens.showMenu(startGame);
+      }
+    );
   }
 
   return { start };
