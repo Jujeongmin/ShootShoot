@@ -23,6 +23,8 @@ export const CONFIG = {
   aim: {
     normalFov: 60,
     aimFov: 35,
+    lookLimitX: 0.3,
+    lookLimitY: 0.2,
   },
   highScoreStorageKey: 'shootshoot.highscore',
 };
