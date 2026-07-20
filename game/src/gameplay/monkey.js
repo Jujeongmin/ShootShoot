@@ -4,7 +4,11 @@ import { cloneMonkeyModel } from './monkeyModel.js';
 const HIT_ANIMATION_DURATION = 0.6;
 const TAUNT_INTERVAL_MIN = 2;
 const TAUNT_INTERVAL_MAX = 4.5;
-const HEAD_CUTOFF_LOCAL_Y = 127.88;
+// Calibrated against the SkinnedMesh's ANIMATED pose (not rest-pose): live-sampling the
+// idle clip's full loop found the reachable local Y range is about -81 to +28 (head/torso/
+// arms/legs; the tail is excluded as its bind-relative Y swings wildly and isn't a reliable
+// signal), so this sits near the top ~20% of that live range.
+const HEAD_CUTOFF_LOCAL_Y = 5;
 
 export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip }) {
   const group = new THREE.Group();
