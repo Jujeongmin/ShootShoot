@@ -63,7 +63,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
         state.nextTauntAt = state.elapsed + TAUNT_INTERVAL_MIN + Math.random() * (TAUNT_INTERVAL_MAX - TAUNT_INTERVAL_MIN);
       }
     } else {
-      group.rotation.y = Math.sin(state.elapsed * 0.7 + state.phaseOffset) * 0.15;
+      group.rotation.y = 0;
       if (state.elapsed >= state.nextTauntAt) {
         state.isTaunting = true;
       }
