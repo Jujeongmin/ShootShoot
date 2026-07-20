@@ -11,6 +11,7 @@ import { loadRifleViewmodel } from './rifleViewmodel.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
 import { createScreens } from '../ui/screens.js';
+import { createScopeOverlay } from '../ui/scopeOverlay.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -29,6 +30,7 @@ export function createGame(container) {
   const effects = createEffects(engine.scene);
   const hud = createHud(container);
   const screens = createScreens(container);
+  const scopeOverlay = createScopeOverlay(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const raycaster = new THREE.Raycaster();
 
@@ -71,11 +73,11 @@ export function createGame(container) {
     });
   }
 
-  function handleShot(ndcX, ndcY) {
+  function handleShot() {
     if (phase !== 'playing') return;
     sfx.shoot();
     rifleViewmodel.triggerRecoil();
-    raycaster.setFromCamera({ x: ndcX, y: ndcY }, engine.camera);
+    raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
     const intersections = raycaster.intersectObjects(targetManager.getRaycastMeshes(), false);
 
     const seen = new Set();
@@ -142,6 +144,16 @@ export function createGame(container) {
         rifleViewmodel.setVisible(!input.isAiming());
       }
       effects.update(dt);
+
+      if (input.isAiming()) {
+        const ndc = input.getNdc();
+        engine.camera.rotation.y = -ndc.x * CONFIG.aim.lookLimitX;
+        engine.camera.rotation.x = ndc.y * CONFIG.aim.lookLimitY;
+        scopeOverlay.show();
+      } else {
+        engine.camera.rotation.set(0, 0, 0);
+        scopeOverlay.hide();
+      }
 
       if (phase === 'playing') {
         timeRemaining -= dt;
