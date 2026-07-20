@@ -6,6 +6,7 @@ import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
 import { createEffects } from './effects.js';
+import { loadMonkeyModel } from './monkeyModel.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
 import { createScreens } from '../ui/screens.js';
@@ -24,13 +25,13 @@ export function createGame(container) {
   const engine = createEngine(container);
   const input = createInputController(engine.domElement);
   createWorld(engine.scene);
-  const targetManager = createTargetManager(engine.scene, CONFIG);
   const effects = createEffects(engine.scene);
   const hud = createHud(container);
   const screens = createScreens(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const raycaster = new THREE.Raycaster();
 
+  let targetManager = null;
   let phase = 'menu';
   let scoreState = createScoreState();
   let round = 1;
@@ -77,10 +78,12 @@ export function createGame(container) {
     const seen = new Set();
     const hits = [];
     for (const intersection of intersections) {
-      const { monkeyId, part } = intersection.object.userData;
+      const { monkeyId } = intersection.object.userData;
       if (seen.has(monkeyId)) continue;
       seen.add(monkeyId);
-      hits.push({ monkeyId, part });
+      const monkey = targetManager.findMonkey(monkeyId);
+      if (!monkey) continue;
+      hits.push({ monkeyId, part: monkey.classifyHit(intersection.point) });
     }
 
     const outcome = resolveShot(hits);
@@ -125,9 +128,12 @@ export function createGame(container) {
   input.onAimUp(handleShot);
 
   function start() {
-    screens.showMenu(startGame);
+    screens.showLoading('로딩 중...');
+
     engine.start((dt) => {
-      targetManager.update(dt);
+      if (targetManager) {
+        targetManager.update(dt);
+      }
       effects.update(dt);
 
       if (phase === 'playing') {
@@ -145,6 +151,11 @@ export function createGame(container) {
       }
 
       engine.setFov(input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov);
+    });
+
+    loadMonkeyModel().then((monkeyModel) => {
+      targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
+      screens.showMenu(startGame);
     });
   }
 

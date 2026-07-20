@@ -58,5 +58,13 @@ export function createScreens(container) {
     show();
   }
 
-  return { showMenu, showGameOver, hide, dispose: () => overlay.remove() };
+  function showLoading(text) {
+    clear();
+    const p = document.createElement('p');
+    p.textContent = text;
+    overlay.appendChild(p);
+    show();
+  }
+
+  return { showMenu, showGameOver, showLoading, hide, dispose: () => overlay.remove() };
 }

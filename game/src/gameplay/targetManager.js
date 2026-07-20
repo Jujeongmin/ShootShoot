@@ -9,7 +9,7 @@ function computeSpawnPosition(index, count) {
   return { x, y, z };
 }
 
-export function createTargetManager(scene, config) {
+export function createTargetManager(scene, config, monkeyModel) {
   let monkeys = [];
   let nextId = 0;
 
@@ -28,6 +28,8 @@ export function createTargetManager(scene, config) {
         position,
         scale: params.monkeyScale,
         speed: params.monkeySpeed,
+        template: monkeyModel.template,
+        clip: monkeyModel.clip,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);
