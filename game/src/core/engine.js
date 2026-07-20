@@ -4,6 +4,7 @@ export function createEngine(container) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
   camera.position.set(0, 1.6, 0);
+  scene.add(camera);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
