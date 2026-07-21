@@ -17,6 +17,7 @@ import { createScreens } from '../ui/screens.js';
 import { createScopeOverlay } from '../ui/scopeOverlay.js';
 import { createStageBanner } from '../ui/stageBanner.js';
 import { createSettingsPanel } from '../ui/settingsPanel.js';
+import { createShopPanel } from '../ui/shopPanel.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -42,6 +43,7 @@ export function createGame(container) {
   const scopeOverlay = createScopeOverlay(container);
   const stageBanner = createStageBanner(container);
   const settingsPanel = createSettingsPanel(container);
+  const shopPanel = createShopPanel(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
@@ -78,7 +80,7 @@ export function createGame(container) {
 
   function returnToMenu() {
     phase = 'menu';
-    screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
+    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
   }
 
   function endGame() {
@@ -124,11 +126,21 @@ export function createGame(container) {
   function closeSettings() {
     settingsPanel.hide();
     if (settingsOrigin === 'menu') {
-      screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
+      screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
     } else {
       settingsOpen = false;
     }
     settingsOrigin = null;
+  }
+
+  function openShopFromMenu() {
+    screens.hide();
+    shopPanel.show(closeShop);
+  }
+
+  function closeShop() {
+    shopPanel.hide();
+    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
   }
 
   window.addEventListener('keydown', (event) => {
@@ -251,7 +263,7 @@ export function createGame(container) {
       targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
       rifleViewmodel = resolvedRifleViewmodel;
       obstacles = resolvedObstacles;
-      screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
+      screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
     });
   }
 
