@@ -27,6 +27,9 @@ export const CONFIG = {
     goldPerHour: 10,
     maxHours: 8,
   },
+  adReward: {
+    goldAmount: 30,
+  },
   aim: {
     normalFov: 60,
     aimFov: 35,
