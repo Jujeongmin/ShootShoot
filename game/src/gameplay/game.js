@@ -10,6 +10,7 @@ import { createCurrencyStore } from './currencyStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
 import { loadRifleViewmodel } from './rifleViewmodel.js';
+import { loadObstacles } from './obstacles.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
 import { createScreens } from '../ui/screens.js';
@@ -48,6 +49,7 @@ export function createGame(container) {
 
   let targetManager = null;
   let rifleViewmodel = null;
+  let obstacles = null;
   let phase = 'menu';
   let scoreState = createScoreState();
   let round = 1;
@@ -132,12 +134,14 @@ export function createGame(container) {
     sfx.shoot();
     rifleViewmodel.triggerRecoil();
     raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
-    const intersections = raycaster.intersectObjects(targetManager.getRaycastMeshes(), false);
+    const raycastTargets = [...targetManager.getRaycastMeshes(), ...obstacles.getBlockingMeshes()];
+    const intersections = raycaster.intersectObjects(raycastTargets, false);
 
     const seen = new Set();
     const hits = [];
     for (const intersection of intersections) {
       const { monkeyId } = intersection.object.userData;
+      if (!monkeyId) break;
       if (seen.has(monkeyId)) continue;
       seen.add(monkeyId);
       const monkey = targetManager.findMonkey(monkeyId);
@@ -229,13 +233,16 @@ export function createGame(container) {
       engine.setFov(input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov);
     });
 
-    Promise.all([loadMonkeyModel(), loadRifleViewmodel(engine.camera)]).then(
-      ([monkeyModel, resolvedRifleViewmodel]) => {
-        targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
-        rifleViewmodel = resolvedRifleViewmodel;
-        screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
-      }
-    );
+    Promise.all([
+      loadMonkeyModel(),
+      loadRifleViewmodel(engine.camera),
+      loadObstacles(engine.scene),
+    ]).then(([monkeyModel, resolvedRifleViewmodel, resolvedObstacles]) => {
+      targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
+      rifleViewmodel = resolvedRifleViewmodel;
+      obstacles = resolvedObstacles;
+      screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
+    });
   }
 
   return { start };
