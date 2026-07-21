@@ -14,6 +14,7 @@ import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
 import { createScreens } from '../ui/screens.js';
 import { createScopeOverlay } from '../ui/scopeOverlay.js';
+import { createStageBanner } from '../ui/stageBanner.js';
 import { createSettingsPanel } from '../ui/settingsPanel.js';
 import { CONFIG } from '../config.js';
 
@@ -38,6 +39,7 @@ export function createGame(container) {
   const hud = createHud(container);
   const screens = createScreens(container);
   const scopeOverlay = createScopeOverlay(container);
+  const stageBanner = createStageBanner(container);
   const settingsPanel = createSettingsPanel(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
@@ -217,6 +219,7 @@ export function createGame(container) {
           updateHud();
           if (targetManager.allCleared()) {
             sfx.roundClear();
+            stageBanner.show(round + 1);
             beginRound(round + 1);
             updateHud();
           }
