@@ -6,6 +6,7 @@ import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
 import { createSettingsStore } from './settingsStore.js';
+import { createCurrencyStore } from './currencyStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
 import { loadRifleViewmodel } from './rifleViewmodel.js';
@@ -40,6 +41,7 @@ export function createGame(container) {
   const settingsPanel = createSettingsPanel(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
+  const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
   const raycaster = new THREE.Raycaster();
 
   let targetManager = null;
@@ -66,13 +68,19 @@ export function createGame(container) {
     updateHud();
   }
 
+  function returnToMenu() {
+    screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
+  }
+
   function endGame() {
     phase = 'gameover';
     targetManager.clear();
     const previousHighScore = highScoreStore.get();
     const highScore = highScoreStore.submit(scoreState.score);
     const isNewHighScore = scoreState.score > previousHighScore && scoreState.score > 0;
-    screens.showGameOver({ score: scoreState.score, highScore, isNewHighScore }, startGame);
+    const goldEarned = Math.floor(scoreState.score / CONFIG.scorePerGold);
+    currencyStore.earn(goldEarned);
+    screens.showGameOver({ score: scoreState.score, highScore, isNewHighScore }, returnToMenu);
   }
 
   function updateHud() {
@@ -105,7 +113,7 @@ export function createGame(container) {
   function closeSettings() {
     settingsPanel.hide();
     if (settingsOrigin === 'menu') {
-      screens.showMenu(startGame, openSettingsFromMenu);
+      screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
     } else {
       settingsOpen = false;
     }
@@ -222,7 +230,7 @@ export function createGame(container) {
       ([monkeyModel, resolvedRifleViewmodel]) => {
         targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
         rifleViewmodel = resolvedRifleViewmodel;
-        screens.showMenu(startGame, openSettingsFromMenu);
+        screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
       }
     );
   }

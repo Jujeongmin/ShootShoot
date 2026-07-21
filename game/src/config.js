@@ -20,6 +20,7 @@ export const CONFIG = {
     minMonkeyScale: 0.5,
   },
   missLimit: 5,
+  scorePerGold: 10,
   aim: {
     normalFov: 60,
     aimFov: 35,
@@ -28,4 +29,5 @@ export const CONFIG = {
   },
   highScoreStorageKey: 'shootshoot.highscore',
   settingsStorageKey: 'shootshoot.settings',
+  currencyStorageKey: 'shootshoot.gold',
 };
