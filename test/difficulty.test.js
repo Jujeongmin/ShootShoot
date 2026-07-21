@@ -24,4 +24,18 @@ describe('getRoundParams', () => {
     expect(later.timeLimit).toBe(CONFIG.round.minTimeLimit);
     expect(later.monkeyScale).toBe(CONFIG.round.minMonkeyScale);
   });
+
+  it('computes ammo per round as a fraction of monkey count, with a floor', () => {
+    const round1 = getRoundParams(1, CONFIG);
+    expect(round1.monkeyCount).toBe(3);
+    expect(round1.ammo).toBe(3);
+
+    const round3 = getRoundParams(3, CONFIG);
+    expect(round3.monkeyCount).toBe(5);
+    expect(round3.ammo).toBe(4);
+
+    const round20 = getRoundParams(20, CONFIG);
+    expect(round20.monkeyCount).toBe(10);
+    expect(round20.ammo).toBe(7);
+  });
 });
