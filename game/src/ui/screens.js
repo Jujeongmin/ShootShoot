@@ -31,7 +31,7 @@ export function createScreens(container) {
     return btn;
   }
 
-  function showMenu(onStart, onSettings, onShop, gold) {
+  function showMenu(onStart, onSettings, onShop, onAdReward, gold) {
     clear();
     const title = document.createElement('h1');
     title.textContent = '🐒 ShootShoot';
@@ -45,6 +45,7 @@ export function createScreens(container) {
     overlay.appendChild(button('시작하기', onStart));
     overlay.appendChild(button('설정', onSettings));
     overlay.appendChild(button('상점', onShop));
+    overlay.appendChild(button('광고 보상', onAdReward));
     show();
   }
 
