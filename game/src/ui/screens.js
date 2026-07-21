@@ -31,7 +31,7 @@ export function createScreens(container) {
     return btn;
   }
 
-  function showMenu(onStart) {
+  function showMenu(onStart, onSettings) {
     clear();
     const title = document.createElement('h1');
     title.textContent = '🐒 ShootShoot';
@@ -40,6 +40,7 @@ export function createScreens(container) {
     subtitle.textContent = '클릭하여 조준, 놓아서 발사!';
     overlay.appendChild(subtitle);
     overlay.appendChild(button('시작하기', onStart));
+    overlay.appendChild(button('설정', onSettings));
     show();
   }
 
