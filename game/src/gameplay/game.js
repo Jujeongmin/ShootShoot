@@ -6,6 +6,7 @@ import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
 import { createSettingsStore } from './settingsStore.js';
+import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { createCurrencyStore } from './currencyStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
@@ -18,6 +19,7 @@ import { createScopeOverlay } from '../ui/scopeOverlay.js';
 import { createStageBanner } from '../ui/stageBanner.js';
 import { createSettingsPanel } from '../ui/settingsPanel.js';
 import { createShopPanel } from '../ui/shopPanel.js';
+import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -44,9 +46,11 @@ export function createGame(container) {
   const stageBanner = createStageBanner(container);
   const settingsPanel = createSettingsPanel(container);
   const shopPanel = createShopPanel(container);
+  const offlineRewardPopup = createOfflineRewardPopup(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
+  const lastSeenStore = createLastSeenStore(window.localStorage, CONFIG.lastSeenStorageKey);
   const raycaster = new THREE.Raycaster();
 
   let targetManager = null;
@@ -263,7 +267,20 @@ export function createGame(container) {
       targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
       rifleViewmodel = resolvedRifleViewmodel;
       obstacles = resolvedObstacles;
-      screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+
+      const now = Date.now();
+      const lastSeenAt = lastSeenStore.get();
+      lastSeenStore.set(now);
+      const offlineGold = lastSeenAt === null ? 0 : calculateOfflineGold(now - lastSeenAt, CONFIG.offlineReward);
+
+      if (offlineGold > 0) {
+        offlineRewardPopup.show(offlineGold, () => {
+          currencyStore.earn(offlineGold);
+          screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+        });
+      } else {
+        screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+      }
     });
   }
 
