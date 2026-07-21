@@ -73,6 +73,7 @@ export function createGame(container) {
   }
 
   function returnToMenu() {
+    phase = 'menu';
     screens.showMenu(startGame, openSettingsFromMenu, currencyStore.get());
   }
 
