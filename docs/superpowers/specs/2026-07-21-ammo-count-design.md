@@ -33,13 +33,15 @@
 ```
 if (targetManager.allCleared()) {
   // 기존 라운드 클리어 처리 (그대로)
-} else if (ammoRemaining <= 0) {
-  // 원숭이가 남아있는데 총알이 없음 -> 게임오버
+} else if (ammoRemaining <= 0 && !targetManager.hasDyingMonkeys()) {
+  // 원숭이가 남아있고, 죽어가는 애니메이션 중인 원숭이도 없는데 총알이 없음 -> 게임오버
   endGame();
 }
 ```
 
-이유: 마지막 총알로 마지막 원숭이를 맞혀도, 원숭이의 피격 애니메이션(약 0.6초)이 끝나기 전까지는 `allCleared()`가 아직 `false`다. 만약 `handleShot()` 안에서 "쏜 직후 총알이 0이면 즉시 게임오버"로 처리하면, 사실상 라운드를 클리어했는데도 게임오버가 되는 오탐이 생긴다. 라운드 클리어를 먼저 확인하는 순서로 이 경쟁 상태를 피한다.
+이유: `handleShot()`은 총알을 **즉시** 차감하지만, 맞은 원숭이는 그 자리에서 바로 사라지지 않는다 — `monkey.js`의 피격 애니메이션(`HIT_ANIMATION_DURATION = 0.6초`)이 끝나야 `targetManager`의 배열에서 실제로 제거되고, 그래야 `allCleared()`가 `true`가 된다. 단순히 "라운드 클리어 체크를 먼저 한다"는 순서만으로는 이 경쟁 상태를 막지 못한다 — 마지막 총알로 마지막 원숭이를 맞힌 순간부터 애니메이션이 끝날 때까지(최대 0.6초, 약 36프레임) `allCleared()`는 계속 `false`이고 `ammoRemaining <= 0`은 이미 `true`라서, 그 사이의 매 프레임마다 `else if`가 오탐으로 발동한다.
+
+실제 해법은 "죽어가는 중인 원숭이가 있으면 총알 소진 게임오버 판정을 유예한다"는 상태 기반 체크다: `monkey.js`에 `isDying()`(내부 `phase === 'hit'`)을, `targetManager.js`에 `hasDyingMonkeys()`(살아있는 원숭이 중 하나라도 `isDying()`이면 `true`)를 추가하고, 게임오버 조건에 `!targetManager.hasDyingMonkeys()`를 추가로 걸어야 한다. 이러면 원숭이가 죽어가는 동안은 판정을 미루다가, 그 원숭이가 실제로 제거된 시점에 `allCleared()`가 `true`면 라운드 클리어가, `false`면(다른 원숭이가 남아있으면) 그제서야 총알 소진 게임오버가 정확히 발동한다. 타이머가 아니라 상태(`phase`)를 근거로 하므로 특정 지속시간 값에 의존하지 않고, `updateHit()`이 매 프레임 무조건 진행되므로 무한히 유예될 위험도 없다.
 
 ### 2.4 HUD 표시
 
