@@ -12,18 +12,10 @@ export function createWorld(scene) {
   scene.add(dirLight);
 
   const platformMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4f3a });
-  const platforms = [];
-  const platformPositions = [
-    { x: -4, y: -1.5, z: -14 },
-    { x: 0, y: -1.5, z: -18 },
-    { x: 4, y: -1.5, z: -14 },
-  ];
-  for (const pos of platformPositions) {
-    const platform = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 5), platformMaterial);
-    platform.position.set(pos.x, pos.y, pos.z);
-    scene.add(platform);
-    platforms.push(platform);
-  }
+  const platform = new THREE.Mesh(new THREE.BoxGeometry(16, 1, 8), platformMaterial);
+  platform.position.set(0, -1.5, -16);
+  scene.add(platform);
+  const platforms = [platform];
 
   return { platforms };
 }
