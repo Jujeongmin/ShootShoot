@@ -30,9 +30,11 @@ export function loadObstacles(scene) {
         instance.position.set(placement.x, GROUND_Y, placement.z);
         scene.add(instance);
 
-        instance.traverse((object) => {
-          if (object.isMesh) blockingMeshes.push(object);
-        });
+        if (!isCrate) {
+          instance.traverse((object) => {
+            if (object.isMesh) blockingMeshes.push(object);
+          });
+        }
       }
 
       return {
