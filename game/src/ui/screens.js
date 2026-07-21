@@ -31,7 +31,7 @@ export function createScreens(container) {
     return btn;
   }
 
-  function showMenu(onStart, onSettings) {
+  function showMenu(onStart, onSettings, gold) {
     clear();
     const title = document.createElement('h1');
     title.textContent = '🐒 ShootShoot';
@@ -39,12 +39,15 @@ export function createScreens(container) {
     const subtitle = document.createElement('p');
     subtitle.textContent = '클릭하여 조준, 놓아서 발사!';
     overlay.appendChild(subtitle);
+    const goldEl = document.createElement('p');
+    goldEl.textContent = `보유 골드: ${gold}`;
+    overlay.appendChild(goldEl);
     overlay.appendChild(button('시작하기', onStart));
     overlay.appendChild(button('설정', onSettings));
     show();
   }
 
-  function showGameOver({ score, highScore, isNewHighScore }, onRestart) {
+  function showGameOver({ score, highScore, isNewHighScore }, onReturnToMenu) {
     clear();
     const title = document.createElement('h1');
     title.textContent = '게임 종료';
@@ -55,7 +58,7 @@ export function createScreens(container) {
     const highScoreEl = document.createElement('p');
     highScoreEl.textContent = isNewHighScore ? `🎉 신기록! 최고점수: ${highScore}` : `최고점수: ${highScore}`;
     overlay.appendChild(highScoreEl);
-    overlay.appendChild(button('다시하기', onRestart));
+    overlay.appendChild(button('메인 메뉴로', onReturnToMenu));
     show();
   }
 
