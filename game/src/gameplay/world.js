@@ -12,8 +12,8 @@ export function createWorld(scene) {
   scene.add(dirLight);
 
   const platformMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4f3a });
-  const platform = new THREE.Mesh(new THREE.BoxGeometry(16, 1, 8), platformMaterial);
-  platform.position.set(0, -1.5, -16);
+  const platform = new THREE.Mesh(new THREE.BoxGeometry(16, 1, 14), platformMaterial);
+  platform.position.set(0, -1.5, -13);
   scene.add(platform);
   const platforms = [platform];
 
