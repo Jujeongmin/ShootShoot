@@ -27,4 +27,5 @@ export const CONFIG = {
     lookLimitY: 0.2,
   },
   highScoreStorageKey: 'shootshoot.highscore',
+  settingsStorageKey: 'shootshoot.settings',
 };

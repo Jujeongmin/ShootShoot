@@ -5,6 +5,7 @@ import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
 import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
+import { createSettingsStore } from './settingsStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
 import { loadRifleViewmodel } from './rifleViewmodel.js';
@@ -12,6 +13,7 @@ import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
 import { createScreens } from '../ui/screens.js';
 import { createScopeOverlay } from '../ui/scopeOverlay.js';
+import { createSettingsPanel } from '../ui/settingsPanel.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -23,6 +25,10 @@ function worldToScreen(position, camera, container) {
   };
 }
 
+function clampToUnit(value) {
+  return Math.max(-1, Math.min(1, value));
+}
+
 export function createGame(container) {
   const engine = createEngine(container);
   const input = createInputController(engine.domElement);
@@ -31,7 +37,9 @@ export function createGame(container) {
   const hud = createHud(container);
   const screens = createScreens(container);
   const scopeOverlay = createScopeOverlay(container);
+  const settingsPanel = createSettingsPanel(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
+  const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
   const raycaster = new THREE.Raycaster();
 
   let targetManager = null;
@@ -40,6 +48,9 @@ export function createGame(container) {
   let scoreState = createScoreState();
   let round = 1;
   let timeRemaining = 0;
+  let sensitivity = settingsStore.get().sensitivity;
+  let settingsOpen = false;
+  let settingsOrigin = null;
 
   function beginRound(roundNumber) {
     round = roundNumber;
@@ -72,6 +83,39 @@ export function createGame(container) {
       timeRemaining: Math.max(timeRemaining, 0),
     });
   }
+
+  function handleSensitivityChange(value) {
+    sensitivity = value;
+    settingsStore.set({ sensitivity });
+  }
+
+  function openSettingsFromMenu() {
+    settingsOrigin = 'menu';
+    screens.hide();
+    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings);
+  }
+
+  function openSettingsFromPlay() {
+    if (phase !== 'playing' || settingsOpen) return;
+    settingsOrigin = 'playing';
+    settingsOpen = true;
+    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings);
+  }
+
+  function closeSettings() {
+    settingsPanel.hide();
+    if (settingsOrigin === 'menu') {
+      screens.showMenu(startGame, openSettingsFromMenu);
+    } else {
+      settingsOpen = false;
+    }
+    settingsOrigin = null;
+  }
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key.toLowerCase() !== 'p') return;
+    openSettingsFromPlay();
+  });
 
   function handleShot() {
     if (phase !== 'playing') return;
@@ -147,15 +191,17 @@ export function createGame(container) {
 
       if (input.isAiming()) {
         const ndc = input.getNdc();
-        engine.camera.rotation.y = -ndc.x * CONFIG.aim.lookLimitX;
-        engine.camera.rotation.x = ndc.y * CONFIG.aim.lookLimitY;
+        const effectiveX = clampToUnit(ndc.x * sensitivity);
+        const effectiveY = clampToUnit(ndc.y * sensitivity);
+        engine.camera.rotation.y = -effectiveX * CONFIG.aim.lookLimitX;
+        engine.camera.rotation.x = effectiveY * CONFIG.aim.lookLimitY;
         scopeOverlay.show();
       } else {
         engine.camera.rotation.set(0, 0, 0);
         scopeOverlay.hide();
       }
 
-      if (phase === 'playing') {
+      if (phase === 'playing' && !settingsOpen) {
         timeRemaining -= dt;
         if (timeRemaining <= 0) {
           endGame();
@@ -176,7 +222,7 @@ export function createGame(container) {
       ([monkeyModel, resolvedRifleViewmodel]) => {
         targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
         rifleViewmodel = resolvedRifleViewmodel;
-        screens.showMenu(startGame);
+        screens.showMenu(startGame, openSettingsFromMenu);
       }
     );
   }
