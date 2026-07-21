@@ -7,6 +7,7 @@ import { resolveShot } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
+import { showRewardedAd } from './adSdk.js';
 import { createCurrencyStore } from './currencyStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
@@ -20,6 +21,7 @@ import { createStageBanner } from '../ui/stageBanner.js';
 import { createSettingsPanel } from '../ui/settingsPanel.js';
 import { createShopPanel } from '../ui/shopPanel.js';
 import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
+import { createAdRewardPanel } from '../ui/adRewardPanel.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -47,6 +49,7 @@ export function createGame(container) {
   const settingsPanel = createSettingsPanel(container);
   const shopPanel = createShopPanel(container);
   const offlineRewardPopup = createOfflineRewardPopup(container);
+  const adRewardPanel = createAdRewardPanel(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
@@ -84,7 +87,7 @@ export function createGame(container) {
 
   function returnToMenu() {
     phase = 'menu';
-    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
   }
 
   function endGame() {
@@ -130,7 +133,7 @@ export function createGame(container) {
   function closeSettings() {
     settingsPanel.hide();
     if (settingsOrigin === 'menu') {
-      screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+      screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
     } else {
       settingsOpen = false;
     }
@@ -144,7 +147,26 @@ export function createGame(container) {
 
   function closeShop() {
     shopPanel.hide();
-    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+  }
+
+  function openAdRewardFromMenu() {
+    screens.hide();
+    adRewardPanel.show(closeAdReward, watchAdForGold);
+  }
+
+  function closeAdReward() {
+    adRewardPanel.hide();
+    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+  }
+
+  function watchAdForGold() {
+    showRewardedAd().then((success) => {
+      if (success) {
+        currencyStore.earn(CONFIG.adReward.goldAmount);
+      }
+      closeAdReward();
+    });
   }
 
   window.addEventListener('keydown', (event) => {
@@ -277,10 +299,10 @@ export function createGame(container) {
         screens.hide();
         offlineRewardPopup.show(offlineGold, () => {
           currencyStore.earn(offlineGold);
-          screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+          screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
         });
       } else {
-        screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
+        screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
       }
     });
   }
