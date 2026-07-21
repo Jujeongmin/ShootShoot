@@ -234,7 +234,7 @@ export function createGame(container) {
             stageBanner.show(round + 1);
             beginRound(round + 1);
             updateHud();
-          } else if (ammoRemaining <= 0) {
+          } else if (ammoRemaining <= 0 && !targetManager.hasDyingMonkeys()) {
             endGame();
           }
         }

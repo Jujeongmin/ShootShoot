@@ -60,5 +60,9 @@ export function createTargetManager(scene, config, monkeyModel) {
     return monkeys.length === 0;
   }
 
-  return { spawnRound, update, getRaycastMeshes, findMonkey, allCleared, clear };
+  function hasDyingMonkeys() {
+    return monkeys.some((monkey) => monkey.isDying());
+  }
+
+  return { spawnRound, update, getRaycastMeshes, findMonkey, allCleared, clear, hasDyingMonkeys };
 }

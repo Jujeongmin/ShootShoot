@@ -114,6 +114,9 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     isDead() {
       return state.dead;
     },
+    isDying() {
+      return state.phase === 'hit';
+    },
     getWorldPosition(target = new THREE.Vector3()) {
       return group.getWorldPosition(target);
     },
