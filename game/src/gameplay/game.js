@@ -274,6 +274,7 @@ export function createGame(container) {
       const offlineGold = lastSeenAt === null ? 0 : calculateOfflineGold(now - lastSeenAt, CONFIG.offlineReward);
 
       if (offlineGold > 0) {
+        screens.hide();
         offlineRewardPopup.show(offlineGold, () => {
           currencyStore.earn(offlineGold);
           screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, currencyStore.get());
