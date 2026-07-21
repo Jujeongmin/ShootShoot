@@ -23,6 +23,10 @@ export const CONFIG = {
   },
   missLimit: 5,
   scorePerGold: 10,
+  offlineReward: {
+    goldPerHour: 10,
+    maxHours: 8,
+  },
   aim: {
     normalFov: 60,
     aimFov: 35,
@@ -32,4 +36,5 @@ export const CONFIG = {
   highScoreStorageKey: 'shootshoot.highscore',
   settingsStorageKey: 'shootshoot.settings',
   currencyStorageKey: 'shootshoot.gold',
+  lastSeenStorageKey: 'shootshoot.lastseen',
 };
