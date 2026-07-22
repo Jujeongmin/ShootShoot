@@ -42,7 +42,7 @@ export function createScreens(container) {
     const goldEl = document.createElement('p');
     goldEl.textContent = `보유 골드: ${gold}`;
     overlay.appendChild(goldEl);
-    overlay.appendChild(button('시작하기', onStart));
+    overlay.appendChild(button('탭하여 시작', onStart));
     overlay.appendChild(button('설정', onSettings));
     overlay.appendChild(button('상점', onShop));
     overlay.appendChild(button('광고 보상', onAdReward));
