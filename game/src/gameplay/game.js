@@ -182,24 +182,37 @@ export function createGame(container) {
     sfx.shoot();
     rifleViewmodel.triggerRecoil();
     raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
-    const raycastTargets = [...targetManager.getRaycastMeshes(), ...obstacles.getBlockingMeshes()];
+    const raycastTargets = [
+      ...targetManager.getRaycastMeshes(),
+      ...obstacles.getBlockingMeshes(),
+      ...obstacles.getPillarMeshes(),
+    ];
     const intersections = raycaster.intersectObjects(raycastTargets, false);
 
     const seen = new Set();
     const hits = [];
+    let hitTowerIndex = null;
     for (const intersection of intersections) {
-      const { monkeyId } = intersection.object.userData;
-      if (!monkeyId) break;
-      if (seen.has(monkeyId)) continue;
-      seen.add(monkeyId);
-      const monkey = targetManager.findMonkey(monkeyId);
-      if (!monkey) continue;
-      hits.push({ monkeyId, part: monkey.classifyHit(intersection.point) });
+      const { monkeyId, towerIndex } = intersection.object.userData;
+      if (monkeyId) {
+        if (seen.has(monkeyId)) continue;
+        seen.add(monkeyId);
+        const monkey = targetManager.findMonkey(monkeyId);
+        if (!monkey) continue;
+        hits.push({ monkeyId, part: monkey.classifyHit(intersection.point) });
+        continue;
+      }
+      if (towerIndex !== undefined) {
+        hitTowerIndex = towerIndex;
+      }
+      break;
     }
 
     const outcome = resolveShot(hits);
-    const gained = calculateShotScore(outcome, scoreState.streak, CONFIG);
-    scoreState = applyShot(scoreState, outcome, CONFIG);
+    const isPureTowerHit = hits.length === 0 && hitTowerIndex !== null;
+    const effectiveOutcome = isPureTowerHit ? { isMiss: false, penetrationCount: 0, hits: [] } : outcome;
+    const gained = calculateShotScore(effectiveOutcome, scoreState.streak, CONFIG);
+    scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
 
     let popupWorldPosition = null;
     for (const hit of outcome.hits) {
@@ -212,21 +225,36 @@ export function createGame(container) {
       }
     }
 
-    if (!outcome.isMiss && !targetManager.hasAliveMonkeys()) {
+    if (hitTowerIndex !== null) {
+      obstacles.collapseTower(hitTowerIndex);
+      const towerMonkey = targetManager.findMonkeyAtTower(hitTowerIndex);
+      if (towerMonkey && !towerMonkey.isDying()) {
+        const worldPos = towerMonkey.getWorldPosition();
+        effects.spawnHitBurst(worldPos);
+        towerMonkey.hit('body');
+        scoreState = { ...scoreState, score: scoreState.score + CONFIG.score.towerCollapseBonus };
+        const screenPos = worldToScreen(worldPos, engine.camera, container);
+        hud.showScorePopup(`+${CONFIG.score.towerCollapseBonus}`, screenPos.x, screenPos.y);
+      }
+    }
+
+    if (!effectiveOutcome.isMiss && !targetManager.hasAliveMonkeys()) {
       lastKillEffect.trigger();
     }
 
-    if (outcome.isMiss) {
+    if (hitTowerIndex !== null) {
+      sfx.hit();
+    } else if (effectiveOutcome.isMiss) {
       sfx.miss();
-    } else if (outcome.penetrationCount > 1) {
+    } else if (effectiveOutcome.penetrationCount > 1) {
       sfx.combo();
-    } else if (outcome.hits[0].part === 'head') {
+    } else if (effectiveOutcome.hits[0].part === 'head') {
       sfx.headshot();
     } else {
       sfx.hit();
     }
 
-    if (!outcome.isMiss && popupWorldPosition) {
+    if (!effectiveOutcome.isMiss && popupWorldPosition) {
       const screenPos = worldToScreen(popupWorldPosition, engine.camera, container);
       hud.showScorePopup(`+${gained}`, screenPos.x, screenPos.y);
     }
@@ -257,6 +285,10 @@ export function createGame(container) {
         rifleViewmodel.setVisible(!input.isAiming());
       }
       effects.update(scaledDt);
+
+      if (obstacles) {
+        obstacles.update(scaledDt);
+      }
 
       if (input.isAiming()) {
         const ndc = input.getNdc();
