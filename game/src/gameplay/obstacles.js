@@ -42,7 +42,12 @@ export function loadObstacles(scene) {
         instance.position.set(placement.x, GROUND_Y, placement.z);
         scene.add(instance);
         instance.traverse((object) => {
-          if (object.isMesh) blockingMeshes.push(object);
+          if (object.isMesh) {
+            object.material = Array.isArray(object.material)
+              ? object.material.map((material) => material.clone())
+              : object.material.clone();
+            blockingMeshes.push(object);
+          }
         });
       }
 
@@ -62,6 +67,9 @@ export function loadObstacles(scene) {
             group.add(crateInstance);
             crateInstance.traverse((object) => {
               if (object.isMesh) {
+                object.material = Array.isArray(object.material)
+                  ? object.material.map((material) => material.clone())
+                  : object.material.clone();
                 object.userData = { towerIndex };
                 pillarMeshes.push(object);
                 collectMaterials(object, materials);
@@ -77,7 +85,12 @@ export function loadObstacles(scene) {
         floor.position.set(0, pillarTopY, 0);
         group.add(floor);
         floor.traverse((object) => {
-          if (object.isMesh) collectMaterials(object, materials);
+          if (object.isMesh) {
+            object.material = Array.isArray(object.material)
+              ? object.material.map((material) => material.clone())
+              : object.material.clone();
+            collectMaterials(object, materials);
+          }
         });
 
         towers.push({
