@@ -295,7 +295,7 @@ export function createGame(container) {
       loadRifleViewmodel(engine.camera),
       loadObstacles(engine.scene),
     ]).then(([monkeyModel, resolvedRifleViewmodel, resolvedObstacles]) => {
-      targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel);
+      targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel, resolvedObstacles.getTowerSlots());
       rifleViewmodel = resolvedRifleViewmodel;
       obstacles = resolvedObstacles;
 
