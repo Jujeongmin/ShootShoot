@@ -10,7 +10,7 @@ const TAUNT_INTERVAL_MAX = 4.5;
 // signal), so this sits near the top ~20% of that live range.
 const HEAD_CUTOFF_LOCAL_Y = 5;
 
-export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip }) {
+export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip, sway = {} }) {
   const group = new THREE.Group();
   group.position.set(position.x, position.y, position.z);
   group.scale.setScalar(scale);
@@ -34,6 +34,10 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     mixer.clipAction(clip).play();
   }
 
+  const swayAmplitude = sway.amplitude !== undefined ? sway.amplitude : 0.5;
+  const swayFrequency = sway.frequency !== undefined ? sway.frequency : speed;
+  const swayPhase = sway.phase !== undefined ? sway.phase : Math.random() * Math.PI * 2;
+
   const state = {
     phase: 'idle',
     phaseOffset: Math.random() * Math.PI * 2,
@@ -51,8 +55,8 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     const bob = Math.sin(state.elapsed * 3 + state.phaseOffset) * 0.08;
     group.position.y = position.y + bob;
 
-    const sway = Math.sin(state.elapsed * speed + state.phaseOffset) * 0.5;
-    group.position.x = position.x + sway;
+    const swayOffset = Math.sin(state.elapsed * swayFrequency + swayPhase) * swayAmplitude;
+    group.position.x = position.x + swayOffset;
 
     if (state.isTaunting) {
       state.tauntElapsed += dt;

@@ -1,13 +1,6 @@
 import { createMonkey } from './monkey.js';
 import { getRoundParams } from './difficulty.js';
-
-function computeSpawnPosition(index, count) {
-  const spread = 8;
-  const x = count === 1 ? 0 : (index - (count - 1) / 2) * (spread / (count - 1));
-  const z = -14 - Math.random() * 4;
-  const y = -1.0;
-  return { x, y, z };
-}
+import { computeLaneLayout } from './laneLayout.js';
 
 export function createTargetManager(scene, config, monkeyModel) {
   let monkeys = [];
@@ -21,15 +14,17 @@ export function createTargetManager(scene, config, monkeyModel) {
   function spawnRound(roundNumber) {
     clear();
     const params = getRoundParams(roundNumber, config);
+    const layout = computeLaneLayout(params.monkeyCount, params.monkeySpeed, params.monkeyScale);
     for (let i = 0; i < params.monkeyCount; i++) {
-      const position = computeSpawnPosition(i, params.monkeyCount);
+      const slot = layout[i];
       const monkey = createMonkey({
         id: `monkey-${nextId++}`,
-        position,
+        position: { x: slot.x, y: slot.y, z: slot.z },
         scale: params.monkeyScale,
         speed: params.monkeySpeed,
         template: monkeyModel.template,
         clip: monkeyModel.clip,
+        sway: { amplitude: slot.swayAmplitude, frequency: slot.swayFrequency, phase: slot.swayPhase },
       });
       scene.add(monkey.group);
       monkeys.push(monkey);
