@@ -22,6 +22,7 @@ import { createSettingsPanel } from '../ui/settingsPanel.js';
 import { createShopPanel } from '../ui/shopPanel.js';
 import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { createAdRewardPanel } from '../ui/adRewardPanel.js';
+import { createLastKillEffect } from './lastKillEffect.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -55,6 +56,7 @@ export function createGame(container) {
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
   const lastSeenStore = createLastSeenStore(window.localStorage, CONFIG.lastSeenStorageKey);
   const raycaster = new THREE.Raycaster();
+  const lastKillEffect = createLastKillEffect();
 
   let targetManager = null;
   let rifleViewmodel = null;
@@ -210,6 +212,10 @@ export function createGame(container) {
       }
     }
 
+    if (!outcome.isMiss && !targetManager.hasAliveMonkeys()) {
+      lastKillEffect.trigger();
+    }
+
     if (outcome.isMiss) {
       sfx.miss();
     } else if (outcome.penetrationCount > 1) {
@@ -240,14 +246,17 @@ export function createGame(container) {
     screens.showLoading('로딩 중...');
 
     engine.start((dt) => {
+      lastKillEffect.update(dt);
+      const scaledDt = dt * lastKillEffect.getTimeScale();
+
       if (targetManager) {
-        targetManager.update(dt);
+        targetManager.update(scaledDt);
       }
       if (rifleViewmodel) {
-        rifleViewmodel.update(dt);
+        rifleViewmodel.update(scaledDt);
         rifleViewmodel.setVisible(!input.isAiming());
       }
-      effects.update(dt);
+      effects.update(scaledDt);
 
       if (input.isAiming()) {
         const ndc = input.getNdc();
@@ -262,7 +271,7 @@ export function createGame(container) {
       }
 
       if (phase === 'playing' && !settingsOpen) {
-        timeRemaining -= dt;
+        timeRemaining -= scaledDt;
         if (timeRemaining <= 0) {
           endGame();
         } else {
@@ -278,7 +287,7 @@ export function createGame(container) {
         }
       }
 
-      engine.setFov(input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov);
+      engine.setFov((input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov) - lastKillEffect.getFovDelta());
     });
 
     Promise.all([
