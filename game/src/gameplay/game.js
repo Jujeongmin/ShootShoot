@@ -73,6 +73,7 @@ export function createGame(container) {
 
   function beginRound(roundNumber) {
     round = roundNumber;
+    obstacles.reset();
     const roundParams = targetManager.spawnRound(roundNumber);
     timeRemaining = roundParams.timeLimit;
     ammoRemaining = roundParams.ammo;

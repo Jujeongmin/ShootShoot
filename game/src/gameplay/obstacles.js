@@ -123,6 +123,20 @@ export function loadObstacles(scene) {
         }
       }
 
+      function reset() {
+        for (const tower of towers) {
+          tower.collapsing = false;
+          tower.collapsed = false;
+          tower.collapseElapsed = 0;
+          tower.group.visible = true;
+          tower.group.rotation.z = 0;
+          tower.group.position.y = 0;
+          for (const material of tower.materials) {
+            material.opacity = 1;
+          }
+        }
+      }
+
       return {
         getBlockingMeshes() {
           return blockingMeshes;
@@ -139,6 +153,7 @@ export function loadObstacles(scene) {
           tower.collapsing = true;
         },
         update,
+        reset,
       };
     }
   );
