@@ -6,34 +6,107 @@ const SACK_TRENCH_URL = '/models/sack-trench.glb';
 const CRATE_SCALE = 6;
 const SACK_TRENCH_SCALE = 1;
 const GROUND_Y = -1.0;
+const CRATE_UNIT_HEIGHT = 0.9612;
+const PILLAR_OFFSET_X = 0.8;
+const FLOOR_ROTATION_X = -Math.PI / 2;
+const FLOOR_THICKNESS = 0.8;
+const COLLAPSE_DURATION = 0.3;
+const COLLAPSE_TILT = Math.PI / 2;
+const COLLAPSE_DROP = 0.6;
 
-const PLACEMENTS = [
-  { type: 'sackTrench', x: -3, z: -9 },
-  { type: 'sackTrench', x: 2.5, z: -10 },
-  { type: 'crate', x: 0.5, z: -7.5 },
-  { type: 'crate', x: -1.5, z: -8.5 },
+const GROUND_PLACEMENTS = [
+  { x: -3, z: -9 },
+  { x: 2.5, z: -10 },
 ];
+
+const TOWER_PLACEMENTS = [
+  { x: 0.5, z: -7.5 },
+  { x: -1.5, z: -8.5 },
+];
+
+function collectMaterials(object, materials) {
+  const mats = Array.isArray(object.material) ? object.material : [object.material];
+  materials.push(...mats);
+}
 
 export function loadObstacles(scene) {
   const loader = new GLTFLoader();
   return Promise.all([loader.loadAsync(CRATE_URL), loader.loadAsync(SACK_TRENCH_URL)]).then(
     ([crateGltf, sackTrenchGltf]) => {
       const blockingMeshes = [];
+      const towers = [];
 
-      for (const placement of PLACEMENTS) {
-        const isCrate = placement.type === 'crate';
-        const template = isCrate ? crateGltf.scene : sackTrenchGltf.scene;
-        const scale = isCrate ? CRATE_SCALE : SACK_TRENCH_SCALE;
-
-        const instance = template.clone();
-        instance.scale.setScalar(scale);
+      for (const placement of GROUND_PLACEMENTS) {
+        const instance = sackTrenchGltf.scene.clone();
+        instance.scale.setScalar(SACK_TRENCH_SCALE);
         instance.position.set(placement.x, GROUND_Y, placement.z);
         scene.add(instance);
+        instance.traverse((object) => {
+          if (object.isMesh) blockingMeshes.push(object);
+        });
+      }
 
-        if (!isCrate) {
-          instance.traverse((object) => {
-            if (object.isMesh) blockingMeshes.push(object);
-          });
+      TOWER_PLACEMENTS.forEach((placement, towerIndex) => {
+        const group = new THREE.Group();
+        group.position.set(placement.x, 0, placement.z);
+        scene.add(group);
+
+        const pillarMeshes = [];
+        const materials = [];
+
+        for (const offsetX of [-PILLAR_OFFSET_X, PILLAR_OFFSET_X]) {
+          for (let level = 0; level < 2; level++) {
+            const crateInstance = crateGltf.scene.clone();
+            crateInstance.scale.setScalar(CRATE_SCALE);
+            crateInstance.position.set(offsetX, GROUND_Y + level * CRATE_UNIT_HEIGHT, 0);
+            group.add(crateInstance);
+            crateInstance.traverse((object) => {
+              if (object.isMesh) {
+                object.userData = { towerIndex };
+                pillarMeshes.push(object);
+                collectMaterials(object, materials);
+              }
+            });
+          }
+        }
+
+        const pillarTopY = GROUND_Y + 2 * CRATE_UNIT_HEIGHT;
+        const floor = sackTrenchGltf.scene.clone();
+        floor.scale.setScalar(SACK_TRENCH_SCALE);
+        floor.rotation.x = FLOOR_ROTATION_X;
+        floor.position.set(0, pillarTopY, 0);
+        group.add(floor);
+        floor.traverse((object) => {
+          if (object.isMesh) collectMaterials(object, materials);
+        });
+
+        towers.push({
+          towerIndex,
+          group,
+          pillarMeshes,
+          materials,
+          collapsing: false,
+          collapsed: false,
+          collapseElapsed: 0,
+          monkeySlot: { x: placement.x, y: pillarTopY + FLOOR_THICKNESS, z: placement.z, towerIndex },
+        });
+      });
+
+      function update(dt) {
+        for (const tower of towers) {
+          if (!tower.collapsing || tower.collapsed) continue;
+          tower.collapseElapsed += dt;
+          const t = Math.min(tower.collapseElapsed / COLLAPSE_DURATION, 1);
+          tower.group.rotation.z = t * COLLAPSE_TILT;
+          tower.group.position.y = -t * COLLAPSE_DROP;
+          for (const material of tower.materials) {
+            material.transparent = true;
+            material.opacity = 1 - t;
+          }
+          if (t >= 1) {
+            tower.collapsed = true;
+            tower.group.visible = false;
+          }
         }
       }
 
@@ -41,6 +114,18 @@ export function loadObstacles(scene) {
         getBlockingMeshes() {
           return blockingMeshes;
         },
+        getPillarMeshes() {
+          return towers.filter((tower) => !tower.collapsing).flatMap((tower) => tower.pillarMeshes);
+        },
+        getTowerSlots() {
+          return towers.map((tower) => tower.monkeySlot);
+        },
+        collapseTower(towerIndex) {
+          const tower = towers.find((t) => t.towerIndex === towerIndex);
+          if (!tower || tower.collapsing) return;
+          tower.collapsing = true;
+        },
+        update,
       };
     }
   );
