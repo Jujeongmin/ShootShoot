@@ -65,8 +65,6 @@ export function createGame(container) {
   let scoreState = createScoreState();
   let round = 1;
   let timeRemaining = 0;
-  let ammoRemaining = 0;
-  let ammoMax = 0;
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
   let settingsOrigin = null;
@@ -76,8 +74,6 @@ export function createGame(container) {
     obstacles.reset();
     const roundParams = targetManager.spawnRound(roundNumber);
     timeRemaining = roundParams.timeLimit;
-    ammoRemaining = roundParams.ammo;
-    ammoMax = roundParams.ammo;
   }
 
   function startGame() {
@@ -110,8 +106,6 @@ export function createGame(container) {
       streak: scoreState.streak,
       round,
       timeRemaining: Math.max(timeRemaining, 0),
-      ammo: Math.max(ammoRemaining, 0),
-      ammoMax,
     });
   }
 
@@ -178,8 +172,7 @@ export function createGame(container) {
   });
 
   function handleShot() {
-    if (phase !== 'playing' || ammoRemaining <= 0) return;
-    ammoRemaining -= 1;
+    if (phase !== 'playing') return;
     sfx.shoot();
     rifleViewmodel.triggerRecoil();
     raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
@@ -314,8 +307,6 @@ export function createGame(container) {
             stageBanner.show(round + 1);
             beginRound(round + 1);
             updateHud();
-          } else if (ammoRemaining <= 0 && !targetManager.hasDyingMonkeys()) {
-            endGame();
           }
         }
       }

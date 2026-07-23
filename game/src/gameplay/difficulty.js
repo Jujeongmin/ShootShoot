@@ -5,6 +5,5 @@ export function getRoundParams(roundNumber, config) {
   const timeLimit = Math.max(c.baseTimeLimit - n * c.timeLimitDecreasePerRound, c.minTimeLimit);
   const monkeySpeed = c.baseMonkeySpeed + n * c.monkeySpeedIncreasePerRound;
   const monkeyScale = Math.max(c.baseMonkeyScale - n * c.monkeyScaleDecreasePerRound, c.minMonkeyScale);
-  const ammo = Math.max(c.minAmmo, Math.ceil(monkeyCount * c.ammoMultiplier));
-  return { roundNumber, monkeyCount, timeLimit, monkeySpeed, monkeyScale, ammo };
+  return { roundNumber, monkeyCount, timeLimit, monkeySpeed, monkeyScale };
 }

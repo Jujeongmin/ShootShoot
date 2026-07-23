@@ -7,13 +7,12 @@ export function createHud(container) {
   `;
   container.appendChild(el);
 
-  function render({ score, streak, round, timeRemaining, ammo, ammoMax }) {
+  function render({ score, streak, round, timeRemaining }) {
     el.innerHTML = `
       <div>점수: ${score}</div>
       <div>연속: ${streak}</div>
       <div>라운드: ${round}</div>
       <div>남은 시간: ${Math.ceil(timeRemaining)}s</div>
-      <div>총알: ${ammo}/${ammoMax}</div>
     `;
   }
 
