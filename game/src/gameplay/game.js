@@ -71,6 +71,7 @@ export function createGame(container) {
   let settingsOrigin = null;
 
   const weaponStore = createWeaponStore(window.localStorage, CONFIG.weaponStorageKey);
+  let shopError = null;
 
   function getEquippedWeapon() {
     const id = weaponStore.getEquipped();
@@ -150,6 +151,7 @@ export function createGame(container) {
     const owned = weaponStore.getOwned();
     return {
       gold: currencyStore.get(),
+      error: shopError,
       weapons: CONFIG.weapons.map((weapon) => ({
         id: weapon.id,
         name: weapon.name,
@@ -167,6 +169,7 @@ export function createGame(container) {
   }
 
   function buyWeapon(id) {
+    shopError = null;
     const weapon = CONFIG.weapons.find((entry) => entry.id === id);
     if (!weapon || weaponStore.isOwned(id)) return;
     if (!currencyStore.spend(weapon.price)) return;
@@ -175,6 +178,7 @@ export function createGame(container) {
   }
 
   function equipWeapon(id) {
+    shopError = null;
     const weapon = CONFIG.weapons.find((entry) => entry.id === id);
     const previousId = weaponStore.getEquipped();
     if (!weapon || !weaponStore.equip(id)) return;
@@ -183,6 +187,7 @@ export function createGame(container) {
       // 모델 로드가 실패하면 들고 있던 무기를 그대로 유지한다. swapWeaponViewmodel은
       // 성공했을 때만 기존 뷰모델을 교체하므로, 저장값만 되돌리면 화면과 다시 맞는다.
       weaponStore.equip(previousId);
+      shopError = '무기를 불러오지 못했습니다';
       refreshShop();
     });
   }
@@ -194,6 +199,7 @@ export function createGame(container) {
   };
 
   function openShopFromMenu() {
+    shopError = null;
     screens.hide();
     refreshShop();
   }

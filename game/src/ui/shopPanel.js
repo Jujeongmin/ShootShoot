@@ -58,7 +58,7 @@ export function createShopPanel(container) {
   }
 
   function render() {
-    const { gold, weapons } = current.state;
+    const { gold, weapons, error } = current.state;
     const handlers = current.handlers;
     const weapon = weapons[index];
     overlay.innerHTML = '';
@@ -100,6 +100,14 @@ export function createShopPanel(container) {
       <div style="font-size:13px;color:#bbb">데미지 ${damagePips(weapon.damage)}</div>
     `;
     card.appendChild(actionButton(weapon, gold, handlers));
+
+    if (typeof error === 'string' && error.length > 0) {
+      const errorText = document.createElement('div');
+      errorText.style.cssText = 'color:#ff6b6b;font-size:12px;text-align:center;margin-top:8px;';
+      errorText.textContent = error;
+      card.appendChild(errorText);
+    }
+
     row.appendChild(card);
 
     row.appendChild(arrow('▶', index === weapons.length - 1, () => { index += 1; render(); }));
