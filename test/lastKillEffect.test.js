@@ -5,22 +5,22 @@ describe('createLastKillEffect', () => {
   it('is inactive before any trigger', () => {
     const effect = createLastKillEffect();
     expect(effect.getTimeScale()).toBe(1);
-    expect(effect.getFovDelta()).toBe(0);
+    expect(effect.getZoomRatio()).toBe(0);
   });
 
-  it('activates immediately on trigger with full FOV delta and slow time scale', () => {
+  it('activates immediately on trigger with full zoom ratio and slow time scale', () => {
     const effect = createLastKillEffect();
     effect.trigger();
     expect(effect.getTimeScale()).toBe(0.3);
-    expect(effect.getFovDelta()).toBe(10);
+    expect(effect.getZoomRatio()).toBeCloseTo(1 / 6, 10);
   });
 
-  it('eases the FOV delta back toward 0 as real time passes, while still active', () => {
+  it('eases the zoom ratio back toward 0 as real time passes, while still active', () => {
     const effect = createLastKillEffect();
     effect.trigger();
     effect.update(0.3);
     expect(effect.getTimeScale()).toBe(0.3);
-    expect(effect.getFovDelta()).toBeCloseTo(5, 5);
+    expect(effect.getZoomRatio()).toBeCloseTo(1 / 12, 10);
   });
 
   it('deactivates once the effect duration has fully elapsed', () => {
@@ -28,7 +28,7 @@ describe('createLastKillEffect', () => {
     effect.trigger();
     effect.update(0.6);
     expect(effect.getTimeScale()).toBe(1);
-    expect(effect.getFovDelta()).toBe(0);
+    expect(effect.getZoomRatio()).toBe(0);
   });
 
   it('can be retriggered after deactivating', () => {
@@ -37,6 +37,6 @@ describe('createLastKillEffect', () => {
     effect.update(0.6);
     effect.trigger();
     expect(effect.getTimeScale()).toBe(0.3);
-    expect(effect.getFovDelta()).toBe(10);
+    expect(effect.getZoomRatio()).toBeCloseTo(1 / 6, 10);
   });
 });

@@ -325,7 +325,8 @@ export function createGame(container) {
         }
       }
 
-      engine.setFov((input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov) - lastKillEffect.getFovDelta());
+      const baseFov = input.isAiming() ? CONFIG.aim.aimFov : CONFIG.aim.normalFov;
+      engine.setFov(baseFov * (1 - lastKillEffect.getZoomRatio()));
     });
 
     Promise.all([

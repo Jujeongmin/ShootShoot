@@ -1,5 +1,5 @@
-const FRONT_Z = -39;
-const BASE_DEPTH_GAP = 7.5;
+const FRONT_Z = -78;
+const BASE_DEPTH_GAP = 15;
 const MAX_LANE_ANGLE = 0.25;
 const ANGULAR_SWAY_AMPLITUDE = 0.038;
 const SWAY_FREQUENCY_PER_SPEED = 1.8;

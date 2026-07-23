@@ -33,7 +33,7 @@ export const CONFIG = {
   },
   aim: {
     normalFov: 60,
-    aimFov: 10,
+    aimFov: 5,
     lookLimitX: 0.3,
     lookLimitY: 0.2,
   },

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 export function createEngine(container) {
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 400);
+  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 800);
   camera.position.set(0, 1.6, 0);
   scene.add(camera);
 
