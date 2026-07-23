@@ -11,7 +11,7 @@ import { showRewardedAd } from './adSdk.js';
 import { createCurrencyStore } from './currencyStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
-import { loadRifleViewmodel } from './rifleViewmodel.js';
+import { loadWeaponViewmodel } from './weaponViewmodel.js';
 import { loadObstacles } from './obstacles.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
@@ -60,7 +60,7 @@ export function createGame(container) {
   const lastKillEffect = createLastKillEffect();
 
   let targetManager = null;
-  let rifleViewmodel = null;
+  let weaponViewmodel = null;
   let obstacles = null;
   let phase = 'menu';
   let scoreState = createScoreState();
@@ -150,6 +150,13 @@ export function createGame(container) {
     shopPanel.show(closeShop);
   }
 
+  function swapWeaponViewmodel(weapon) {
+    return loadWeaponViewmodel(engine.camera, weapon).then((next) => {
+      if (weaponViewmodel) weaponViewmodel.dispose();
+      weaponViewmodel = next;
+    });
+  }
+
   function closeShop() {
     shopPanel.hide();
     screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
@@ -182,7 +189,7 @@ export function createGame(container) {
   function handleShot() {
     if (phase !== 'playing') return;
     sfx.shoot();
-    rifleViewmodel.triggerRecoil();
+    weaponViewmodel.triggerRecoil();
     raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
     const raycastTargets = [
       ...targetManager.getRaycastMeshes(),
@@ -288,9 +295,9 @@ export function createGame(container) {
       if (targetManager) {
         targetManager.update(scaledDt);
       }
-      if (rifleViewmodel) {
-        rifleViewmodel.update(scaledDt);
-        rifleViewmodel.setVisible(!input.isAiming());
+      if (weaponViewmodel) {
+        weaponViewmodel.update(scaledDt);
+        weaponViewmodel.setVisible(!input.isAiming());
       }
       effects.update(scaledDt);
 
@@ -331,11 +338,11 @@ export function createGame(container) {
 
     Promise.all([
       loadMonkeyModel(),
-      loadRifleViewmodel(engine.camera),
+      loadWeaponViewmodel(engine.camera, getEquippedWeapon()),
       loadObstacles(engine.scene),
-    ]).then(([monkeyModel, resolvedRifleViewmodel, resolvedObstacles]) => {
+    ]).then(([monkeyModel, resolvedWeaponViewmodel, resolvedObstacles]) => {
       targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel, resolvedObstacles.getTowerSlots());
-      rifleViewmodel = resolvedRifleViewmodel;
+      weaponViewmodel = resolvedWeaponViewmodel;
       obstacles = resolvedObstacles;
 
       const now = Date.now();
