@@ -57,6 +57,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
   model.traverse((child) => {
     if (child.isMesh) {
       raycastMesh = child;
+      child.castShadow = true;
       child.userData = { monkeyId: id };
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       materials.push(...mats);

@@ -18,13 +18,13 @@ const COLLAPSE_TILT = Math.PI / 2;
 const COLLAPSE_DROP = 0.6;
 
 const GROUND_PLACEMENTS = [
-  { x: -9, z: -54 },
-  { x: 7.5, z: -60 },
+  { x: -7, z: -70 },
+  { x: 6, z: -73 },
 ];
 
 const TOWER_PLACEMENTS = [
-  { x: 1.5, z: -45 },
-  { x: -4.5, z: -51 },
+  { x: 1.5, z: -72 },
+  { x: -4.5, z: -75 },
 ];
 
 function collectMaterials(object, materials) {
@@ -49,6 +49,8 @@ export function loadObstacles(scene) {
             object.material = Array.isArray(object.material)
               ? object.material.map((material) => material.clone())
               : object.material.clone();
+            object.castShadow = true;
+            object.receiveShadow = true;
             blockingMeshes.push(object);
           }
         });
@@ -77,6 +79,8 @@ export function loadObstacles(scene) {
                 object.material = Array.isArray(object.material)
                   ? object.material.map((material) => material.clone())
                   : object.material.clone();
+                object.castShadow = true;
+                object.receiveShadow = true;
                 object.userData = { towerIndex };
                 pillarMeshes.push(object);
                 collectMaterials(object, materials);
@@ -96,6 +100,8 @@ export function loadObstacles(scene) {
             object.material = Array.isArray(object.material)
               ? object.material.map((material) => material.clone())
               : object.material.clone();
+            object.castShadow = true;
+            object.receiveShadow = true;
             collectMaterials(object, materials);
           }
         });
