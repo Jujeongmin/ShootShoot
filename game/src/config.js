@@ -19,6 +19,8 @@ export const CONFIG = {
     baseMonkeyScale: 1.0,
     monkeyScaleDecreasePerRound: 0.03,
     minMonkeyScale: 0.5,
+    baseMonkeyHp: 1,
+    roundsPerMonkeyHpIncrease: 2,
   },
   missLimit: 5,
   scorePerGold: 10,
