@@ -303,10 +303,10 @@ export function createGame(container) {
         const effectiveX = clampToUnit(ndc.x * sensitivity);
         const effectiveY = clampToUnit(ndc.y * sensitivity);
         engine.camera.rotation.y = -effectiveX * CONFIG.aim.lookLimitX;
-        engine.camera.rotation.x = CONFIG.aim.basePitch + effectiveY * CONFIG.aim.lookLimitY;
+        engine.camera.rotation.x = effectiveY * CONFIG.aim.lookLimitY;
         scopeOverlay.show();
       } else {
-        engine.camera.rotation.set(CONFIG.aim.basePitch, 0, 0);
+        engine.camera.rotation.set(0, 0, 0);
         scopeOverlay.hide();
       }
 

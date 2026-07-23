@@ -34,9 +34,6 @@ export const CONFIG = {
   aim: {
     normalFov: 60,
     aimFov: 9,
-    // 사대(y=22)에서 섬 표면(y=-1, 80유닛 앞)을 내려다보는 각도.
-    // atan(23 / 80) = 0.2795rad. 조준 상하 이동은 이 값을 중심으로 움직인다.
-    basePitch: -0.28,
     lookLimitX: 0.3,
     lookLimitY: 0.2,
   },

@@ -2,6 +2,10 @@ import { createMonkey } from './monkey.js';
 import { getRoundParams } from './difficulty.js';
 import { computeLaneLayout } from './laneLayout.js';
 
+// 원숭이를 놓을 때 지면보다 이만큼 내린다. 레인 원숭이와 타워 위 원숭이 모두에
+// 같이 적용되도록 배치 지점 한 곳에서만 뺀다.
+const MONKEY_DROP = 0.3;
+
 export function createTargetManager(scene, config, monkeyModel, towerSlots) {
   let monkeys = [];
   let nextId = 0;
@@ -23,7 +27,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     for (const slot of towerSlots) {
       const monkey = createMonkey({
         id: `monkey-${nextId++}`,
-        position: { x: slot.x, y: slot.y, z: slot.z },
+        position: { x: slot.x, y: slot.y - MONKEY_DROP, z: slot.z },
         scale: params.monkeyScale,
         speed: params.monkeySpeed,
         template: monkeyModel.template,
@@ -42,7 +46,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
       const slot = layout[i];
       const monkey = createMonkey({
         id: `monkey-${nextId++}`,
-        position: { x: slot.x, y: slot.y, z: slot.z },
+        position: { x: slot.x, y: slot.y - MONKEY_DROP, z: slot.z },
         scale: params.monkeyScale,
         speed: params.monkeySpeed,
         template: monkeyModel.template,

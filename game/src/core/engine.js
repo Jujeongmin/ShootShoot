@@ -3,10 +3,7 @@ import * as THREE from 'three';
 export function createEngine(container) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 800);
-  // 높은 사대에서 섬을 내려다본다. 눈높이가 섬 표면과 비슷하면 80유닛 밖의
-  // 섬이 거의 옆면으로만 보여서, 표적 뒤로 지면이 안 깔리고 하늘을 배경으로
-  // 떠 있는 것처럼 보인다.
-  camera.position.set(0, 22, 0);
+  camera.position.set(0, 1.6, 0);
   scene.add(camera);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
