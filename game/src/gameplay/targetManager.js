@@ -4,7 +4,7 @@ import { computeLaneLayout } from './laneLayout.js';
 
 // 원숭이를 놓을 때 지면보다 이만큼 내린다. 레인 원숭이와 타워 위 원숭이 모두에
 // 같이 적용되도록 배치 지점 한 곳에서만 뺀다.
-const MONKEY_DROP = 0.5;
+const MONKEY_DROP = 0;
 
 export function createTargetManager(scene, config, monkeyModel, towerSlots) {
   let monkeys = [];
