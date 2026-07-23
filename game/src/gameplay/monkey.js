@@ -9,8 +9,41 @@ const TAUNT_INTERVAL_MAX = 4.5;
 // arms/legs; the tail is excluded as its bind-relative Y swings wildly and isn't a reliable
 // signal), so this sits near the top ~20% of that live range.
 const HEAD_CUTOFF_LOCAL_Y = 5;
+const FLASH_DURATION = 0.15;
+const FLASH_COLOR = 0xff3333;
+const FLINCH_DISTANCE = 0.08;
+const HP_BAR_CANVAS_WIDTH = 64;
+const HP_BAR_CANVAS_HEIGHT = 10;
+const HP_BAR_LOCAL_Y = 2.1;
+const HP_BAR_SPRITE_SIZE = { x: 0.9, y: 0.14 };
 
-export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip, sway = {} }) {
+function createHpBar() {
+  const canvas = document.createElement('canvas');
+  canvas.width = HP_BAR_CANVAS_WIDTH;
+  canvas.height = HP_BAR_CANVAS_HEIGHT;
+  const context = canvas.getContext('2d');
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(material);
+  sprite.position.set(0, HP_BAR_LOCAL_Y, 0);
+  sprite.scale.set(HP_BAR_SPRITE_SIZE.x, HP_BAR_SPRITE_SIZE.y, 1);
+  sprite.visible = false;
+  sprite.renderOrder = 999;
+
+  function draw(current, max) {
+    const ratio = Math.max(0, current) / max;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = 'rgba(0,0,0,0.65)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = ratio > 0.5 ? '#5ec85e' : ratio > 0.25 ? '#f0a500' : '#dd3333';
+    context.fillRect(1, 1, Math.round((canvas.width - 2) * ratio), canvas.height - 2);
+    texture.needsUpdate = true;
+  }
+
+  return { sprite, draw, dispose: () => { texture.dispose(); material.dispose(); } };
+}
+
+export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip, sway = {}, hp = 1 }) {
   const group = new THREE.Group();
   group.position.set(position.x, position.y, position.z);
   group.scale.setScalar(scale);
@@ -28,6 +61,11 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
       materials.push(...mats);
     }
   });
+
+  const baseColors = materials.map((material) => (material.color ? material.color.clone() : null));
+
+  const hpBar = createHpBar();
+  group.add(hpBar.sprite);
 
   const mixer = new THREE.AnimationMixer(model);
   if (clip) {
@@ -47,6 +85,10 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     tauntElapsed: 0,
     isTaunting: false,
     dead: false,
+    hp,
+    maxHp: hp,
+    isFlashing: false,
+    flashElapsed: 0,
   };
 
   function updateIdle(dt) {
@@ -91,6 +133,39 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     }
   }
 
+  function setFlashColor(active) {
+    materials.forEach((material, index) => {
+      if (!material.color) return;
+      if (active) {
+        material.color.setHex(FLASH_COLOR);
+      } else if (baseColors[index]) {
+        material.color.copy(baseColors[index]);
+      }
+    });
+  }
+
+  function updateFlash(dt) {
+    state.flashElapsed += dt;
+    const t = Math.min(state.flashElapsed / FLASH_DURATION, 1);
+    group.position.z = position.z - (1 - t) * FLINCH_DISTANCE;
+    if (t >= 1) {
+      state.isFlashing = false;
+      group.position.z = position.z;
+      setFlashColor(false);
+    }
+  }
+
+  function startDeath(part) {
+    state.hp = 0;
+    hpBar.sprite.visible = false;
+    state.isFlashing = false;
+    setFlashColor(false);
+    group.position.z = position.z;
+    state.phase = 'hit';
+    state.hitElapsed = 0;
+    state.lastHitPart = part;
+  }
+
   return {
     id,
     group,
@@ -107,13 +182,29 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
         updateHit(dt);
       } else {
         updateIdle(dt);
+        if (state.isFlashing) {
+          updateFlash(dt);
+        }
       }
     },
-    hit(part) {
-      if (state.phase === 'hit') return;
-      state.phase = 'hit';
-      state.hitElapsed = 0;
-      state.lastHitPart = part;
+    damage(amount, part) {
+      if (state.phase === 'hit') return false;
+      state.hp -= amount;
+      if (state.hp <= 0) {
+        startDeath(part);
+        return true;
+      }
+      hpBar.draw(state.hp, state.maxHp);
+      hpBar.sprite.visible = true;
+      state.isFlashing = true;
+      state.flashElapsed = 0;
+      setFlashColor(true);
+      return false;
+    },
+    kill() {
+      if (state.phase === 'hit') return false;
+      startDeath('body');
+      return true;
     },
     isDead() {
       return state.dead;
@@ -123,6 +214,9 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     },
     getWorldPosition(target = new THREE.Vector3()) {
       return group.getWorldPosition(target);
+    },
+    dispose() {
+      hpBar.dispose();
     },
   };
 }

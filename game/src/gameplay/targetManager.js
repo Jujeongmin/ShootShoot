@@ -8,7 +8,10 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
   let towerMonkeyIds = new Map();
 
   function clear() {
-    for (const monkey of monkeys) scene.remove(monkey.group);
+    for (const monkey of monkeys) {
+      scene.remove(monkey.group);
+      monkey.dispose();
+    }
     monkeys = [];
     towerMonkeyIds = new Map();
   }
@@ -26,6 +29,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
         template: monkeyModel.template,
         clip: monkeyModel.clip,
         sway: { amplitude: 0, frequency: params.monkeySpeed, phase: 0 },
+        hp: params.monkeyHp,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);
@@ -44,6 +48,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
         template: monkeyModel.template,
         clip: monkeyModel.clip,
         sway: { amplitude: slot.swayAmplitude, frequency: slot.swayFrequency, phase: slot.swayPhase },
+        hp: params.monkeyHp,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);
@@ -57,6 +62,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     monkeys = monkeys.filter((monkey) => {
       if (monkey.isDead()) {
         scene.remove(monkey.group);
+        monkey.dispose();
         return false;
       }
       return true;
