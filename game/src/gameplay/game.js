@@ -3,7 +3,7 @@ import { createEngine } from '../core/engine.js';
 import { createInputController } from '../core/input.js';
 import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
-import { resolveShot } from './shooting.js';
+import { resolveShot, computeHitDamage, resolveKillOutcome } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
@@ -23,6 +23,7 @@ import { createShopPanel } from '../ui/shopPanel.js';
 import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { createAdRewardPanel } from '../ui/adRewardPanel.js';
 import { createLastKillEffect } from './lastKillEffect.js';
+import { createWeaponStore } from './weaponStore.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -68,6 +69,13 @@ export function createGame(container) {
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
   let settingsOrigin = null;
+
+  const weaponStore = createWeaponStore(window.localStorage, CONFIG.weaponStorageKey);
+
+  function getEquippedWeapon() {
+    const id = weaponStore.getEquipped();
+    return CONFIG.weapons.find((weapon) => weapon.id === id) ?? CONFIG.weapons[0];
+  }
 
   function beginRound(roundNumber) {
     round = roundNumber;
@@ -203,21 +211,27 @@ export function createGame(container) {
     }
 
     const outcome = resolveShot(hits);
-    const isPureTowerHit = hits.length === 0 && hitTowerIndex !== null;
-    const effectiveOutcome = isPureTowerHit ? { isMiss: false, penetrationCount: 0, hits: [] } : outcome;
-    const gained = calculateShotScore(effectiveOutcome, scoreState.streak, CONFIG);
-    scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
+    const weaponDamage = getEquippedWeapon().damage;
 
     let popupWorldPosition = null;
+    const killedHits = [];
     for (const hit of outcome.hits) {
       const monkey = targetManager.findMonkey(hit.monkeyId);
-      if (monkey) {
-        const worldPos = monkey.getWorldPosition();
-        if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
-        effects.spawnHitBurst(worldPos);
-        monkey.hit(hit.part);
+      if (!monkey) continue;
+      const worldPos = monkey.getWorldPosition();
+      if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
+      effects.spawnHitBurst(worldPos);
+      if (monkey.damage(computeHitDamage(hit.part, weaponDamage, CONFIG), hit.part)) {
+        killedHits.push(hit);
       }
     }
+
+    const isPureTowerHit = hits.length === 0 && hitTowerIndex !== null;
+    const effectiveOutcome = isPureTowerHit
+      ? { isMiss: false, penetrationCount: 0, hits: [] }
+      : resolveKillOutcome(outcome, killedHits);
+    const gained = calculateShotScore(effectiveOutcome, scoreState.streak, CONFIG);
+    scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
 
     if (hitTowerIndex !== null) {
       obstacles.collapseTower(hitTowerIndex);
@@ -225,7 +239,7 @@ export function createGame(container) {
       if (towerMonkey && !towerMonkey.isDying()) {
         const worldPos = towerMonkey.getWorldPosition();
         effects.spawnHitBurst(worldPos);
-        towerMonkey.hit('body');
+        towerMonkey.kill();
         scoreState = { ...scoreState, score: scoreState.score + CONFIG.score.towerCollapseBonus };
         const screenPos = worldToScreen(worldPos, engine.camera, container);
         hud.showScorePopup(`+${CONFIG.score.towerCollapseBonus}`, screenPos.x, screenPos.y);
@@ -242,13 +256,13 @@ export function createGame(container) {
       sfx.miss();
     } else if (effectiveOutcome.penetrationCount > 1) {
       sfx.combo();
-    } else if (effectiveOutcome.hits[0].part === 'head') {
+    } else if (effectiveOutcome.hits[0]?.part === 'head') {
       sfx.headshot();
     } else {
       sfx.hit();
     }
 
-    if (!effectiveOutcome.isMiss && popupWorldPosition) {
+    if (!effectiveOutcome.isMiss && popupWorldPosition && gained > 0) {
       const screenPos = worldToScreen(popupWorldPosition, engine.camera, container);
       hud.showScorePopup(`+${gained}`, screenPos.x, screenPos.y);
     }
