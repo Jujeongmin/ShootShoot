@@ -42,6 +42,16 @@ describe('calculateShotScore', () => {
   it('returns 0 for a miss', () => {
     expect(calculateShotScore({ isMiss: true, penetrationCount: 0, hits: [] }, 5, CONFIG)).toBe(0);
   });
+
+  it('scores nothing for a hit that killed nobody, and keeps the streak alive', () => {
+    const outcome = { isMiss: false, penetrationCount: 0, hits: [] };
+    expect(calculateShotScore(outcome, 3, CONFIG)).toBe(0);
+
+    const next = applyShot({ score: 500, streak: 3, misses: 1 }, outcome, CONFIG);
+    expect(next.score).toBe(500);
+    expect(next.streak).toBe(4);
+    expect(next.misses).toBe(1);
+  });
 });
 
 describe('applyShot', () => {
