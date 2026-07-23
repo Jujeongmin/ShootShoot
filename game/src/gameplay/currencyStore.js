@@ -10,5 +10,11 @@ export function createCurrencyStore(storage, key) {
       storage.setItem(key, String(next));
       return next;
     },
+    spend(amount) {
+      const current = this.get();
+      if (amount > current) return false;
+      storage.setItem(key, String(current - amount));
+      return true;
+    },
   };
 }
