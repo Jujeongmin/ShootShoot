@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { cloneMonkeyModel } from './monkeyModel.js';
 
 const HIT_ANIMATION_DURATION = 0.6;
+const BOB_HEIGHT = 0.06;
 const TAUNT_INTERVAL_MIN = 2;
 const TAUNT_INTERVAL_MAX = 4.5;
 // Calibrated against the SkinnedMesh's ANIMATED pose (not rest-pose): live-sampling the
@@ -94,8 +95,10 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
   function updateIdle(dt) {
     state.elapsed += dt;
 
-    const bob = Math.sin(state.elapsed * 3 + state.phaseOffset) * 0.08;
-    group.position.y = position.y + bob;
+    // 위로만 흔들리게 한다. 대칭으로 흔들면 절반의 시간 동안 발이 지면을 파고들어
+    // 땅에 서 있는 게 아니라 떠 있는 것처럼 보인다.
+    const bobPhase = Math.sin(state.elapsed * 3 + state.phaseOffset) * 0.5 + 0.5;
+    group.position.y = position.y + bobPhase * BOB_HEIGHT;
 
     const swayOffset = Math.sin(state.elapsed * swayFrequency + swayPhase) * swayAmplitude;
     group.position.x = position.x + swayOffset;

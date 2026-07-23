@@ -6,10 +6,13 @@ const SACK_TRENCH_URL = '/models/sack-trench.glb';
 const CRATE_SCALE = 6;
 const SACK_TRENCH_SCALE = 1;
 const GROUND_Y = -1.0;
-const CRATE_UNIT_HEIGHT = 0.9612;
+// tools/measure-props.mjs 실측값. 상자 원점은 바닥보다 0.0119 위에 있어서,
+// position.y를 그만큼 올려야 상자 바닥이 지면에 정확히 닿는다.
+const CRATE_UNIT_HEIGHT = 0.9614;
+const CRATE_ORIGIN_TO_BOTTOM = 0.0119;
 const PILLAR_OFFSET_X = 0.8;
 const FLOOR_ROTATION_X = -Math.PI / 2;
-const FLOOR_THICKNESS = 0.8;
+const FLOOR_THICKNESS = 0.7751;
 const COLLAPSE_DURATION = 0.3;
 const COLLAPSE_TILT = Math.PI / 2;
 const COLLAPSE_DROP = 0.6;
@@ -63,7 +66,11 @@ export function loadObstacles(scene) {
           for (let level = 0; level < 2; level++) {
             const crateInstance = crateGltf.scene.clone();
             crateInstance.scale.setScalar(CRATE_SCALE);
-            crateInstance.position.set(offsetX, GROUND_Y + level * CRATE_UNIT_HEIGHT, 0);
+            crateInstance.position.set(
+              offsetX,
+              GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + level * CRATE_UNIT_HEIGHT,
+              0
+            );
             group.add(crateInstance);
             crateInstance.traverse((object) => {
               if (object.isMesh) {
@@ -78,7 +85,7 @@ export function loadObstacles(scene) {
           }
         }
 
-        const pillarTopY = GROUND_Y + 2 * CRATE_UNIT_HEIGHT;
+        const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + 2 * CRATE_UNIT_HEIGHT;
         const floor = sackTrenchGltf.scene.clone();
         floor.scale.setScalar(SACK_TRENCH_SCALE);
         floor.rotation.x = FLOOR_ROTATION_X;
