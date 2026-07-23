@@ -742,6 +742,17 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
       setFlashColor(false);
     }
   }
+
+  function startDeath(part) {
+    state.hp = 0;
+    hpBar.sprite.visible = false;
+    state.isFlashing = false;
+    setFlashColor(false);
+    group.position.z = position.z;
+    state.phase = 'hit';
+    state.hitElapsed = 0;
+    state.lastHitPart = part;
+  }
 ```
 
 - [ ] **Step 5: `update`에서 플래시를 돌리고, `hit`을 `damage`/`kill`로 교체**
@@ -769,13 +780,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
       if (state.phase === 'hit') return false;
       state.hp -= amount;
       if (state.hp <= 0) {
-        state.hp = 0;
-        hpBar.sprite.visible = false;
-        state.isFlashing = false;
-        setFlashColor(false);
-        state.phase = 'hit';
-        state.hitElapsed = 0;
-        state.lastHitPart = part;
+        startDeath(part);
         return true;
       }
       hpBar.draw(state.hp, state.maxHp);
@@ -787,13 +792,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     },
     kill() {
       if (state.phase === 'hit') return false;
-      state.hp = 0;
-      hpBar.sprite.visible = false;
-      state.isFlashing = false;
-      setFlashColor(false);
-      state.phase = 'hit';
-      state.hitElapsed = 0;
-      state.lastHitPart = 'body';
+      startDeath('body');
       return true;
     },
 ```
