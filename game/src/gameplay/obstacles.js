@@ -15,13 +15,13 @@ const COLLAPSE_TILT = Math.PI / 2;
 const COLLAPSE_DROP = 0.6;
 
 const GROUND_PLACEMENTS = [
-  { x: -3, z: -9 },
-  { x: 2.5, z: -10 },
+  { x: -9, z: -27 },
+  { x: 7.5, z: -30 },
 ];
 
 const TOWER_PLACEMENTS = [
-  { x: 0.5, z: -7.5 },
-  { x: -1.5, z: -8.5 },
+  { x: 1.5, z: -22.5 },
+  { x: -4.5, z: -25.5 },
 ];
 
 function collectMaterials(object, materials) {
