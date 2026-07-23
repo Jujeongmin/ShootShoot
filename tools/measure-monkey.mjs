@@ -72,11 +72,47 @@ fbx.position.set(RECENTER_OFFSET.x, RECENTER_OFFSET.y, RECENTER_OFFSET.z);
 group.add(fbx);
 group.updateMatrixWorld(true);
 
-const extent = measureSkinnedExtent(group);
+const bind = measureSkinnedExtent(group);
 console.log('');
 console.log('=== 게임에서 쓰는 형태 (group > model, scale 0.01) ===');
-console.log(`그룹 원점 기준 y 범위: ${extent.min.toFixed(4)} ~ ${extent.max.toFixed(4)} (키 ${(extent.max - extent.min).toFixed(4)})`);
+console.log(`바인드 포즈 y 범위: ${bind.min.toFixed(4)} ~ ${bind.max.toFixed(4)} (키 ${(bind.max - bind.min).toFixed(4)})`);
+
+// 실제로 게임에서 보이는 건 아이들 클립이 재생된 포즈다. 클립 전 구간을 돌면서
+// 발이 가장 낮게 내려가는 지점을 찾는다.
+const clip = fbx.animations[0];
+let lowest = bind.min;
+let highest = bind.max;
+const perSampleLowest = [];
+if (clip) {
+  const SAMPLE_COUNT = 120;
+  const mixer = new THREE.AnimationMixer(fbx);
+  mixer.clipAction(clip).play();
+  const step = clip.duration / SAMPLE_COUNT;
+  for (let i = 0; i < SAMPLE_COUNT; i++) {
+    mixer.update(i === 0 ? 0 : step);
+    group.updateMatrixWorld(true);
+    fbx.traverse((object) => {
+      if (object.isSkinnedMesh) object.skeleton.update();
+    });
+    const sample = measureSkinnedExtent(group);
+    perSampleLowest.push(sample.min);
+    lowest = Math.min(lowest, sample.min);
+    highest = Math.max(highest, sample.max);
+  }
+  console.log(`애니메이션(${clip.name}, ${clip.duration.toFixed(2)}s) 전 구간 y 범위: ${lowest.toFixed(4)} ~ ${highest.toFixed(4)}`);
+
+  const sorted = [...perSampleLowest].sort((a, b) => a - b);
+  const at = (q) => sorted[Math.floor((sorted.length - 1) * q)];
+  console.log('');
+  console.log('프레임별 최저점 분포 (이게 실제로 눈에 보이는 접지 상태):');
+  console.log(`  최저 ${at(0).toFixed(4)} | 25% ${at(0.25).toFixed(4)} | 중앙값 ${at(0.5).toFixed(4)} | 75% ${at(0.75).toFixed(4)} | 최고 ${at(1).toFixed(4)}`);
+  const aboveGround = sorted.filter((v) => v > 0.01).length;
+  console.log(`  원점보다 위에 떠 있는 프레임: ${aboveGround}/${sorted.length}`);
+} else {
+  console.log('애니메이션 클립 없음');
+}
+
 console.log('');
-console.log(`현재 group.position.y = ${GROUND_Y} → 발바닥 y = ${(GROUND_Y + extent.min).toFixed(4)}`);
-console.log(`바닥(y = ${GROUND_Y})에 딱 붙이려면 group.position.y = ${(GROUND_Y - extent.min).toFixed(4)}`);
-console.log(`=> GROUND_Y 대비 보정값: ${(-extent.min).toFixed(4)}`);
+console.log(`현재 group.position.y = ${GROUND_Y} → 가장 낮은 순간의 발바닥 y = ${(GROUND_Y + lowest).toFixed(4)}`);
+console.log(`바닥(y = ${GROUND_Y})에 딱 붙이려면 group.position.y = ${(GROUND_Y - lowest).toFixed(4)}`);
+console.log(`=> GROUND_Y 대비 보정값: ${(-lowest).toFixed(4)} (양수면 그만큼 떠 있다는 뜻)`);

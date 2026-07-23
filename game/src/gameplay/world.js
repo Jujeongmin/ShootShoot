@@ -4,7 +4,9 @@ import * as THREE from 'three';
 // 사대와 섬 사이는 의도적으로 비워 둔다.
 const ISLAND_CENTER_Z = -80;
 const ISLAND_WIDTH = 26;
-const ISLAND_DEPTH = 32;
+// 뒷줄 원숭이 머리가 섬의 먼 가장자리보다 아래에 오도록 깊이를 잡는다. 가장자리가
+// 더 가까우면 머리가 하늘을 배경으로 삐져나와 다시 떠 보인다.
+const ISLAND_DEPTH = 40;
 const ISLAND_THICKNESS = 4;
 const GROUND_Y = -1.0;
 // 섬 아래로 이어지는 바위. 밑면이 평평하면 잘린 판처럼 보인다.
@@ -26,10 +28,10 @@ export function createWorld(scene) {
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.set(2048, 2048);
   const shadowCamera = dirLight.shadow.camera;
-  shadowCamera.left = -30;
-  shadowCamera.right = 30;
-  shadowCamera.top = 30;
-  shadowCamera.bottom = -30;
+  shadowCamera.left = -36;
+  shadowCamera.right = 36;
+  shadowCamera.top = 36;
+  shadowCamera.bottom = -36;
   shadowCamera.near = 1;
   shadowCamera.far = 160;
   shadowCamera.updateProjectionMatrix();
