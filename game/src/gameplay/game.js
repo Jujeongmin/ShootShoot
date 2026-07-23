@@ -72,6 +72,7 @@ export function createGame(container) {
 
   const weaponStore = createWeaponStore(window.localStorage, CONFIG.weaponStorageKey);
   let shopError = null;
+  let shopOpen = false;
 
   function getEquippedWeapon() {
     const id = weaponStore.getEquipped();
@@ -188,7 +189,9 @@ export function createGame(container) {
       // 성공했을 때만 기존 뷰모델을 교체하므로, 저장값만 되돌리면 화면과 다시 맞는다.
       weaponStore.equip(previousId);
       shopError = '무기를 불러오지 못했습니다';
-      refreshShop();
+      // 로드가 늦게 실패하면 이미 상점을 닫고 플레이 중일 수 있다. 그때 상점을
+      // 다시 띄우면 화면을 덮어써서 조작을 막는다.
+      if (shopOpen) refreshShop();
     });
   }
 
@@ -200,6 +203,7 @@ export function createGame(container) {
 
   function openShopFromMenu() {
     shopError = null;
+    shopOpen = true;
     screens.hide();
     refreshShop();
   }
@@ -212,6 +216,7 @@ export function createGame(container) {
   }
 
   function closeShop() {
+    shopOpen = false;
     shopPanel.hide();
     screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
   }
@@ -392,7 +397,12 @@ export function createGame(container) {
 
     Promise.all([
       loadMonkeyModel(),
-      loadWeaponViewmodel(engine.camera, getEquippedWeapon()),
+      loadWeaponViewmodel(engine.camera, getEquippedWeapon()).catch(() => {
+        // 저장된 무기를 못 불러오면 기본 무기로 되돌린다. 여기서 실패를 삼키지
+        // 않으면 로딩 화면에서 영영 못 빠져나온다.
+        weaponStore.equip(CONFIG.weapons[0].id);
+        return loadWeaponViewmodel(engine.camera, CONFIG.weapons[0]);
+      }),
       loadObstacles(engine.scene),
     ]).then(([monkeyModel, resolvedWeaponViewmodel, resolvedObstacles]) => {
       targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel, resolvedObstacles.getTowerSlots());
