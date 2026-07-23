@@ -35,7 +35,7 @@ const reference = measure(await loadModel('game/public/models/rifle.glb'));
 const targetLength = reference.longest * REFERENCE_SCALE;
 console.log(`기준 rifle.glb: 최대변 ${reference.longest.toFixed(4)} × ${REFERENCE_SCALE} = 화면상 ${targetLength.toFixed(4)}`);
 
-for (const file of ['Rifle.fbx', 'Sniper rifle.fbx', 'Ray Gun.fbx']) {
+for (const file of ['Rifle.fbx', 'Sniper rifle.fbx', 'Ray Gun.fbx', 'Lightning Gun.fbx']) {
   const { size, center, longest } = measure(await loadModel(`game/public/models/${file}`));
   console.log(
     `${file}\n` +

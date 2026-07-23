@@ -47,9 +47,9 @@ export const CONFIG = {
       scale: 0.08, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
     },
     {
-      id: 'assault', name: '돌격소총', model: '/models/Rifle.fbx', format: 'fbx',
+      id: 'assault', name: '전기총', model: '/models/Lightning Gun.fbx', format: 'fbx',
       damage: 2, price: 500, image: '/images/weapons/assault.png',
-      scale: 0.0008, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
+      scale: 0.00148, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
     },
     {
       id: 'sniper', name: '저격소총', model: '/models/Sniper rifle.fbx', format: 'fbx',
