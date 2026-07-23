@@ -176,10 +176,13 @@ export function createGame(container) {
 
   function equipWeapon(id) {
     const weapon = CONFIG.weapons.find((entry) => entry.id === id);
+    const previousId = weaponStore.getEquipped();
     if (!weapon || !weaponStore.equip(id)) return;
     refreshShop();
     swapWeaponViewmodel(weapon).catch(() => {
-      weaponStore.equip(weaponStore.getOwned()[0]);
+      // 모델 로드가 실패하면 들고 있던 무기를 그대로 유지한다. swapWeaponViewmodel은
+      // 성공했을 때만 기존 뷰모델을 교체하므로, 저장값만 되돌리면 화면과 다시 맞는다.
+      weaponStore.equip(previousId);
       refreshShop();
     });
   }
