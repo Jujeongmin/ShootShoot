@@ -12,7 +12,11 @@ const CRATE_UNIT_HEIGHT = 0.9614;
 const CRATE_ORIGIN_TO_BOTTOM = 0.0119;
 const PILLAR_OFFSET_X = 0.8;
 const FLOOR_ROTATION_X = -Math.PI / 2;
-const FLOOR_THICKNESS = 0.7751;
+// tools/measure-tower-floor.mjs 실측값. 이전 값(0.7751)은 회전 전 z깊이를 그대로
+// "두께"로 썼는데, 실제로 눕히면 원점이 두께 중간이 아니라 걸쳐 있어서
+// floor.position.y(=pillarTopY) 기준 바닥면은 -0.4808, 윗면은 +0.2943에 있다.
+// 즉 원숭이 슬롯이 실제 윗면보다 0.4808만큼 위에 떠 있었다.
+const FLOOR_THICKNESS = 0.2943;
 const COLLAPSE_DURATION = 0.3;
 const COLLAPSE_TILT = Math.PI / 2;
 const COLLAPSE_DROP = 0.6;
