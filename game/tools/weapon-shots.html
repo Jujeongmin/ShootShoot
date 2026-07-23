@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>weapon shots</title>
+<body style="margin:0;background:#222">
+<div id="out" style="color:#fff;font:12px sans-serif;padding:8px">rendering...</div>
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+  import { CONFIG } from '/src/config.js';
+
+  const SIZE = 512;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setSize(SIZE, SIZE);
+  document.body.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+  const key = new THREE.DirectionalLight(0xffffff, 2.0);
+  key.position.set(2, 3, 4);
+  scene.add(key);
+
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+
+  function load(weapon) {
+    if (weapon.format === 'fbx') return new FBXLoader().loadAsync(weapon.model);
+    return new GLTFLoader().loadAsync(weapon.model).then((gltf) => gltf.scene);
+  }
+
+  const shots = {};
+  const errors = [];
+  for (const weapon of CONFIG.weapons) {
+    try {
+      const model = await load(weapon);
+      const holder = new THREE.Group();
+      holder.add(model);
+      scene.add(holder);
+
+      // 모델을 원점 중심으로 옮기고 카메라 프레임에 맞춘다
+      const box = new THREE.Box3().setFromObject(holder);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      holder.position.sub(center);
+      const radius = Math.max(size.x, size.y, size.z);
+      camera.position.set(radius * 0.9, radius * 0.5, radius * 1.5);
+      camera.lookAt(0, 0, 0);
+      // FBX 무기는 수백~천 단위라 고정 near/far로는 통째로 잘려나간다.
+      camera.near = radius * 0.01;
+      camera.far = radius * 10;
+      camera.updateProjectionMatrix();
+
+      renderer.render(scene, camera);
+      shots[weapon.id] = renderer.domElement.toDataURL('image/png');
+      scene.remove(holder);
+    } catch (error) {
+      errors.push(`${weapon.id}: ${error.message}`);
+    }
+  }
+
+  window.__weaponShots = shots;
+  window.__weaponShotErrors = errors;
+  document.getElementById('out').textContent =
+    'done: ' + Object.keys(shots).join(', ') + (errors.length ? ' | errors: ' + errors.join('; ') : '');
+</script>
+</body>
