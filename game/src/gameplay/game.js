@@ -145,9 +145,54 @@ export function createGame(container) {
     settingsOrigin = null;
   }
 
+  function buildShopState() {
+    const equippedId = weaponStore.getEquipped();
+    const owned = weaponStore.getOwned();
+    return {
+      gold: currencyStore.get(),
+      weapons: CONFIG.weapons.map((weapon) => ({
+        id: weapon.id,
+        name: weapon.name,
+        image: weapon.image,
+        damage: weapon.damage,
+        price: weapon.price,
+        owned: owned.includes(weapon.id),
+        equipped: weapon.id === equippedId,
+      })),
+    };
+  }
+
+  function refreshShop() {
+    shopPanel.show(buildShopState(), shopHandlers);
+  }
+
+  function buyWeapon(id) {
+    const weapon = CONFIG.weapons.find((entry) => entry.id === id);
+    if (!weapon || weaponStore.isOwned(id)) return;
+    if (!currencyStore.spend(weapon.price)) return;
+    weaponStore.markOwned(id);
+    refreshShop();
+  }
+
+  function equipWeapon(id) {
+    const weapon = CONFIG.weapons.find((entry) => entry.id === id);
+    if (!weapon || !weaponStore.equip(id)) return;
+    refreshShop();
+    swapWeaponViewmodel(weapon).catch(() => {
+      weaponStore.equip(weaponStore.getOwned()[0]);
+      refreshShop();
+    });
+  }
+
+  const shopHandlers = {
+    onBuy: buyWeapon,
+    onEquip: equipWeapon,
+    onClose: () => closeShop(),
+  };
+
   function openShopFromMenu() {
     screens.hide();
-    shopPanel.show(closeShop);
+    refreshShop();
   }
 
   function swapWeaponViewmodel(weapon) {
