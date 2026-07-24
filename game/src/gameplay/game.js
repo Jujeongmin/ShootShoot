@@ -10,6 +10,7 @@ import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
 import { createCurrencyStore } from './currencyStore.js';
 import { createUpgradeStore, computeUpgradeCost } from './upgradeStore.js';
+import { createBazookaStore } from './bazookaStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
 import { loadWeaponViewmodel } from './weaponViewmodel.js';
@@ -57,6 +58,7 @@ export function createGame(container) {
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
   const upgradeStore = createUpgradeStore(window.localStorage, CONFIG.upgradeStorageKey);
+  const bazookaStore = createBazookaStore(window.localStorage, CONFIG.bazookaStorageKey);
   const lastSeenStore = createLastSeenStore(window.localStorage, CONFIG.lastSeenStorageKey);
   const raycaster = new THREE.Raycaster();
   const lastKillEffect = createLastKillEffect();
@@ -253,6 +255,7 @@ export function createGame(container) {
       offlineLevel,
       offlineCost,
       canAffordOffline: gold >= offlineCost,
+      bazookaRounds: bazookaStore.getRounds(),
     };
   }
 
@@ -265,6 +268,7 @@ export function createGame(container) {
     onWatchAdDamage: watchAdForDamageUpgrade,
     onLevelUpOffline: levelUpOffline,
     onWatchAdOffline: watchAdForOfflineUpgrade,
+    onWatchAdBazooka: watchAdForBazooka,
   };
 
   function refreshMenu() {
@@ -299,23 +303,71 @@ export function createGame(container) {
     });
   }
 
+  function watchAdForBazooka() {
+    showRewardedAd().then((success) => {
+      if (!success) {
+        refreshMenu();
+        return;
+      }
+      bazookaStore.refill(CONFIG.bazooka.maxRounds);
+      swapWeaponViewmodel(CONFIG.bazooka.weapon)
+        .catch(() => {
+          // 모델 로드 실패 시 탄약을 롤백해서 "장착은 안 됐는데 폭발 로직만 활성"인
+          // 불일치 상태를 막는다.
+          bazookaStore.reset();
+        })
+        .finally(() => refreshMenu());
+    });
+  }
+
   window.addEventListener('keydown', (event) => {
     if (event.key.toLowerCase() !== 'p') return;
     openSettingsFromPlay();
   });
 
-  function handleShot() {
-    if (phase !== 'playing') return;
-    sfx.shoot();
-    weaponViewmodel.triggerRecoil();
-    raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
-    const raycastTargets = [
-      ...targetManager.getRaycastMeshes(),
-      ...obstacles.getBlockingMeshes(),
-      ...obstacles.getPillarMeshes(),
-    ];
-    const intersections = raycaster.intersectObjects(raycastTargets, false);
+  function applyTowerCollapse(hitTowerIndex) {
+    obstacles.collapseTower(hitTowerIndex);
+    const towerMonkey = targetManager.findMonkeyAtTower(hitTowerIndex);
+    if (towerMonkey && !towerMonkey.isDying()) {
+      const worldPos = towerMonkey.getWorldPosition();
+      effects.spawnHitBurst(worldPos);
+      towerMonkey.kill();
+      scoreState = { ...scoreState, score: scoreState.score + CONFIG.score.towerCollapseBonus };
+      const screenPos = worldToScreen(worldPos, engine.camera, container);
+      hud.showScorePopup(`+${CONFIG.score.towerCollapseBonus}`, screenPos.x, screenPos.y);
+    }
+  }
 
+  function finishShot({ effectiveOutcome, gained, popupWorldPosition, isPureTowerHit }) {
+    if (!effectiveOutcome.isMiss && !targetManager.hasAliveMonkeys()) {
+      lastKillEffect.trigger();
+    }
+
+    if (isPureTowerHit) {
+      sfx.hit();
+    } else if (effectiveOutcome.isMiss) {
+      sfx.miss();
+    } else if (effectiveOutcome.penetrationCount > 1) {
+      sfx.combo();
+    } else if (effectiveOutcome.hits[0]?.part === 'head') {
+      sfx.headshot();
+    } else {
+      sfx.hit();
+    }
+
+    if (!effectiveOutcome.isMiss && popupWorldPosition && gained > 0) {
+      const screenPos = worldToScreen(popupWorldPosition, engine.camera, container);
+      hud.showScorePopup(`+${gained}`, screenPos.x, screenPos.y);
+    }
+
+    updateHud();
+
+    if (scoreState.misses >= CONFIG.missLimit) {
+      endGame();
+    }
+  }
+
+  function handleWeaponShot(intersections) {
     const seen = new Set();
     const hits = [];
     let hitTowerIndex = null;
@@ -359,44 +411,76 @@ export function createGame(container) {
     scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
 
     if (hitTowerIndex !== null) {
-      obstacles.collapseTower(hitTowerIndex);
-      const towerMonkey = targetManager.findMonkeyAtTower(hitTowerIndex);
-      if (towerMonkey && !towerMonkey.isDying()) {
-        const worldPos = towerMonkey.getWorldPosition();
-        effects.spawnHitBurst(worldPos);
-        towerMonkey.kill();
-        scoreState = { ...scoreState, score: scoreState.score + CONFIG.score.towerCollapseBonus };
-        const screenPos = worldToScreen(worldPos, engine.camera, container);
-        hud.showScorePopup(`+${CONFIG.score.towerCollapseBonus}`, screenPos.x, screenPos.y);
+      applyTowerCollapse(hitTowerIndex);
+    }
+
+    finishShot({
+      effectiveOutcome,
+      gained,
+      popupWorldPosition,
+      isPureTowerHit: hitTowerIndex !== null,
+    });
+  }
+
+  function handleBazookaShot(intersections) {
+    const first = intersections[0];
+    const hitTowerIndex = first && first.object.userData.towerIndex !== undefined
+      ? first.object.userData.towerIndex
+      : null;
+
+    const killedHits = [];
+    let popupWorldPosition = null;
+
+    if (first) {
+      if (hitTowerIndex !== null) {
+        applyTowerCollapse(hitTowerIndex);
+      }
+      const nearby = targetManager.findMonkeysWithinRadius(first.point, CONFIG.bazooka.blastRadius);
+      for (const monkey of nearby) {
+        if (!monkey.kill()) continue;
+        const worldPos = monkey.getWorldPosition();
+        if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
+        effects.spawnHitBurst(worldPos, 0xff6600);
+        killedHits.push({ monkeyId: monkey.id, part: 'body' });
       }
     }
 
-    if (!effectiveOutcome.isMiss && !targetManager.hasAliveMonkeys()) {
-      lastKillEffect.trigger();
+    const effectiveOutcome = {
+      isMiss: killedHits.length === 0 && hitTowerIndex === null,
+      penetrationCount: killedHits.length,
+      hits: killedHits,
+    };
+    const gained = calculateShotScore(effectiveOutcome, scoreState.streak, CONFIG);
+    scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
+
+    if (bazookaStore.consumeRound() === 0) {
+      swapWeaponViewmodel(getEquippedWeapon()).catch(() => {});
     }
 
-    if (hitTowerIndex !== null) {
-      sfx.hit();
-    } else if (effectiveOutcome.isMiss) {
-      sfx.miss();
-    } else if (effectiveOutcome.penetrationCount > 1) {
-      sfx.combo();
-    } else if (effectiveOutcome.hits[0]?.part === 'head') {
-      sfx.headshot();
+    finishShot({
+      effectiveOutcome,
+      gained,
+      popupWorldPosition,
+      isPureTowerHit: hitTowerIndex !== null,
+    });
+  }
+
+  function handleShot() {
+    if (phase !== 'playing') return;
+    sfx.shoot();
+    weaponViewmodel.triggerRecoil();
+    raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
+    const raycastTargets = [
+      ...targetManager.getRaycastMeshes(),
+      ...obstacles.getBlockingMeshes(),
+      ...obstacles.getPillarMeshes(),
+    ];
+    const intersections = raycaster.intersectObjects(raycastTargets, false);
+
+    if (bazookaStore.getRounds() > 0) {
+      handleBazookaShot(intersections);
     } else {
-      sfx.hit();
-    }
-
-    if (!effectiveOutcome.isMiss && popupWorldPosition && gained > 0) {
-      const screenPos = worldToScreen(popupWorldPosition, engine.camera, container);
-      hud.showScorePopup(`+${gained}`, screenPos.x, screenPos.y);
-    }
-
-    updateHud();
-
-    if (scoreState.misses >= CONFIG.missLimit) {
-      endGame();
-      return;
+      handleWeaponShot(intersections);
     }
   }
 
@@ -462,6 +546,10 @@ export function createGame(container) {
       targetManager = createTargetManager(engine.scene, CONFIG, monkeyModel, resolvedObstacles.getTowerSlots());
       weaponViewmodel = resolvedWeaponViewmodel;
       obstacles = resolvedObstacles;
+
+      if (bazookaStore.getRounds() > 0) {
+        swapWeaponViewmodel(CONFIG.bazooka.weapon).catch(() => {});
+      }
 
       const now = Date.now();
       const lastSeenAt = lastSeenStore.get();

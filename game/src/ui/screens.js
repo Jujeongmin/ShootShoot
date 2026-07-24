@@ -88,7 +88,7 @@ export function createScreens(container) {
   }
 
   function showMenu(state, handlers) {
-    const { gold, damageLevel, damageCost, canAffordDamage, offlineLevel, offlineCost, canAffordOffline } = state;
+    const { gold, damageLevel, damageCost, canAffordDamage, offlineLevel, offlineCost, canAffordOffline, bazookaRounds } = state;
     clear();
 
     // 좌측 중앙: 상점 아이콘
@@ -98,6 +98,35 @@ export function createScreens(container) {
     shopBtn.style.top = '50%';
     shopBtn.style.transform = 'translateY(-50%)';
     overlay.appendChild(shopBtn);
+
+    // 우측 중앙: 바주카포 카드
+    const bazookaCard = document.createElement('div');
+    bazookaCard.style.cssText = `
+      position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+      width: 150px; background: rgba(0,0,0,0.45); border: 2px solid #f0a500;
+      border-radius: 14px; padding: 14px; text-align: center;
+    `;
+    const bazookaTitle = document.createElement('div');
+    bazookaTitle.textContent = '바주카포';
+    bazookaTitle.style.cssText = 'font-size: 16px; font-weight: bold; color: #f0a500; margin-bottom: 8px;';
+    bazookaCard.appendChild(bazookaTitle);
+    if (bazookaRounds > 0) {
+      const roundsEl = document.createElement('div');
+      roundsEl.textContent = `${bazookaRounds}/5`;
+      roundsEl.style.cssText = 'font-size: 18px; color: #ccc;';
+      bazookaCard.appendChild(roundsEl);
+    } else {
+      const getBtn = document.createElement('button');
+      getBtn.textContent = '📺 획득';
+      getBtn.style.cssText = `
+        width: 100%; border: 1px solid #7ec8e3; border-radius: 8px; padding: 8px 0;
+        font-size: 15px; font-weight: bold; cursor: pointer;
+        background: transparent; color: #7ec8e3;
+      `;
+      getBtn.addEventListener('click', handlers.onWatchAdBazooka);
+      bazookaCard.appendChild(getBtn);
+    }
+    overlay.appendChild(bazookaCard);
 
     // 우측 상단: 보유 골드 + 광고보상 + 설정 아이콘
     const topRight = document.createElement('div');
