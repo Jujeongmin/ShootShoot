@@ -72,6 +72,7 @@ export function createScreens(container) {
     `;
     goldBadge.textContent = `🪙 ${gold}`;
     topRight.appendChild(goldBadge);
+    topRight.appendChild(iconButton('/icons/video.png', '광고 보상', onAdReward, 40));
     topRight.appendChild(iconButton('/icons/gear.png', '설정', onSettings, 40));
     overlay.appendChild(topRight);
 
@@ -82,7 +83,6 @@ export function createScreens(container) {
     subtitle.textContent = '클릭하여 조준, 놓아서 발사!';
     overlay.appendChild(subtitle);
     overlay.appendChild(button('탭하여 시작', onStart));
-    overlay.appendChild(button('광고 보상', onAdReward));
     show();
   }
 
