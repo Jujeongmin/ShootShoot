@@ -49,8 +49,8 @@ export const CONFIG = {
     maxRounds: 5,
     blastRadius: 6,
     weapon: {
-      id: 'bazooka', name: '바주카포', model: '/models/bazooka.fbx', format: 'fbx',
-      scale: 0.001, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
+      id: 'bazooka', name: '바주카포', model: '/models/bazooka.glb', format: 'glb',
+      scale: 0.22552, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
     },
   },
   weapons: [

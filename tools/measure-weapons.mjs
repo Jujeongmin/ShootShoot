@@ -1,5 +1,7 @@
 // 각 무기 모델의 바운딩박스를 재고, 현재 rifle.glb가 화면에서 차지하는 크기와
 // 같아지도록 하는 scale 값을 계산해 출력한다.
+// GLTFLoader가 임베드 텍스처를 읽을 때 브라우저 전역 self를 참조하므로 Node에서 폴리필한다.
+globalThis.self = globalThis;
 import fs from 'node:fs';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -35,7 +37,7 @@ const reference = measure(await loadModel('game/public/models/rifle.glb'));
 const targetLength = reference.longest * REFERENCE_SCALE;
 console.log(`기준 rifle.glb: 최대변 ${reference.longest.toFixed(4)} × ${REFERENCE_SCALE} = 화면상 ${targetLength.toFixed(4)}`);
 
-for (const file of ['Rifle.fbx', 'Sniper rifle.fbx', 'Ray Gun.fbx', 'Lightning Gun.fbx']) {
+for (const file of ['Rifle.fbx', 'Sniper rifle.fbx', 'Ray Gun.fbx', 'Lightning Gun.fbx', 'bazooka.glb']) {
   const { size, center, longest } = measure(await loadModel(`game/public/models/${file}`));
   console.log(
     `${file}\n` +
