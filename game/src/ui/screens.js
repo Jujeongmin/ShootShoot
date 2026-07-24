@@ -50,25 +50,25 @@ export function createScreens(container) {
   function upgradeCard(title, level, cost, canAfford, onUpgrade, onWatchAd, side) {
     const card = document.createElement('div');
     card.style.cssText = `
-      position: absolute; bottom: 20px; ${side}: 20px; width: 128px;
-      background: rgba(0,0,0,0.45); border: 1px solid #f0a500; border-radius: 10px;
-      padding: 10px; text-align: center;
+      position: absolute; bottom: 24px; ${side}: 24px; width: 190px;
+      background: rgba(0,0,0,0.45); border: 1px solid #f0a500; border-radius: 14px;
+      padding: 16px; text-align: center;
     `;
 
     const titleEl = document.createElement('div');
     titleEl.textContent = title;
-    titleEl.style.cssText = 'font-size: 13px; font-weight: bold; color: #f0a500;';
+    titleEl.style.cssText = 'font-size: 18px; font-weight: bold; color: #f0a500;';
     card.appendChild(titleEl);
 
     const levelEl = document.createElement('div');
     levelEl.textContent = `Lv.${level}`;
-    levelEl.style.cssText = 'font-size: 12px; color: #ccc; margin: 4px 0 8px;';
+    levelEl.style.cssText = 'font-size: 16px; color: #ccc; margin: 6px 0 12px;';
     card.appendChild(levelEl);
 
     const actionBtn = document.createElement('button');
     actionBtn.style.cssText = `
-      width: 100%; border: none; border-radius: 6px; padding: 6px 0;
-      font-size: 12px; font-weight: bold; cursor: pointer;
+      width: 100%; border: none; border-radius: 8px; padding: 10px 0;
+      font-size: 16px; font-weight: bold; cursor: pointer;
     `;
     if (canAfford) {
       actionBtn.textContent = `🪙 ${cost.toLocaleString()} 강화`;
