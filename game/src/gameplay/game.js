@@ -82,6 +82,10 @@ export function createGame(container) {
     return CONFIG.weapons.find((weapon) => weapon.id === id) ?? CONFIG.weapons[0];
   }
 
+  function getActiveWeaponId() {
+    return bazookaStore.getRounds() > 0 ? CONFIG.bazooka.weapon.id : getEquippedWeapon().id;
+  }
+
   function beginRound(roundNumber) {
     round = roundNumber;
     obstacles.reset();
@@ -513,7 +517,7 @@ export function createGame(container) {
         const effectiveY = clampToUnit(ndc.y * sensitivity);
         engine.camera.rotation.y = -effectiveX * CONFIG.aim.lookLimitX;
         engine.camera.rotation.x = effectiveY * CONFIG.aim.lookLimitY;
-        scopeOverlay.show();
+        scopeOverlay.show(getActiveWeaponId());
       } else {
         engine.camera.rotation.set(0, 0, 0);
         scopeOverlay.hide();
