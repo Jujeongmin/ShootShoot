@@ -9,6 +9,7 @@ import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
 import { createCurrencyStore } from './currencyStore.js';
+import { createUpgradeStore, computeUpgradeCost } from './upgradeStore.js';
 import { createEffects } from './effects.js';
 import { loadMonkeyModel } from './monkeyModel.js';
 import { loadWeaponViewmodel } from './weaponViewmodel.js';
@@ -55,6 +56,7 @@ export function createGame(container) {
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
+  const upgradeStore = createUpgradeStore(window.localStorage, CONFIG.upgradeStorageKey);
   const lastSeenStore = createLastSeenStore(window.localStorage, CONFIG.lastSeenStorageKey);
   const raycaster = new THREE.Raycaster();
   const lastKillEffect = createLastKillEffect();
@@ -96,7 +98,7 @@ export function createGame(container) {
 
   function returnToMenu() {
     phase = 'menu';
-    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+    refreshMenu();
   }
 
   function endGame() {
@@ -140,7 +142,7 @@ export function createGame(container) {
   function closeSettings() {
     settingsPanel.hide();
     if (settingsOrigin === 'menu') {
-      screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+      refreshMenu();
     } else {
       settingsOpen = false;
     }
@@ -218,7 +220,7 @@ export function createGame(container) {
   function closeShop() {
     shopOpen = false;
     shopPanel.hide();
-    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+    refreshMenu();
   }
 
   function openAdRewardFromMenu() {
@@ -228,7 +230,7 @@ export function createGame(container) {
 
   function closeAdReward() {
     adRewardPanel.hide();
-    screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+    refreshMenu();
   }
 
   function watchAdForGold() {
@@ -237,6 +239,66 @@ export function createGame(container) {
         currencyStore.earn(CONFIG.adReward.goldAmount);
       }
       closeAdReward();
+    });
+  }
+
+  function buildMenuState() {
+    const gold = currencyStore.get();
+    const damageLevel = upgradeStore.getDamageLevel();
+    const damageCost = computeUpgradeCost(damageLevel, CONFIG.damageUpgrade);
+    const offlineLevel = upgradeStore.getOfflineLevel();
+    const offlineCost = computeUpgradeCost(offlineLevel, CONFIG.offlineUpgrade);
+    return {
+      gold,
+      damageLevel,
+      damageCost,
+      canAffordDamage: gold >= damageCost,
+      offlineLevel,
+      offlineCost,
+      canAffordOffline: gold >= offlineCost,
+    };
+  }
+
+  const menuHandlers = {
+    onStart: startGame,
+    onSettings: openSettingsFromMenu,
+    onShop: openShopFromMenu,
+    onAdReward: openAdRewardFromMenu,
+    onLevelUpDamage: levelUpDamage,
+    onWatchAdDamage: watchAdForDamageUpgrade,
+    onLevelUpOffline: levelUpOffline,
+    onWatchAdOffline: watchAdForOfflineUpgrade,
+  };
+
+  function refreshMenu() {
+    screens.showMenu(buildMenuState(), menuHandlers);
+  }
+
+  function levelUpDamage() {
+    const cost = computeUpgradeCost(upgradeStore.getDamageLevel(), CONFIG.damageUpgrade);
+    if (!currencyStore.spend(cost)) return;
+    upgradeStore.levelUpDamage();
+    refreshMenu();
+  }
+
+  function watchAdForDamageUpgrade() {
+    showRewardedAd().then((success) => {
+      if (success) upgradeStore.levelUpDamage();
+      refreshMenu();
+    });
+  }
+
+  function levelUpOffline() {
+    const cost = computeUpgradeCost(upgradeStore.getOfflineLevel(), CONFIG.offlineUpgrade);
+    if (!currencyStore.spend(cost)) return;
+    upgradeStore.levelUpOffline();
+    refreshMenu();
+  }
+
+  function watchAdForOfflineUpgrade() {
+    showRewardedAd().then((success) => {
+      if (success) upgradeStore.levelUpOffline();
+      refreshMenu();
     });
   }
 
@@ -277,7 +339,7 @@ export function createGame(container) {
     }
 
     const outcome = resolveShot(hits);
-    const weaponDamage = getEquippedWeapon().damage;
+    const weaponDamage = getEquippedWeapon().damage + upgradeStore.getDamageLevel() * CONFIG.damageUpgrade.bonusPerLevel;
 
     let popupWorldPosition = null;
     const killedHits = [];
@@ -412,16 +474,20 @@ export function createGame(container) {
       const now = Date.now();
       const lastSeenAt = lastSeenStore.get();
       lastSeenStore.set(now);
-      const offlineGold = lastSeenAt === null ? 0 : calculateOfflineGold(now - lastSeenAt, CONFIG.offlineReward);
+      const offlineGoldConfig = {
+        goldPerHour: CONFIG.offlineReward.goldPerHour + upgradeStore.getOfflineLevel() * CONFIG.offlineUpgrade.bonusPerLevel,
+        maxHours: CONFIG.offlineReward.maxHours,
+      };
+      const offlineGold = lastSeenAt === null ? 0 : calculateOfflineGold(now - lastSeenAt, offlineGoldConfig);
 
       if (offlineGold > 0) {
         screens.hide();
         offlineRewardPopup.show(offlineGold, () => {
           currencyStore.earn(offlineGold);
-          screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+          refreshMenu();
         });
       } else {
-        screens.showMenu(startGame, openSettingsFromMenu, openShopFromMenu, openAdRewardFromMenu, currencyStore.get());
+        refreshMenu();
       }
     });
   }
