@@ -7,7 +7,6 @@ describe('getRoundParams', () => {
   it('returns base values for round 1', () => {
     const params = getRoundParams(1, CONFIG);
     expect(params.monkeyCount).toBe(CONFIG.round.baseMonkeyCount);
-    expect(params.timeLimit).toBe(CONFIG.round.baseTimeLimit);
     expect(params.monkeySpeed).toBe(CONFIG.round.baseMonkeySpeed);
     expect(params.monkeyScale).toBe(CONFIG.round.baseMonkeyScale);
   });
@@ -20,10 +19,11 @@ describe('getRoundParams', () => {
     expect(later.monkeySpeed).toBeGreaterThan(early.monkeySpeed);
   });
 
-  it('decreases time limit and scale as rounds progress, clamped at minimums', () => {
+  it('keeps monkey scale constant across rounds', () => {
+    const early = getRoundParams(1, CONFIG);
     const later = getRoundParams(50, CONFIG);
-    expect(later.timeLimit).toBe(CONFIG.round.minTimeLimit);
-    expect(later.monkeyScale).toBe(CONFIG.round.minMonkeyScale);
+    expect(early.monkeyScale).toBe(CONFIG.round.baseMonkeyScale);
+    expect(later.monkeyScale).toBe(CONFIG.round.baseMonkeyScale);
   });
 
   it('starts monkeys at 1 HP and adds 1 HP every 2 rounds', () => {

@@ -67,7 +67,6 @@ export function createGame(container) {
   let phase = 'menu';
   let scoreState = createScoreState();
   let round = 1;
-  let timeRemaining = 0;
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
   let settingsOrigin = null;
@@ -84,8 +83,7 @@ export function createGame(container) {
   function beginRound(roundNumber) {
     round = roundNumber;
     obstacles.reset();
-    const roundParams = targetManager.spawnRound(roundNumber);
-    timeRemaining = roundParams.timeLimit;
+    targetManager.spawnRound(roundNumber);
   }
 
   function startGame() {
@@ -117,7 +115,6 @@ export function createGame(container) {
       score: scoreState.score,
       streak: scoreState.streak,
       round,
-      timeRemaining: Math.max(timeRemaining, 0),
     });
   }
 
@@ -439,17 +436,12 @@ export function createGame(container) {
       }
 
       if (phase === 'playing' && !settingsOpen) {
-        timeRemaining -= scaledDt;
-        if (timeRemaining <= 0) {
-          endGame();
-        } else {
+        updateHud();
+        if (targetManager.allCleared()) {
+          sfx.roundClear();
+          stageBanner.show(round + 1);
+          beginRound(round + 1);
           updateHud();
-          if (targetManager.allCleared()) {
-            sfx.roundClear();
-            stageBanner.show(round + 1);
-            beginRound(round + 1);
-            updateHud();
-          }
         }
       }
 
