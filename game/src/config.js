@@ -45,6 +45,14 @@ export const CONFIG = {
     costMultiplier: 1.2,
     bonusPerLevel: 2,
   },
+  bazooka: {
+    maxRounds: 5,
+    blastRadius: 6,
+    weapon: {
+      id: 'bazooka', name: '바주카포', model: '/models/bazooka.fbx', format: 'fbx',
+      scale: 0.001, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
+    },
+  },
   weapons: [
     {
       id: 'basic', name: '기본 소총', model: '/models/rifle.glb', format: 'glb',
@@ -73,4 +81,5 @@ export const CONFIG = {
   lastSeenStorageKey: 'shootshoot.lastseen',
   weaponStorageKey: 'shootshoot.weapons',
   upgradeStorageKey: 'shootshoot.upgrades',
+  bazookaStorageKey: 'shootshoot.bazooka',
 };
