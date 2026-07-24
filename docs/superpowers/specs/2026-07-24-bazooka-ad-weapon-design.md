@@ -19,7 +19,7 @@
 ```
 createBazookaStore(storage, key) -> {
   getRounds() -> number,       // 저장값 없거나 깨졌으면 0
-  refill() -> number,          // rounds = CONFIG.bazooka.maxRounds로 설정, 새 값 반환
+  refill(maxRounds) -> number, // rounds = maxRounds로 설정(호출부가 CONFIG.bazooka.maxRounds를 넘김), 새 값 반환
   consumeRound() -> number,    // rounds = max(rounds - 1, 0), 새 값 반환
   reset() -> number,           // rounds = 0으로 강제 설정, 새 값(0) 반환 — 모델 로드 실패 롤백 전용
 }
