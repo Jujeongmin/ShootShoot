@@ -40,6 +40,16 @@ export const CONFIG = {
   weaponDamage: {
     headshotMultiplier: 2,
   },
+  damageUpgrade: {
+    baseCost: 50,
+    costMultiplier: 1.15,
+    bonusPerLevel: 1,
+  },
+  offlineUpgrade: {
+    baseCost: 80,
+    costMultiplier: 1.2,
+    bonusPerLevel: 2,
+  },
   weapons: [
     {
       id: 'basic', name: '기본 소총', model: '/models/rifle.glb', format: 'glb',
@@ -67,4 +77,5 @@ export const CONFIG = {
   currencyStorageKey: 'shootshoot.gold',
   lastSeenStorageKey: 'shootshoot.lastseen',
   weaponStorageKey: 'shootshoot.weapons',
+  upgradeStorageKey: 'shootshoot.upgrades',
 };
