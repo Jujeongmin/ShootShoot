@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import {
   computeBlastRadiusPx,
+  isPointInScreenBox,
   findMonkeysInScreenBox,
 } from '../game/src/gameplay/screenTargeting.js';
 
@@ -34,6 +35,33 @@ describe('computeBlastRadiusPx', () => {
 
   it('returns 0 for a zero-height container', () => {
     expect(computeBlastRadiusPx(0, 0.25)).toBe(0);
+  });
+});
+
+describe('isPointInScreenBox', () => {
+  it('accepts a point dead centre in the crosshair', () => {
+    const point = new THREE.Vector3(0, 0, -80);
+    expect(isPointInScreenBox(point, makeCamera(), RECT, 150)).toBe(true);
+  });
+
+  it('rejects a point far outside the box', () => {
+    const point = new THREE.Vector3(40, 0, -80);
+    expect(isPointInScreenBox(point, makeCamera(), RECT, 150)).toBe(false);
+  });
+
+  it('rejects a point behind the camera', () => {
+    const point = new THREE.Vector3(0, 0, 80);
+    expect(isPointInScreenBox(point, makeCamera(), RECT, 150)).toBe(false);
+  });
+
+  it('does not mutate the caller"s vector, so the same point can be tested repeatedly', () => {
+    // 구조물은 중심 벡터를 미리 만들어 두고 발사할 때마다 재사용한다.
+    // project()가 제자리에서 벡터를 바꾸면 두 번째 발사부터 좌표가 깨진다.
+    const point = new THREE.Vector3(0, 0, -80);
+    const camera = makeCamera();
+    expect(isPointInScreenBox(point, camera, RECT, 150)).toBe(true);
+    expect(point.toArray()).toEqual([0, 0, -80]);
+    expect(isPointInScreenBox(point, camera, RECT, 150)).toBe(true);
   });
 });
 
