@@ -27,24 +27,71 @@ const RETICLE_STYLES = {
     centerColor: '#00ff66',
     centerShape: 'dot',
   },
-  bazooka: {
-    ringVisible: true,
-    ringShape: 'circle',
-    ringBorder: '5px dashed #ff6600',
-    crosshairColor: '#ff6600',
-    centerColor: '#ff6600',
-    centerShape: 'dot',
-  },
 };
 
 const DEFAULT_STYLE = RETICLE_STYLES.basic;
 const HEXAGON_CLIP_PATH = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+
+const BAZOOKA_ID = 'bazooka';
+const BAZOOKA_COLOR = '#e4503a';
+const BAZOOKA_CORE_COLOR = '#c43a28';
+const BRACKET_THICKNESS = 4;
 
 function centerShapeStyle(style) {
   if (style.centerShape === 'diamond') {
     return `width:8px; height:8px; margin:-4px 0 0 -4px; background:${style.centerColor}; transform: rotate(45deg);`;
   }
   return `width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:${style.centerColor};`;
+}
+
+function crosshairHtml(style) {
+  return `
+    <div style="position:absolute; top:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
+    <div style="position:absolute; bottom:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
+    <div style="position:absolute; left:0; top:calc(50% - 1px); height:2px; width:38%; background:${style.crosshairColor};"></div>
+    <div style="position:absolute; right:0; top:calc(50% - 1px); height:2px; width:38%; background:${style.crosshairColor};"></div>
+    <div style="position:absolute; top:50%; left:50%; ${centerShapeStyle(style)}"></div>
+  `;
+}
+
+// 판정에 쓰이는 정사각형(반경 radiusPx)을 그대로 그린다. 네 모서리 브래킷이
+// 사각형의 경계이고, 그 안에 들어온 원숭이가 죽는다.
+function bazookaReticleHtml(radiusPx) {
+  const r = radiusPx;
+  const arm = r * 0.42;
+  const tickLength = r * 0.22;
+  const tickOffset = r * 0.45;
+  const outer = r * 0.16;
+  const inner = r * 0.08;
+  const t = BRACKET_THICKNESS;
+  const bar = `position:absolute; background:${BAZOOKA_COLOR};`;
+
+  const corners = [
+    ['top:0; left:0;', `width:${arm}px; height:${t}px;`, `width:${t}px; height:${arm}px;`],
+    ['top:0; right:0;', `width:${arm}px; height:${t}px;`, `width:${t}px; height:${arm}px;`],
+    ['bottom:0; left:0;', `width:${arm}px; height:${t}px;`, `width:${t}px; height:${arm}px;`],
+    ['bottom:0; right:0;', `width:${arm}px; height:${t}px;`, `width:${t}px; height:${arm}px;`],
+  ]
+    .map(([anchor, horizontal, vertical]) =>
+      `<div style="${bar} ${anchor} ${horizontal}"></div><div style="${bar} ${anchor} ${vertical}"></div>`
+    )
+    .join('');
+
+  const ticks = [
+    `${bar} left:${r - t / 2}px; top:${r - tickOffset - tickLength}px; width:${t}px; height:${tickLength}px;`,
+    `${bar} left:${r - t / 2}px; top:${r + tickOffset}px; width:${t}px; height:${tickLength}px;`,
+    `${bar} top:${r - t / 2}px; left:${r - tickOffset - tickLength}px; height:${t}px; width:${tickLength}px;`,
+    `${bar} top:${r - t / 2}px; left:${r + tickOffset}px; height:${t}px; width:${tickLength}px;`,
+  ]
+    .map((style) => `<div style="${style}"></div>`)
+    .join('');
+
+  const core = `
+    <div style="position:absolute; left:${r - outer}px; top:${r - outer}px; width:${outer * 2}px; height:${outer * 2}px; border-radius:50%; background:${BAZOOKA_COLOR};"></div>
+    <div style="position:absolute; left:${r - inner}px; top:${r - inner}px; width:${inner * 2}px; height:${inner * 2}px; border-radius:50%; background:${BAZOOKA_CORE_COLOR};"></div>
+  `;
+
+  return corners + ticks + core;
 }
 
 export function createScopeOverlay(container) {
@@ -63,29 +110,42 @@ export function createScopeOverlay(container) {
   `;
   container.appendChild(reticle);
 
-  let currentWeaponId = null;
+  let currentKey = null;
 
-  function applyStyle(weaponId, style) {
-    if (weaponId === currentWeaponId) return;
-    currentWeaponId = weaponId;
+  function applyBazooka(radiusPx) {
+    ring.style.border = 'none';
+    ring.style.clipPath = 'none';
+    reticle.style.width = `${radiusPx * 2}px`;
+    reticle.style.height = `${radiusPx * 2}px`;
+    reticle.innerHTML = bazookaReticleHtml(radiusPx);
+  }
 
+  function applyStandard(style) {
     ring.style.border = style.ringBorder ?? 'none';
     ring.style.borderRadius = style.ringShape === 'hexagon' ? '0' : '50%';
     ring.style.clipPath = style.ringShape === 'hexagon' ? HEXAGON_CLIP_PATH : 'none';
-
-    reticle.innerHTML = `
-      <div style="position:absolute; top:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
-      <div style="position:absolute; bottom:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
-      <div style="position:absolute; left:0; top:calc(50% - 1px); height:2px; width:38%; background:${style.crosshairColor};"></div>
-      <div style="position:absolute; right:0; top:calc(50% - 1px); height:2px; width:38%; background:${style.crosshairColor};"></div>
-      <div style="position:absolute; top:50%; left:50%; ${centerShapeStyle(style)}"></div>
-    `;
+    reticle.style.width = '70vmin';
+    reticle.style.height = '70vmin';
+    reticle.innerHTML = crosshairHtml(style);
   }
 
-  function show(weaponId) {
-    const style = RETICLE_STYLES[weaponId] ?? DEFAULT_STYLE;
-    applyStyle(weaponId, style);
-    ring.style.display = style.ringVisible ? 'block' : 'none';
+  function show(weaponId, blastRadiusPx = 0) {
+    const isBazooka = weaponId === BAZOOKA_ID;
+    // 창 크기가 바뀌면 반경도 바뀌므로 캐시 키에 포함한다.
+    const key = isBazooka ? `${weaponId}:${blastRadiusPx}` : weaponId;
+
+    if (key !== currentKey) {
+      currentKey = key;
+      if (isBazooka) {
+        applyBazooka(blastRadiusPx);
+      } else {
+        applyStandard(RETICLE_STYLES[weaponId] ?? DEFAULT_STYLE);
+      }
+    }
+
+    ring.style.display = !isBazooka && (RETICLE_STYLES[weaponId] ?? DEFAULT_STYLE).ringVisible
+      ? 'block'
+      : 'none';
     reticle.style.display = 'block';
   }
 

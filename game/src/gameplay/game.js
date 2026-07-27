@@ -26,6 +26,7 @@ import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { createAdRewardPanel } from '../ui/adRewardPanel.js';
 import { createLastKillEffect } from './lastKillEffect.js';
 import { createWeaponStore } from './weaponStore.js';
+import { computeBlastRadiusPx } from './screenTargeting.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -517,7 +518,10 @@ export function createGame(container) {
         const effectiveY = clampToUnit(ndc.y * sensitivity);
         engine.camera.rotation.y = -effectiveX * CONFIG.aim.lookLimitX;
         engine.camera.rotation.x = effectiveY * CONFIG.aim.lookLimitY;
-        scopeOverlay.show(getActiveWeaponId());
+        scopeOverlay.show(
+          getActiveWeaponId(),
+          computeBlastRadiusPx(container.clientHeight, CONFIG.bazooka.blastScreenRatio)
+        );
       } else {
         engine.camera.rotation.set(0, 0, 0);
         scopeOverlay.hide();

@@ -48,6 +48,9 @@ export const CONFIG = {
   bazooka: {
     maxRounds: 5,
     blastRadius: 6,
+    blastScreenRatio: 0.25,
+    maxRange: 85,
+    flightSeconds: 0.3,
     weapon: {
       id: 'bazooka', name: '바주카포', model: '/models/bazooka.glb', format: 'glb',
       scale: 0.22552, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
