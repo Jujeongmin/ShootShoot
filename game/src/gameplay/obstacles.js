@@ -20,6 +20,11 @@ const FLOOR_THICKNESS = 0.2943;
 const COLLAPSE_DURATION = 0.3;
 const COLLAPSE_TILT = Math.PI / 2;
 const COLLAPSE_DROP = 0.6;
+// tools/measure-props.mjs 실측. 자루 참호는 로컬 y -0.0112 ~ 1.1829(높이 1.1941)라
+// 중심은 원점보다 0.586 위다. 타워는 상자 2단 + 발판이 월드 y -1.0 ~ 1.229라 중심이 0.11.
+// 그룹 원점이 아니라 이 중심으로 판정해야 "네모 안에 보이는데 안 부서지는" 문제가 없다.
+const TRENCH_CENTER_Y = 0.586;
+const TOWER_CENTER_Y = 0.11;
 
 const GROUND_PLACEMENTS = [
   { x: -7, z: -70 },
@@ -40,14 +45,21 @@ export function loadObstacles(scene) {
   const loader = new GLTFLoader();
   return Promise.all([loader.loadAsync(CRATE_URL), loader.loadAsync(SACK_TRENCH_URL)]).then(
     ([crateGltf, sackTrenchGltf]) => {
-      const blockingMeshes = [];
       const towers = [];
 
-      for (const placement of GROUND_PLACEMENTS) {
+      const trenches = [];
+
+      GROUND_PLACEMENTS.forEach((placement, trenchIndex) => {
+        const group = new THREE.Group();
+        group.position.set(placement.x, GROUND_Y, placement.z);
+        scene.add(group);
+
         const instance = sackTrenchGltf.scene.clone();
         instance.scale.setScalar(SACK_TRENCH_SCALE);
-        instance.position.set(placement.x, GROUND_Y, placement.z);
-        scene.add(instance);
+        group.add(instance);
+
+        const meshes = [];
+        const materials = [];
         instance.traverse((object) => {
           if (object.isMesh) {
             object.material = Array.isArray(object.material)
@@ -55,10 +67,22 @@ export function loadObstacles(scene) {
               : object.material.clone();
             object.castShadow = true;
             object.receiveShadow = true;
-            blockingMeshes.push(object);
+            meshes.push(object);
+            collectMaterials(object, materials);
           }
         });
-      }
+
+        trenches.push({
+          group,
+          meshes,
+          materials,
+          baseY: GROUND_Y,
+          collapsing: false,
+          collapsed: false,
+          collapseElapsed: 0,
+          center: new THREE.Vector3(placement.x, GROUND_Y + TRENCH_CENTER_Y, placement.z),
+        });
+      });
 
       TOWER_PLACEMENTS.forEach((placement, towerIndex) => {
         const group = new THREE.Group();
@@ -115,6 +139,8 @@ export function loadObstacles(scene) {
           group,
           pillarMeshes,
           materials,
+          baseY: 0,
+          center: new THREE.Vector3(placement.x, TOWER_CENTER_Y, placement.z),
           collapsing: false,
           collapsed: false,
           collapseElapsed: 0,
@@ -122,41 +148,55 @@ export function loadObstacles(scene) {
         });
       });
 
+      function advanceCollapse(structure, dt) {
+        if (!structure.collapsing || structure.collapsed) return;
+        structure.collapseElapsed += dt;
+        const t = Math.min(structure.collapseElapsed / COLLAPSE_DURATION, 1);
+        structure.group.rotation.z = t * COLLAPSE_TILT;
+        // 타워는 y=0, 참호는 y=GROUND_Y에 있다. 각자의 기준 높이에서 떨어뜨려야
+        // 참호가 순간이동하지 않는다.
+        structure.group.position.y = structure.baseY - t * COLLAPSE_DROP;
+        for (const material of structure.materials) {
+          material.transparent = true;
+          material.opacity = 1 - t;
+        }
+        if (t >= 1) {
+          structure.collapsed = true;
+          structure.group.visible = false;
+        }
+      }
+
       function update(dt) {
-        for (const tower of towers) {
-          if (!tower.collapsing || tower.collapsed) continue;
-          tower.collapseElapsed += dt;
-          const t = Math.min(tower.collapseElapsed / COLLAPSE_DURATION, 1);
-          tower.group.rotation.z = t * COLLAPSE_TILT;
-          tower.group.position.y = -t * COLLAPSE_DROP;
-          for (const material of tower.materials) {
-            material.transparent = true;
-            material.opacity = 1 - t;
-          }
-          if (t >= 1) {
-            tower.collapsed = true;
-            tower.group.visible = false;
-          }
+        for (const tower of towers) advanceCollapse(tower, dt);
+        for (const trench of trenches) advanceCollapse(trench, dt);
+      }
+
+      function resetStructure(structure) {
+        structure.collapsing = false;
+        structure.collapsed = false;
+        structure.collapseElapsed = 0;
+        structure.group.visible = true;
+        structure.group.rotation.z = 0;
+        structure.group.position.y = structure.baseY;
+        for (const material of structure.materials) {
+          material.opacity = 1;
         }
       }
 
       function reset() {
-        for (const tower of towers) {
-          tower.collapsing = false;
-          tower.collapsed = false;
-          tower.collapseElapsed = 0;
-          tower.group.visible = true;
-          tower.group.rotation.z = 0;
-          tower.group.position.y = 0;
-          for (const material of tower.materials) {
-            material.opacity = 1;
-          }
-        }
+        for (const tower of towers) resetStructure(tower);
+        for (const trench of trenches) resetStructure(trench);
+      }
+
+      function listOf(kind) {
+        return kind === 'tower' ? towers : trenches;
       }
 
       return {
         getBlockingMeshes() {
-          return blockingMeshes;
+          return trenches
+            .filter((trench) => !trench.collapsing)
+            .flatMap((trench) => trench.meshes);
         },
         getPillarMeshes() {
           return towers.filter((tower) => !tower.collapsing).flatMap((tower) => tower.pillarMeshes);
@@ -164,10 +204,24 @@ export function loadObstacles(scene) {
         getTowerSlots() {
           return towers.map((tower) => tower.monkeySlot);
         },
-        collapseTower(towerIndex) {
-          const tower = towers.find((t) => t.towerIndex === towerIndex);
-          if (!tower || tower.collapsing) return;
-          tower.collapsing = true;
+        findStructuresInBox(isInBox) {
+          const found = [];
+          towers.forEach((tower, index) => {
+            if (!tower.collapsing && isInBox(tower.center)) {
+              found.push({ kind: 'tower', index });
+            }
+          });
+          trenches.forEach((trench, index) => {
+            if (!trench.collapsing && isInBox(trench.center)) {
+              found.push({ kind: 'trench', index });
+            }
+          });
+          return found;
+        },
+        collapseStructure({ kind, index }) {
+          const structure = listOf(kind)[index];
+          if (!structure || structure.collapsing) return;
+          structure.collapsing = true;
         },
         update,
         reset,
