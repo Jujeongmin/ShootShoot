@@ -43,6 +43,11 @@ describe('calculateShotScore', () => {
     expect(calculateShotScore({ isMiss: true, penetrationCount: 0, hits: [] }, 5, CONFIG)).toBe(0);
   });
 
+  it('returns 0 for a neutral outcome (structures destroyed, no monkeys killed)', () => {
+    const outcome = { isMiss: false, isNeutral: true, penetrationCount: 0, hits: [] };
+    expect(calculateShotScore(outcome, 5, CONFIG)).toBe(0);
+  });
+
   it('scores nothing for a hit that killed nobody, and keeps the streak alive', () => {
     const outcome = { isMiss: false, penetrationCount: 0, hits: [] };
     expect(calculateShotScore(outcome, 3, CONFIG)).toBe(0);
@@ -71,6 +76,22 @@ describe('applyShot', () => {
     expect(next.score).toBe(500);
     expect(next.streak).toBe(0);
     expect(next.misses).toBe(2);
+  });
+
+  it('leaves score, streak, and misses all unchanged on a neutral outcome', () => {
+    const state = { score: 500, streak: 4, misses: 1 };
+    const outcome = { isMiss: false, isNeutral: true, penetrationCount: 0, hits: [] };
+    const next = applyShot(state, outcome, CONFIG);
+    expect(next.score).toBe(500);
+    expect(next.streak).toBe(4);
+    expect(next.misses).toBe(1);
+  });
+
+  it('does not treat a neutral outcome as a miss even from a fresh state', () => {
+    const state = createScoreState();
+    const outcome = { isMiss: false, isNeutral: true, penetrationCount: 0, hits: [] };
+    const next = applyShot(state, outcome, CONFIG);
+    expect(next).toEqual(state);
   });
 });
 

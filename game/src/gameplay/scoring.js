@@ -3,7 +3,7 @@ export function createScoreState() {
 }
 
 export function calculateShotScore(shotOutcome, streak, config) {
-  if (shotOutcome.isMiss) return 0;
+  if (shotOutcome.isMiss || shotOutcome.isNeutral) return 0;
   const base = shotOutcome.hits.reduce((sum, hit) => {
     return sum + config.score.baseHit + (hit.part === 'head' ? config.score.headshotBonus : 0);
   }, 0);
@@ -16,6 +16,9 @@ export function calculateShotScore(shotOutcome, streak, config) {
 }
 
 export function applyShot(scoreState, shotOutcome, config) {
+  // 구조물만 부순 발사처럼 명중도 빗나감도 아닌 경우. 연속 배율을 올리지도,
+  // 끊지도, 미스로 세지도 않는다.
+  if (shotOutcome.isNeutral) return scoreState;
   if (shotOutcome.isMiss) {
     return { score: scoreState.score, streak: 0, misses: scoreState.misses + 1 };
   }

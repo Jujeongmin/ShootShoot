@@ -21,10 +21,12 @@ const COLLAPSE_DURATION = 0.3;
 const COLLAPSE_TILT = Math.PI / 2;
 const COLLAPSE_DROP = 0.6;
 // tools/measure-props.mjs 실측. 자루 참호는 로컬 y -0.0112 ~ 1.1829(높이 1.1941)라
-// 중심은 원점보다 0.586 위다. 타워는 상자 2단 + 발판이 월드 y -1.0 ~ 1.229라 중심이 0.11.
-// 그룹 원점이 아니라 이 중심으로 판정해야 "네모 안에 보이는데 안 부서지는" 문제가 없다.
-const TRENCH_CENTER_Y = 0.586;
-const TOWER_CENTER_Y = 0.11;
+// 중심은 그룹 원점(참호는 GROUND_Y)보다 0.586 위다. 타워는 상자 2단 + 발판이 월드
+// y -1.0 ~ 1.229라 중심이 월드 0.11인데, 타워 그룹도 y=0에 있으므로 그룹 원점보다
+// 0.11 위다. 둘 다 "그 구조물 그룹 원점 기준 로컬 오프셋"이며, 판정은 baseY + LOCAL로
+// 구한 절대 중심으로 해야 "네모 안에 보이는데 안 부서지는" 문제가 없다.
+const TRENCH_CENTER_LOCAL_Y = 0.586;
+const TOWER_CENTER_LOCAL_Y = 0.11;
 
 const GROUND_PLACEMENTS = [
   { x: -7, z: -70 },
@@ -73,6 +75,7 @@ export function loadObstacles(scene) {
         });
 
         trenches.push({
+          index: trenchIndex,
           group,
           meshes,
           materials,
@@ -80,7 +83,7 @@ export function loadObstacles(scene) {
           collapsing: false,
           collapsed: false,
           collapseElapsed: 0,
-          center: new THREE.Vector3(placement.x, GROUND_Y + TRENCH_CENTER_Y, placement.z),
+          center: new THREE.Vector3(placement.x, GROUND_Y + TRENCH_CENTER_LOCAL_Y, placement.z),
         });
       });
 
@@ -135,12 +138,12 @@ export function loadObstacles(scene) {
         });
 
         towers.push({
-          towerIndex,
+          index: towerIndex,
           group,
           pillarMeshes,
           materials,
           baseY: 0,
-          center: new THREE.Vector3(placement.x, TOWER_CENTER_Y, placement.z),
+          center: new THREE.Vector3(placement.x, 0 + TOWER_CENTER_LOCAL_Y, placement.z),
           collapsing: false,
           collapsed: false,
           collapseElapsed: 0,
@@ -180,6 +183,7 @@ export function loadObstacles(scene) {
         structure.group.position.y = structure.baseY;
         for (const material of structure.materials) {
           material.opacity = 1;
+          material.transparent = false;
         }
       }
 
@@ -208,20 +212,20 @@ export function loadObstacles(scene) {
         },
         findStructuresInBox(isInBox) {
           const found = [];
-          towers.forEach((tower, index) => {
+          towers.forEach((tower) => {
             if (!tower.collapsing && isInBox(tower.center)) {
-              found.push({ kind: 'tower', index });
+              found.push({ kind: 'tower', index: tower.index });
             }
           });
-          trenches.forEach((trench, index) => {
+          trenches.forEach((trench) => {
             if (!trench.collapsing && isInBox(trench.center)) {
-              found.push({ kind: 'trench', index });
+              found.push({ kind: 'trench', index: trench.index });
             }
           });
           return found;
         },
         collapseStructure({ kind, index }) {
-          const structure = listOf(kind)[index];
+          const structure = listOf(kind).find((s) => s.index === index);
           if (!structure || structure.collapsing) return;
           structure.collapsing = true;
         },

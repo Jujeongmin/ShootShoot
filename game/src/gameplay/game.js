@@ -341,18 +341,18 @@ export function createGame(container) {
 
   // 붕괴로 죽은 원숭이를 반환한다. 점수는 여기서 더하지 않고 호출부가 일반
   // 사격과 같은 경로(killedHits)로 계산한다 — 구조물 자체는 점수를 주지 않는다.
-  function applyTowerCollapse(hitTowerIndex) {
+  function applyTowerCollapse(hitTowerIndex, burstColor) {
     obstacles.collapseStructure({ kind: 'tower', index: hitTowerIndex });
     const towerMonkey = targetManager.findMonkeyAtTower(hitTowerIndex);
     if (!towerMonkey || towerMonkey.isDying()) return null;
     const worldPos = towerMonkey.getWorldPosition();
-    effects.spawnHitBurst(worldPos);
     if (!towerMonkey.kill()) return null;
+    effects.spawnHitBurst(worldPos, burstColor);
     return { monkeyId: towerMonkey.id, worldPos: worldPos.clone() };
   }
 
   function finishShot({ effectiveOutcome, gained, popupWorldPosition, isPureTowerHit }) {
-    if (!effectiveOutcome.isMiss && !targetManager.hasAliveMonkeys()) {
+    if (!effectiveOutcome.isMiss && !effectiveOutcome.isNeutral && !targetManager.hasAliveMonkeys()) {
       lastKillEffect.trigger();
     }
 
@@ -428,7 +428,12 @@ export function createGame(container) {
     // 원숭이가 있으면 그것도 점수에 포함되어야 하므로 결과를 직접 만든다.
     const isPureTowerHit = hits.length === 0 && hitTowerIndex !== null;
     const effectiveOutcome = isPureTowerHit
-      ? { isMiss: false, penetrationCount: killedHits.length, hits: killedHits }
+      ? {
+          isMiss: false,
+          isNeutral: killedHits.length === 0,
+          penetrationCount: killedHits.length,
+          hits: killedHits,
+        }
       : resolveKillOutcome(outcome, killedHits);
     const gained = calculateShotScore(effectiveOutcome, scoreState.streak, CONFIG);
     scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
@@ -459,7 +464,7 @@ export function createGame(container) {
 
     for (const structure of structures) {
       if (structure.kind === 'tower') {
-        const towerKill = applyTowerCollapse(structure.index);
+        const towerKill = applyTowerCollapse(structure.index, 0xff6600);
         if (towerKill) {
           killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
           if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
@@ -477,8 +482,10 @@ export function createGame(container) {
       killedHits.push({ monkeyId: monkey.id, part: 'body' });
     }
 
+    const killedNothing = killedHits.length === 0;
     const effectiveOutcome = {
-      isMiss: killedHits.length === 0 && structures.length === 0,
+      isMiss: killedNothing && structures.length === 0,
+      isNeutral: killedNothing && structures.length > 0,
       penetrationCount: killedHits.length,
       hits: killedHits,
     };
