@@ -75,6 +75,7 @@ export function createGame(container) {
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
   let settingsOrigin = null;
+  let aimApplied = false;
 
   const weaponStore = createWeaponStore(window.localStorage, CONFIG.weaponStorageKey);
   let shopError = null;
@@ -508,6 +509,9 @@ export function createGame(container) {
 
   function handleShot() {
     if (phase !== 'playing') return;
+    // 누르고 떼는 게 한 프레임 안에 들어가면 조준이 한 번도 적용되지 않는다.
+    // 그 상태로 쏘면 카메라가 확대 전 FOV라 판정 범위가 훨씬 넓어지므로 무시한다.
+    if (!aimApplied) return;
     sfx.shoot();
     weaponViewmodel.triggerRecoil();
     raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
@@ -525,7 +529,10 @@ export function createGame(container) {
     }
   }
 
-  input.onAimDown(() => resumeAudio());
+  input.onAimDown(() => {
+    aimApplied = false;
+    resumeAudio();
+  });
   input.onAimUp(handleShot);
 
   function start() {
@@ -550,6 +557,7 @@ export function createGame(container) {
       }
 
       if (input.isAiming()) {
+        aimApplied = true;
         const ndc = input.getNdc();
         const effectiveX = clampToUnit(ndc.x * sensitivity);
         const effectiveY = clampToUnit(ndc.y * sensitivity);
