@@ -26,7 +26,7 @@ import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { createAdRewardPanel } from '../ui/adRewardPanel.js';
 import { createLastKillEffect } from './lastKillEffect.js';
 import { createWeaponStore } from './weaponStore.js';
-import { computeBlastRadiusPx, findMonkeysInScreenBox } from './screenTargeting.js';
+import { computeBlastRadiusPx, findMonkeysInScreenBox, isPointInScreenBox } from './screenTargeting.js';
 import { createBazookaProjectiles } from './bazookaProjectile.js';
 import { CONFIG } from '../config.js';
 
@@ -339,17 +339,16 @@ export function createGame(container) {
     openSettingsFromPlay();
   });
 
+  // 붕괴로 죽은 원숭이를 반환한다. 점수는 여기서 더하지 않고 호출부가 일반
+  // 사격과 같은 경로(killedHits)로 계산한다 — 구조물 자체는 점수를 주지 않는다.
   function applyTowerCollapse(hitTowerIndex) {
-    obstacles.collapseTower(hitTowerIndex);
+    obstacles.collapseStructure({ kind: 'tower', index: hitTowerIndex });
     const towerMonkey = targetManager.findMonkeyAtTower(hitTowerIndex);
-    if (towerMonkey && !towerMonkey.isDying()) {
-      const worldPos = towerMonkey.getWorldPosition();
-      effects.spawnHitBurst(worldPos);
-      towerMonkey.kill();
-      scoreState = { ...scoreState, score: scoreState.score + CONFIG.score.towerCollapseBonus };
-      const screenPos = worldToScreen(worldPos, engine.camera, container);
-      hud.showScorePopup(`+${CONFIG.score.towerCollapseBonus}`, screenPos.x, screenPos.y);
-    }
+    if (!towerMonkey || towerMonkey.isDying()) return null;
+    const worldPos = towerMonkey.getWorldPosition();
+    effects.spawnHitBurst(worldPos);
+    if (!towerMonkey.kill()) return null;
+    return { monkeyId: towerMonkey.id, worldPos: worldPos.clone() };
   }
 
   function finishShot({ effectiveOutcome, gained, popupWorldPosition, isPureTowerHit }) {
@@ -417,16 +416,22 @@ export function createGame(container) {
       }
     }
 
+    if (hitTowerIndex !== null) {
+      const towerKill = applyTowerCollapse(hitTowerIndex);
+      if (towerKill) {
+        killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
+        if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
+      }
+    }
+
+    // 기둥만 맞힌 경우 resolveShot이 isMiss를 주지만 미스가 아니다. 붕괴로 죽은
+    // 원숭이가 있으면 그것도 점수에 포함되어야 하므로 결과를 직접 만든다.
     const isPureTowerHit = hits.length === 0 && hitTowerIndex !== null;
     const effectiveOutcome = isPureTowerHit
-      ? { isMiss: false, penetrationCount: 0, hits: [] }
+      ? { isMiss: false, penetrationCount: killedHits.length, hits: killedHits }
       : resolveKillOutcome(outcome, killedHits);
     const gained = calculateShotScore(effectiveOutcome, scoreState.streak, CONFIG);
     scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
-
-    if (hitTowerIndex !== null) {
-      applyTowerCollapse(hitTowerIndex);
-    }
 
     finishShot({
       effectiveOutcome,
@@ -436,19 +441,34 @@ export function createGame(container) {
     });
   }
 
-  function resolveBazookaImpact({ impactPoint, captured, hitTowerIndex }) {
+  function resolveBazookaImpact({ impactPoint, captured, capturedStructures, hitTowerIndex }) {
     effects.spawnExplosion(impactPoint);
     sfx.explosion();
 
     // 포탄이 날아가는 동안 라운드가 끝났거나 게임오버가 됐으면 연출만 남긴다.
     if (phase !== 'playing') return;
 
-    if (hitTowerIndex !== null) {
-      applyTowerCollapse(hitTowerIndex);
-    }
-
     const killedHits = [];
     let popupWorldPosition = null;
+
+    // 직접 맞힌 타워와 상자 안에 들어온 구조물을 합쳐서 중복 없이 무너뜨린다.
+    const structures = [...capturedStructures];
+    if (hitTowerIndex !== null && !structures.some((s) => s.kind === 'tower' && s.index === hitTowerIndex)) {
+      structures.push({ kind: 'tower', index: hitTowerIndex });
+    }
+
+    for (const structure of structures) {
+      if (structure.kind === 'tower') {
+        const towerKill = applyTowerCollapse(structure.index);
+        if (towerKill) {
+          killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
+          if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
+        }
+        continue;
+      }
+      obstacles.collapseStructure(structure);
+    }
+
     for (const monkey of captured) {
       if (!monkey.kill()) continue;
       const worldPos = monkey.getWorldPosition();
@@ -458,7 +478,7 @@ export function createGame(container) {
     }
 
     const effectiveOutcome = {
-      isMiss: killedHits.length === 0 && hitTowerIndex === null,
+      isMiss: killedHits.length === 0 && structures.length === 0,
       penetrationCount: killedHits.length,
       hits: killedHits,
     };
@@ -469,7 +489,7 @@ export function createGame(container) {
       effectiveOutcome,
       gained,
       popupWorldPosition,
-      isPureTowerHit: hitTowerIndex !== null,
+      isPureTowerHit: killedHits.length === 0 && structures.length > 0,
     });
   }
 
@@ -486,11 +506,15 @@ export function createGame(container) {
 
     // 대상은 쏜 순간에 확정한다. 비행 중 조준을 움직여도 결과가 바뀌지 않는다.
     const rect = container.getBoundingClientRect();
+    const blastRadiusPx = getBlastRadiusPx(rect);
     const captured = findMonkeysInScreenBox(
       targetManager.getMonkeys(),
       engine.camera,
       rect,
-      getBlastRadiusPx(rect)
+      blastRadiusPx
+    );
+    const capturedStructures = obstacles.findStructuresInBox((point) =>
+      isPointInScreenBox(point, engine.camera, rect, blastRadiusPx)
     );
 
     if (bazookaStore.consumeRound() === 0) {
@@ -503,7 +527,7 @@ export function createGame(container) {
       .add(new THREE.Vector3(0.5, -0.4, 0).applyQuaternion(engine.camera.quaternion));
 
     projectiles.spawn(muzzle, impactPoint, CONFIG.bazooka.flightSeconds, () => {
-      resolveBazookaImpact({ impactPoint, captured, hitTowerIndex });
+      resolveBazookaImpact({ impactPoint, captured, capturedStructures, hitTowerIndex });
     });
   }
 

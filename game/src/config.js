@@ -5,7 +5,6 @@ export const CONFIG = {
     comboMultiplierPerPenetration: 0.5,
     streakMultiplierStep: 0.1,
     streakMultiplierCap: 2.0,
-    towerCollapseBonus: 200,
   },
   round: {
     baseMonkeyCount: 3,

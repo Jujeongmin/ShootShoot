@@ -189,7 +189,9 @@ export function loadObstacles(scene) {
       }
 
       function listOf(kind) {
-        return kind === 'tower' ? towers : trenches;
+        if (kind === 'tower') return towers;
+        if (kind === 'trench') return trenches;
+        return [];
       }
 
       return {
