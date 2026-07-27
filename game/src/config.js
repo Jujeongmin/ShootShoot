@@ -47,7 +47,6 @@ export const CONFIG = {
   },
   bazooka: {
     maxRounds: 5,
-    blastRadius: 6,
     blastScreenRatio: 0.25,
     maxRange: 85,
     flightSeconds: 0.3,

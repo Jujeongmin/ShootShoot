@@ -98,11 +98,8 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     return monkeys.some((monkey) => !monkey.isDying());
   }
 
-  function findMonkeysWithinRadius(worldPoint, radius) {
-    return monkeys.filter((monkey) => {
-      if (monkey.isDying()) return false;
-      return monkey.getWorldPosition().distanceTo(worldPoint) <= radius;
-    });
+  function getMonkeys() {
+    return monkeys;
   }
 
   return {
@@ -115,6 +112,6 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     clear,
     hasDyingMonkeys,
     hasAliveMonkeys,
-    findMonkeysWithinRadius,
+    getMonkeys,
   };
 }

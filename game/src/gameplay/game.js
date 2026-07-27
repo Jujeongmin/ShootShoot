@@ -26,7 +26,8 @@ import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { createAdRewardPanel } from '../ui/adRewardPanel.js';
 import { createLastKillEffect } from './lastKillEffect.js';
 import { createWeaponStore } from './weaponStore.js';
-import { computeBlastRadiusPx } from './screenTargeting.js';
+import { computeBlastRadiusPx, findMonkeysInScreenBox } from './screenTargeting.js';
+import { createBazookaProjectiles } from './bazookaProjectile.js';
 import { CONFIG } from '../config.js';
 
 function worldToScreen(position, camera, container) {
@@ -63,6 +64,7 @@ export function createGame(container) {
   const lastSeenStore = createLastSeenStore(window.localStorage, CONFIG.lastSeenStorageKey);
   const raycaster = new THREE.Raycaster();
   const lastKillEffect = createLastKillEffect();
+  const projectiles = createBazookaProjectiles(engine.scene);
 
   let targetManager = null;
   let weaponViewmodel = null;
@@ -94,6 +96,7 @@ export function createGame(container) {
   }
 
   function startGame() {
+    projectiles.clear();
     scoreState = createScoreState();
     phase = 'playing';
     beginRound(1);
@@ -109,6 +112,7 @@ export function createGame(container) {
   function endGame() {
     phase = 'gameover';
     targetManager.clear();
+    projectiles.clear();
     const previousHighScore = highScoreStore.get();
     const highScore = highScoreStore.submit(scoreState.score);
     const isNewHighScore = scoreState.score > previousHighScore && scoreState.score > 0;
@@ -427,27 +431,25 @@ export function createGame(container) {
     });
   }
 
-  function handleBazookaShot(intersections) {
-    const first = intersections[0];
-    const hitTowerIndex = first && first.object.userData.towerIndex !== undefined
-      ? first.object.userData.towerIndex
-      : null;
+  function resolveBazookaImpact({ impactPoint, captured, hitTowerIndex }) {
+    effects.spawnExplosion(impactPoint);
+    sfx.explosion();
+
+    // 포탄이 날아가는 동안 라운드가 끝났거나 게임오버가 됐으면 연출만 남긴다.
+    if (phase !== 'playing') return;
+
+    if (hitTowerIndex !== null) {
+      applyTowerCollapse(hitTowerIndex);
+    }
 
     const killedHits = [];
     let popupWorldPosition = null;
-
-    if (first) {
-      if (hitTowerIndex !== null) {
-        applyTowerCollapse(hitTowerIndex);
-      }
-      const nearby = targetManager.findMonkeysWithinRadius(first.point, CONFIG.bazooka.blastRadius);
-      for (const monkey of nearby) {
-        if (!monkey.kill()) continue;
-        const worldPos = monkey.getWorldPosition();
-        if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
-        effects.spawnHitBurst(worldPos, 0xff6600);
-        killedHits.push({ monkeyId: monkey.id, part: 'body' });
-      }
+    for (const monkey of captured) {
+      if (!monkey.kill()) continue;
+      const worldPos = monkey.getWorldPosition();
+      if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
+      effects.spawnHitBurst(worldPos, 0xff6600);
+      killedHits.push({ monkeyId: monkey.id, part: 'body' });
     }
 
     const effectiveOutcome = {
@@ -458,15 +460,44 @@ export function createGame(container) {
     const gained = calculateShotScore(effectiveOutcome, scoreState.streak, CONFIG);
     scoreState = applyShot(scoreState, effectiveOutcome, CONFIG);
 
-    if (bazookaStore.consumeRound() === 0) {
-      swapWeaponViewmodel(getEquippedWeapon()).catch(() => {});
-    }
-
     finishShot({
       effectiveOutcome,
       gained,
       popupWorldPosition,
       isPureTowerHit: hitTowerIndex !== null,
+    });
+  }
+
+  function handleBazookaShot(intersections) {
+    const first = intersections[0];
+    const hitTowerIndex = first && first.object.userData.towerIndex !== undefined
+      ? first.object.userData.towerIndex
+      : null;
+
+    // 아무것도 안 맞아도 포탄은 날아간다. 원숭이 대열 부근(maxRange)에서 터진다.
+    const impactPoint = first
+      ? first.point.clone()
+      : raycaster.ray.at(CONFIG.bazooka.maxRange, new THREE.Vector3());
+
+    // 대상은 쏜 순간에 확정한다. 비행 중 조준을 움직여도 결과가 바뀌지 않는다.
+    const captured = findMonkeysInScreenBox(
+      targetManager.getMonkeys(),
+      engine.camera,
+      container.getBoundingClientRect(),
+      computeBlastRadiusPx(container.clientHeight, CONFIG.bazooka.blastScreenRatio)
+    );
+
+    if (bazookaStore.consumeRound() === 0) {
+      swapWeaponViewmodel(getEquippedWeapon()).catch(() => {});
+    }
+
+    const muzzle = raycaster.ray.origin
+      .clone()
+      .addScaledVector(raycaster.ray.direction, 2)
+      .add(new THREE.Vector3(0.5, -0.4, 0).applyQuaternion(engine.camera.quaternion));
+
+    projectiles.spawn(muzzle, impactPoint, CONFIG.bazooka.flightSeconds, () => {
+      resolveBazookaImpact({ impactPoint, captured, hitTowerIndex });
     });
   }
 
@@ -507,6 +538,7 @@ export function createGame(container) {
         weaponViewmodel.setVisible(!input.isAiming());
       }
       effects.update(scaledDt);
+      projectiles.update(scaledDt);
 
       if (obstacles) {
         obstacles.update(scaledDt);
@@ -529,7 +561,7 @@ export function createGame(container) {
 
       if (phase === 'playing' && !settingsOpen) {
         updateHud();
-        if (targetManager.allCleared()) {
+        if (targetManager.allCleared() && !projectiles.hasPending()) {
           sfx.roundClear();
           stageBanner.show(round + 1);
           beginRound(round + 1);
