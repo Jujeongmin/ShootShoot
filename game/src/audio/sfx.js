@@ -35,6 +35,9 @@ export const sfx = {
   roundClear() {
     playTone({ frequency: 600, frequencyEnd: 900, duration: 0.4, type: 'sine', gain: 0.25 });
   },
+  explosion() {
+    playTone({ frequency: 160, frequencyEnd: 40, duration: 0.5, type: 'sawtooth', gain: 0.3 });
+  },
 };
 
 export function resumeAudio() {
