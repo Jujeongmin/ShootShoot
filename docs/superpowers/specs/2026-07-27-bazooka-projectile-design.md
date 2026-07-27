@@ -121,7 +121,7 @@ findMonkeysInScreenBox(monkeys, camera, container, radiusPx) -> Monkey[]
 
 `scopeOverlay`는 바주카포일 때만 이 브래킷 레이아웃을 그린다. 나머지 4종(기본소총·전기총·저격소총·레이건)의 레티클은 지난 세션에 정한 그대로 유지한다.
 
-레티클 크기 `R`은 판정에 쓰이는 값과 같아야 하므로, `scopeOverlay`는 `R`을 계산하는 함수를 노출하고 `game.js`가 같은 함수를 써서 판정한다. 두 곳에서 따로 계산하면 어긋난다.
+레티클 크기 `R`은 판정에 쓰이는 값과 반드시 같아야 한다. `R` 계산은 `screenTargeting.computeBlastRadiusPx()` 한 곳에만 둔다. `game.js`가 이 함수로 `R`을 구해 `scopeOverlay.show(weaponId, R)`로 넘기고, 같은 값으로 판정도 한다. `scopeOverlay`는 받은 숫자를 그리기만 하므로 UI가 게임플레이 모듈을 import할 필요가 없다.
 
 ## CONFIG 변경
 
