@@ -9,9 +9,9 @@ export function findMonkeysInScreenBox(monkeys, camera, rect, radiusPx) {
   return monkeys.filter((monkey) => {
     if (monkey.isDying()) return false;
 
-    // project()는 벡터를 제자리에서 바꾼다. getWorldPosition()이 매번 새 벡터를
+    // project()는 벡터를 제자리에서 바꾼다. getCenterWorldPosition()이 매번 새 벡터를
     // 주므로 원숭이 좌표가 오염될 걱정은 없다.
-    const ndc = monkey.getWorldPosition().project(camera);
+    const ndc = monkey.getCenterWorldPosition().project(camera);
     if (ndc.z > 1) return false; // 카메라 뒤
 
     const x = rect.left + (ndc.x * 0.5 + 0.5) * rect.width;

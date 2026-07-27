@@ -89,6 +89,10 @@ export function createGame(container) {
     return bazookaStore.getRounds() > 0 ? CONFIG.bazooka.weapon.id : getEquippedWeapon().id;
   }
 
+  function getBlastRadiusPx(rect) {
+    return computeBlastRadiusPx(rect.height, CONFIG.bazooka.blastScreenRatio);
+  }
+
   function beginRound(roundNumber) {
     round = roundNumber;
     obstacles.reset();
@@ -480,11 +484,12 @@ export function createGame(container) {
       : raycaster.ray.at(CONFIG.bazooka.maxRange, new THREE.Vector3());
 
     // 대상은 쏜 순간에 확정한다. 비행 중 조준을 움직여도 결과가 바뀌지 않는다.
+    const rect = container.getBoundingClientRect();
     const captured = findMonkeysInScreenBox(
       targetManager.getMonkeys(),
       engine.camera,
-      container.getBoundingClientRect(),
-      computeBlastRadiusPx(container.clientHeight, CONFIG.bazooka.blastScreenRatio)
+      rect,
+      getBlastRadiusPx(rect)
     );
 
     if (bazookaStore.consumeRound() === 0) {
@@ -552,7 +557,7 @@ export function createGame(container) {
         engine.camera.rotation.x = effectiveY * CONFIG.aim.lookLimitY;
         scopeOverlay.show(
           getActiveWeaponId(),
-          computeBlastRadiusPx(container.clientHeight, CONFIG.bazooka.blastScreenRatio)
+          getBlastRadiusPx(container.getBoundingClientRect())
         );
       } else {
         engine.camera.rotation.set(0, 0, 0);

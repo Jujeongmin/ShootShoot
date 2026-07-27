@@ -17,6 +17,8 @@ const HP_BAR_CANVAS_WIDTH = 64;
 const HP_BAR_CANVAS_HEIGHT = 10;
 const HP_BAR_LOCAL_Y = 2.1;
 const HP_BAR_SPRITE_SIZE = { x: 0.9, y: 0.14 };
+// HP_BAR_LOCAL_Y(2.1)는 몸의 꼭대기를 가리키므로, 그 절반이 시각적 중심이다.
+const CENTER_LOCAL_Y = 1.05;
 
 function createHpBar() {
   const canvas = document.createElement('canvas');
@@ -218,6 +220,11 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     },
     getWorldPosition(target = new THREE.Vector3()) {
       return group.getWorldPosition(target);
+    },
+    getCenterWorldPosition(target = new THREE.Vector3()) {
+      group.getWorldPosition(target);
+      target.y += CENTER_LOCAL_Y * group.scale.y;
+      return target;
     },
     dispose() {
       hpBar.dispose();

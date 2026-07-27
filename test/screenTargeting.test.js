@@ -17,9 +17,13 @@ function makeCamera() {
 }
 
 function fakeMonkey(x, y, z, { dying = false } = {}) {
+  // screenTargeting은 이제 getCenterWorldPosition()만 사용한다. 기존 테스트들은
+  // (x, y, z)를 "테스트 대상 지점"으로 다뤄왔으므로, 그 지점을 그대로 중심 좌표로
+  // 노출해 기대값을 바꾸지 않고도 계속 통과하게 한다.
   return {
     isDying: () => dying,
     getWorldPosition: () => new THREE.Vector3(x, y, z),
+    getCenterWorldPosition: () => new THREE.Vector3(x, y, z),
   };
 }
 
@@ -88,5 +92,28 @@ describe('findMonkeysInScreenBox', () => {
 
   it('returns an empty array when given no monkeys', () => {
     expect(findMonkeysInScreenBox([], makeCamera(), RECT, 150)).toEqual([]);
+  });
+
+  it('includes a front-row monkey by its visual centre even though its ground-level feet would fall outside the box', () => {
+    // 카메라는 y=1.6에 있고 원숭이 그룹 원점(발밑)은 y=-1.0(GROUND_Y)에 있다.
+    // 이 2.6 높이 차이 때문에, 살짝 위로 조준하면 "발" 좌표는 박스 밖으로
+    // 밀려나지만 몸통 중심은 여전히 안쪽에 남는다. 브라켓과 실제 판정이
+    // 같은 지점을 봐야 한다는 설계 전제를 지키는 회귀 테스트.
+    const camera = new THREE.PerspectiveCamera(9, 800 / 600, 0.1, 1000);
+    camera.position.set(0, 1.6, 0);
+    camera.rotation.x = 0.0122; // 약 0.7도 위로 피치업, lookLimitY(0.2rad) 이내
+    camera.updateMatrixWorld(true);
+
+    const groupOrigin = new THREE.Vector3(0, -1.0, -78);
+    const centerLocalY = 1.05;
+    const monkey = {
+      isDying: () => false,
+      getWorldPosition: () => groupOrigin.clone(),
+      getCenterWorldPosition: () =>
+        groupOrigin.clone().add(new THREE.Vector3(0, centerLocalY, 0)),
+    };
+
+    const found = findMonkeysInScreenBox([monkey], camera, RECT, 150);
+    expect(found).toEqual([monkey]);
   });
 });

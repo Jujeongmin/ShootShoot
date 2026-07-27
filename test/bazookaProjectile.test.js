@@ -95,6 +95,23 @@ describe('createBazookaProjectiles', () => {
     expect(onImpact).not.toHaveBeenCalled();
   });
 
+  it('survives a callback clearing the array mid-pass when two projectiles impact on the same update()', () => {
+    // update()는 배열을 뒤(높은 인덱스)에서부터 훑는다. 나중에 spawn한 포탄이 더
+    // 높은 인덱스를 가지므로 먼저 처리된다. 그 착탄 콜백이 endGame() 흐름을 타고
+    // clear()를 호출하면, 아직 처리하지 않은 낮은 인덱스 포탄이 배열에서 이미
+    // 사라진 뒤라 다음 반복이 undefined를 읽는다. 가드가 없으면 "Cannot read
+    // properties of undefined"로 던지고 렌더 루프가 영구히 멈춘다.
+    const projectiles = createBazookaProjectiles(fakeScene());
+    const first = vi.fn();
+    projectiles.spawn(FROM, TO, 0.2, first);
+    projectiles.spawn(FROM, TO, 0.2, () => {
+      projectiles.clear();
+    });
+
+    expect(() => projectiles.update(0.2)).not.toThrow();
+    expect(projectiles.hasPending()).toBe(false);
+  });
+
   it('lets a callback spawn another projectile without disturbing the update pass', () => {
     const projectiles = createBazookaProjectiles(fakeScene());
     const second = vi.fn();
