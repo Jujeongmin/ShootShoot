@@ -57,6 +57,42 @@
   font-family: var(--k-font);
 }
 
+/* 카드 안의 부제(Lv.3, 2/5 같은 줄). 기본은 패널 위라 어두운 잉크다. */
+.k-meta {
+  color: var(--k-ink-soft);
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+/* 패널 없이 3D 장면 위에 바로 놓이는 UI. 글자를 밝은 쪽으로 뒤집고 그림자로
+   배경과 분리한다. ghost/off 버튼은 모달 안(회색 패널)에서도 쓰이므로 색을
+   통째로 못 바꾼다 — 이 문맥 안에서만 덮어쓴다. */
+/* text-shadow 는 상속된다. 컨테이너에 걸면 노란 primary 버튼 글자까지 번지므로
+   받아야 할 요소에만 건다. */
+.k-on-dark {
+  color: var(--k-white);
+}
+.k-on-dark .k-title {
+  color: var(--k-face);
+  text-shadow: 0 2px 0 var(--k-deep), 0 3px 6px rgba(0, 0, 0, 0.6);
+}
+.k-on-dark .k-meta {
+  color: var(--k-grey);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+.k-on-dark .k-btn--ghost {
+  color: var(--k-hi);
+  text-decoration-color: var(--k-face);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+.k-on-dark .k-btn--ghost:hover {
+  color: var(--k-face);
+}
+.k-on-dark .k-btn--off {
+  color: var(--k-grey-shadow);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
 /* 폭이 가변인 세 요소만 9-slice가 필요하다. 실측 슬라이스는 8px
    (외곽 2 + 하이라이트 2 + 코너 반경 약 4). depth 스프라이트만 밑단 립 때문에 12. */
 .k-panel {

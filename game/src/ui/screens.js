@@ -48,10 +48,12 @@ export function createScreens(container) {
   }
 
   // 메뉴의 카드는 전부 이 틀을 쓴다. anchorCss 로 화면 어디에 붙을지만 달라진다.
+  // 패널 프레임이 없어 글자가 3D 장면 위에 바로 놓이므로 k-on-dark 로 색을 뒤집는다.
   // actionNode 는 없어도 된다 — 상점 카드는 그림 자체가 버튼이라 아래에 붙는
   // 사각 버튼이 없다.
   function menuCard(anchorCss, width, headingText, bodyNodes, actionNode = null) {
-    const card = panel();
+    const card = document.createElement('div');
+    card.className = 'k-on-dark';
     card.style.cssText = `${anchorCss} width: ${width}px; text-align: center;`;
     card.appendChild(title(headingText));
     for (const node of bodyNodes) card.appendChild(node);
@@ -80,7 +82,7 @@ export function createScreens(container) {
 
   function levelLine(level) {
     const line = document.createElement('div');
-    line.style.cssText = 'color: #4a4a5e; font-size: 15px; margin-bottom: 12px;';
+    line.className = 'k-meta';
     line.appendChild(document.createTextNode('Lv.'));
     line.appendChild(num(String(level)));
     return line;
@@ -88,7 +90,7 @@ export function createScreens(container) {
 
   function roundsLine(rounds) {
     const line = document.createElement('div');
-    line.style.cssText = 'color: #4a4a5e; font-size: 15px; margin-bottom: 12px;';
+    line.className = 'k-meta';
     line.appendChild(num(`${rounds}/${BAZOOKA_MAX_ROUNDS}`));
     return line;
   }
@@ -104,7 +106,8 @@ export function createScreens(container) {
   // 좌측 중앙. 제목과 그림뿐이고, 그림을 누르면 상점이 열린다.
   function shopCard(onShop) {
     const anchor = 'position: absolute; left: 24px; top: 50%; transform: translateY(-50%);';
-    const art = artButton('cart', '상점 열기', onShop, 104);
+    // 패널이 없어 어두운 장면 위에 놓인다. 검정 아이콘은 여기서 안 보인다.
+    const art = artButton('cart', '상점 열기', onShop, 104, { tone: 'white' });
     art.style.margin = '6px 0 2px';
     return menuCard(anchor, 200, '상점', [art]);
   }
