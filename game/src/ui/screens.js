@@ -64,17 +64,20 @@ export function createScreens(container) {
     return card;
   }
 
+  // 무기 그림은 512x512 캔버스에 가로로 누운 물체라 실제 내용이 세로의 20~37%뿐이다.
+  // object-fit: contain 으로 맞추면 정사각형 기준이라 총이 쪼그라든다. 가로를 꽉
+  // 채우고 남는 투명 여백은 잘라낸다.
   // 그림이 아직 없을 수 있다. 깨진 이미지 아이콘 대신 자리만 비운다.
   function artwork(src, alt, height) {
     const frame = document.createElement('div');
     frame.style.cssText = `
       display: flex; align-items: center; justify-content: center;
-      height: ${height}px; margin: 4px 0 10px;
+      height: ${height}px; overflow: hidden; margin: 4px 0 8px;
     `;
     const img = document.createElement('img');
     img.src = src;
     img.alt = alt;
-    img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+    img.style.cssText = 'width: 100%; height: auto; flex: none;';
     img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
     frame.appendChild(img);
     return frame;
@@ -112,14 +115,14 @@ export function createScreens(container) {
     return menuCard(anchor, 200, '상점', [art]);
   }
 
-  // 우측 중앙
+  // 우측 중앙. 그림 폭에 맞춰 카드를 넓힌다 — 260px 폭에서 총 자체가 약 53px 높이가 된다.
   function bazookaCard(rounds, onWatchAd) {
     const anchor = 'position: absolute; right: 24px; top: 50%; transform: translateY(-50%);';
-    const art = artwork(BAZOOKA_IMAGE, '바주카포', 96);
+    const art = artwork(BAZOOKA_IMAGE, '바주카포', 76);
     const action = rounds > 0
       ? button('보유 중', () => {}, 'off')
       : button('📺 획득', onWatchAd, 'ghost');
-    return menuCard(anchor, 200, '바주카포', [art, roundsLine(rounds)], action);
+    return menuCard(anchor, 260, '바주카포', [art, roundsLine(rounds)], action);
   }
 
   function showMenu(state, handlers) {
