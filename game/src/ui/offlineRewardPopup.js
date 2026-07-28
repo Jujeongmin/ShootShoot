@@ -1,35 +1,36 @@
+import { scrim, panel, button, title, num } from './kit.js';
+
 export function createOfflineRewardPopup(container) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: absolute; inset: 0; display: none; flex-direction: column;
-    align-items: center; justify-content: center; color: #fff;
-    font-family: sans-serif; background: rgba(0,0,0,0.7); z-index: 25;
-  `;
+  const overlay = scrim();
+  overlay.style.zIndex = '25';
   container.appendChild(overlay);
 
   function show(goldAmount, onClaim) {
     overlay.innerHTML = '';
 
-    const title = document.createElement('h2');
-    title.textContent = '오프라인 보상';
-    overlay.appendChild(title);
+    const box = panel();
+    box.style.cssText = 'text-align: center; min-width: 280px;';
+    box.appendChild(title('오프라인 보상'));
 
-    const message = document.createElement('p');
-    message.textContent = `자리를 비운 사이 골드 ${goldAmount}개를 모았습니다!`;
-    overlay.appendChild(message);
+    const amount = document.createElement('div');
+    amount.style.cssText = 'font-size: 40px; color: #1a1a2e; margin: 8px 0 4px;';
+    amount.appendChild(document.createTextNode('🪙 '));
+    amount.appendChild(num(goldAmount.toLocaleString()));
+    box.appendChild(amount);
 
-    const claimBtn = document.createElement('button');
-    claimBtn.textContent = '받기';
-    claimBtn.style.cssText = `
-      margin-top: 16px; padding: 10px 24px; font-size: 18px; cursor: pointer;
-      border: none; border-radius: 6px; background: #f0a500; color: #1a1a2e;
-    `;
-    claimBtn.addEventListener('click', () => {
+    const message = document.createElement('div');
+    message.textContent = '자리를 비운 사이 모은 골드입니다!';
+    message.style.cssText = 'color: #4a4a5e; font-size: 14px;';
+    box.appendChild(message);
+
+    const claimBtn = button('받기', () => {
       overlay.style.display = 'none';
       onClaim();
-    });
-    overlay.appendChild(claimBtn);
+    }, 'primary');
+    claimBtn.style.cssText += 'width: 100%; margin-top: 16px;';
+    box.appendChild(claimBtn);
 
+    overlay.appendChild(box);
     overlay.style.display = 'flex';
   }
 

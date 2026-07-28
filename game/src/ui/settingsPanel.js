@@ -1,45 +1,48 @@
+import { scrim, panel, button, iconButton, title, num } from './kit.js';
+
 export function createSettingsPanel(container) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: absolute; inset: 0; display: none; flex-direction: column;
-    align-items: center; justify-content: center; color: #fff;
-    font-family: sans-serif; background: rgba(0,0,0,0.7); z-index: 25;
-  `;
+  const overlay = scrim();
+  overlay.style.zIndex = '25';
   container.appendChild(overlay);
 
   function show(sensitivity, onChange, onClose) {
     overlay.innerHTML = '';
 
-    const title = document.createElement('h2');
-    title.textContent = '설정';
-    overlay.appendChild(title);
+    const box = panel();
+    box.style.cssText = 'position: relative; text-align: center; min-width: 300px;';
 
-    const label = document.createElement('p');
-    label.textContent = `마우스 민감도: ${sensitivity.toFixed(1)}x`;
-    overlay.appendChild(label);
+    const closeBtn = iconButton('cross', '닫기', onClose, 36);
+    closeBtn.style.cssText += 'position: absolute; top: -14px; right: -14px;';
+    box.appendChild(closeBtn);
+
+    box.appendChild(title('설정'));
+
+    const label = document.createElement('div');
+    label.style.cssText = 'color: #4a4a5e; font-size: 15px; margin: 10px 0 6px;';
+    label.appendChild(document.createTextNode('마우스 민감도 '));
+    const value = num(`${sensitivity.toFixed(1)}x`);
+    label.appendChild(value);
+    box.appendChild(label);
 
     const slider = document.createElement('input');
     slider.type = 'range';
+    slider.className = 'k-slider';
     slider.min = '0.5';
     slider.max = '2.0';
     slider.step = '0.1';
     slider.value = String(sensitivity);
     slider.addEventListener('input', () => {
-      const value = parseFloat(slider.value);
-      label.textContent = `마우스 민감도: ${value.toFixed(1)}x`;
-      onChange(value);
+      const next = parseFloat(slider.value);
+      value.textContent = `${next.toFixed(1)}x`;
+      onChange(next);
     });
-    overlay.appendChild(slider);
+    box.appendChild(slider);
 
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '닫기';
-    closeBtn.style.cssText = `
-      margin-top: 16px; padding: 10px 24px; font-size: 18px; cursor: pointer;
-      border: none; border-radius: 6px; background: #f0a500; color: #1a1a2e;
-    `;
-    closeBtn.addEventListener('click', onClose);
-    overlay.appendChild(closeBtn);
+    const doneBtn = button('닫기', onClose, 'ghost');
+    doneBtn.style.cssText += 'display: block; margin: 16px auto 0;';
+    box.appendChild(doneBtn);
 
+    overlay.appendChild(box);
     overlay.style.display = 'flex';
   }
 
