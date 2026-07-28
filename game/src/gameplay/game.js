@@ -165,6 +165,7 @@ export function createGame(container) {
     const owned = weaponStore.getOwned();
     return {
       gold: currencyStore.get(),
+      adGoldAmount: CONFIG.adReward.goldAmount,
       error: shopError,
       weapons: CONFIG.weapons.map((weapon) => ({
         id: weapon.id,

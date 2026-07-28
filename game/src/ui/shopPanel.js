@@ -27,7 +27,8 @@ export function createShopPanel(container) {
   }
 
   // 골드가 모자랄 때만 가격 옆에 광고 버튼이 붙는다. 나머지 상태는 버튼 하나다.
-  function insufficientRow(weapon, handlers) {
+  // 광고가 얼마를 주는지는 버튼에 적는다 — 금액은 game.js 가 state 로 넘긴다.
+  function insufficientRow(weapon, adGoldAmount, handlers) {
     const row = document.createElement('div');
     row.style.cssText = 'display: flex; align-items: stretch; gap: 8px; margin-top: 12px;';
 
@@ -35,17 +36,17 @@ export function createShopPanel(container) {
     price.style.flex = '1';
     row.appendChild(price);
 
-    const watch = button('📺 골드 받기', handlers.onWatchAdGold, 'ghost');
+    const watch = button(`📺 +${adGoldAmount.toLocaleString()}`, handlers.onWatchAdGold, 'ghost');
     watch.style.flex = 'none';
     row.appendChild(watch);
 
     return row;
   }
 
-  function actionButton(weapon, gold, handlers) {
+  function actionButton(weapon, gold, adGoldAmount, handlers) {
     const state = weaponButtonState(weapon, gold);
     if (state === 'insufficient') {
-      return insufficientRow(weapon, handlers);
+      return insufficientRow(weapon, adGoldAmount, handlers);
     }
 
     let el;
@@ -61,7 +62,7 @@ export function createShopPanel(container) {
   }
 
   function render() {
-    const { gold, weapons, error } = current.state;
+    const { gold, adGoldAmount, weapons, error } = current.state;
     const handlers = current.handlers;
     const weapon = weapons[index];
     overlay.innerHTML = '';
@@ -107,7 +108,7 @@ export function createShopPanel(container) {
     name.style.cssText = 'font-size: 19px; font-weight: bold; color: #1a1a2e; margin-top: 10px;';
     card.appendChild(name);
     card.appendChild(damagePips(weapon.damage));
-    card.appendChild(actionButton(weapon, gold, handlers));
+    card.appendChild(actionButton(weapon, gold, adGoldAmount, handlers));
 
     if (typeof error === 'string' && error.length > 0) {
       const errorText = document.createElement('div');
