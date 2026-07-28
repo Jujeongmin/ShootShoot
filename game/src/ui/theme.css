@@ -108,6 +108,33 @@
   font-weight: bold;
 }
 
+/* 그림 자체가 버튼인 경우. 사각 버튼 틀 없이 그림만 보이고, 눌리는 느낌은
+   크기와 위치로만 준다. button 요소를 쓰는 건 키보드 접근성 때문이다. */
+.k-art-btn {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  transition: transform 0.12s ease-out, filter 0.12s ease-out;
+}
+.k-art-btn:hover {
+  transform: scale(1.06);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+}
+.k-art-btn:active {
+  transform: scale(0.97) translateY(2px);
+  filter: none;
+}
+.k-art-btn > img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
 /* 아이콘 버튼은 크기가 고정이라 9-slice가 필요 없다. 원형 스프라이트는 9-slice로
    자르면 원이 깨지므로 반드시 background-image로 그린다. */
 .k-icon-btn {

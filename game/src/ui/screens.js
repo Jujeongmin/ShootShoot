@@ -1,4 +1,4 @@
-import { scrim, panel, button, iconButton, badge, divider, title, num, iconUrl } from './kit.js';
+import { scrim, panel, button, iconButton, artButton, badge, divider, title, num, iconUrl } from './kit.js';
 
 const BAZOOKA_MAX_ROUNDS = 5;
 // game/thumb.html 로 뽑는다. 아직 없어도 카드는 뜨고 그림 자리만 비운다.
@@ -48,13 +48,17 @@ export function createScreens(container) {
   }
 
   // 메뉴의 카드는 전부 이 틀을 쓴다. anchorCss 로 화면 어디에 붙을지만 달라진다.
-  function menuCard(anchorCss, width, headingText, bodyNodes, actionNode) {
+  // actionNode 는 없어도 된다 — 상점 카드는 그림 자체가 버튼이라 아래에 붙는
+  // 사각 버튼이 없다.
+  function menuCard(anchorCss, width, headingText, bodyNodes, actionNode = null) {
     const card = panel();
     card.style.cssText = `${anchorCss} width: ${width}px; text-align: center;`;
     card.appendChild(title(headingText));
     for (const node of bodyNodes) card.appendChild(node);
-    actionNode.style.width = '100%';
-    card.appendChild(actionNode);
+    if (actionNode) {
+      actionNode.style.width = '100%';
+      card.appendChild(actionNode);
+    }
     return card;
   }
 
@@ -97,11 +101,12 @@ export function createScreens(container) {
     return menuCard(anchorCss, 240, headingText, [levelLine(level)], action);
   }
 
-  // 좌측 중앙
+  // 좌측 중앙. 제목과 그림뿐이고, 그림을 누르면 상점이 열린다.
   function shopCard(onShop) {
     const anchor = 'position: absolute; left: 24px; top: 50%; transform: translateY(-50%);';
-    const art = artwork(iconUrl('cart', 'black'), '', 96);
-    return menuCard(anchor, 200, '상점', [art], button('열기', onShop, 'primary'));
+    const art = artButton('cart', '상점 열기', onShop, 104);
+    art.style.margin = '6px 0 2px';
+    return menuCard(anchor, 200, '상점', [art]);
   }
 
   // 우측 중앙

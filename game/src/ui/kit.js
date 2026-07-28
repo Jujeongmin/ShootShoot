@@ -110,6 +110,27 @@ export function iconButton(icon, alt, onClick, size, opts = {}) {
   return el;
 }
 
+// 그림만 놓고 그림을 누르게 하는 버튼. 사각 버튼 틀이 없다.
+// 그림이 아직 없을 수 있으므로 로드에 실패하면 자리만 비운다 — 깨진 이미지
+// 아이콘이 뜨면 버튼 전체가 고장난 것처럼 보인다.
+export function artButton(icon, alt, onClick, height, opts = {}) {
+  const { tone = 'black' } = opts;
+  if (typeof onClick !== 'function') {
+    throw new Error('artButton: onClick must be a function');
+  }
+  const el = document.createElement('button');
+  el.className = 'k-art-btn';
+  el.style.height = `${height}px`;
+  el.title = alt;
+  const img = document.createElement('img');
+  img.src = resolveIconSrc(icon, tone);
+  img.alt = alt;
+  img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
+  el.appendChild(img);
+  el.addEventListener('click', onClick);
+  return el;
+}
+
 export function badge(text, opts = {}) {
   const { icon, tone = 'black' } = opts;
   const el = document.createElement('div');
