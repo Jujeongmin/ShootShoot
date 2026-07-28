@@ -69,16 +69,22 @@ export function createShopPanel(container) {
     const card = document.createElement('div');
     card.style.cssText = 'flex: 1; text-align: center;';
 
+    // 무기 그림은 512x512 캔버스에 물체가 작게 들어앉아 있다 (내용이 세로의
+    // 30~68%). object-fit: contain 은 정사각형 기준으로 맞추므로 총이 작게 나온다.
+    // 가로 기준으로 키우고 남는 투명 여백은 잘라낸다.
+    // 배율은 가장 큰 레이건(세로 68%, 중심이 아래로 5% 치우침)이 잘리지 않는
+    // 선에서 정했다. 100%까지 올리면 레이건 총구가 프레임 밖으로 나간다.
     const frame = document.createElement('div');
     frame.className = 'k-badge';
     frame.style.cssText = `
       display: flex; align-items: center; justify-content: center;
-      height: 120px; width: 100%; box-sizing: border-box; padding: 4px;
+      height: 172px; width: 100%; box-sizing: border-box; padding: 4px;
+      overflow: hidden;
     `;
     const img = document.createElement('img');
     img.src = weapon.image;
     img.alt = weapon.name;
-    img.style.cssText = 'max-width: 90%; max-height: 100%; object-fit: contain;';
+    img.style.cssText = 'width: 78%; height: auto; flex: none;';
     frame.appendChild(img);
     card.appendChild(frame);
 
