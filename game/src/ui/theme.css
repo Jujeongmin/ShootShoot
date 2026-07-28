@@ -27,6 +27,24 @@
   --k-font-num: 'Kenney Future Narrow', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
 }
 
+/* 조준이 드래그라서, 드래그할 때마다 글자와 그림이 선택되면 거슬린다.
+   #app 이 캔버스와 UI를 모두 담고 있으므로 여기서 한 번에 끊는다.
+   입력 요소는 되돌려 준다 — 슬라이더 손잡이가 여기 걸리면 안 된다. */
+#app {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#app img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+#app input {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
 .k-scrim {
   position: absolute;
   inset: 0;
@@ -72,23 +90,47 @@
   transform: translateY(3px);
 }
 
+/* ghost와 off 는 회색 스프라이트 틀을 쓰지 않는다. 글자만 놓고, 눌리는 느낌은
+   artButton 과 같은 방식(크기·위치)으로 준다. border-width 를 0 으로 두는 게
+   아니라 border-image 를 지워야 한다 — 남겨두면 스프라이트가 계속 그려진다. */
 .k-btn--ghost {
-  border-image: url('/ui/btn-ghost.png') 8 8 12 8 fill stretch;
-  color: var(--k-ink-soft);
+  border: none;
+  border-image: none;
+  background: none;
+  padding: 8px 14px;
+  /* ghost 버튼은 전부 회색 패널 안에 놓인다. 밝은 색을 쓰면 안 보인다. */
+  color: var(--k-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--k-shadow);
+  transition: transform 0.12s ease-out, color 0.12s ease-out;
 }
+.k-btn--ghost:hover {
+  color: var(--k-shadow);
+}
+/* .k-btn:active 가 border-width:8px 를 들고 있고 특이성이 .k-btn--ghost 보다
+   높다. 여기서 0 으로 눌러주지 않으면 누르는 순간 투명한 8px 테두리가 살아나
+   버튼이 커진다. */
 .k-btn--ghost:active {
-  border-image: url('/ui/btn-ghost-down.png') 8 fill stretch;
+  border-width: 0;
+  border-image: none;
+  padding: 8px 14px;
+  transform: translateY(2px) scale(0.98);
 }
 
 .k-btn--off {
-  border-width: 8px;
-  border-image: url('/ui/btn-ghost-down.png') 8 fill stretch;
-  padding: 8px 22px;
+  border: none;
+  border-image: none;
+  background: none;
+  padding: 8px 14px;
   color: var(--k-grey-shadow);
   cursor: default;
 }
 .k-btn--off:active {
-  border-image: url('/ui/btn-ghost-down.png') 8 fill stretch;
+  border-width: 0;
+  border-image: none;
+  padding: 8px 14px;
   transform: none;
 }
 
