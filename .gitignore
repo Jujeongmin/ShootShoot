@@ -2,5 +2,4 @@ node_modules
 dist
 *.log
 .superpowers
-game/public/kenney_ui-pack
-game/public/kenney_game-icons
+vendor
