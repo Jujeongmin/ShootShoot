@@ -1,0 +1,214 @@
+@font-face {
+  font-family: 'Kenney Future';
+  src: url('/fonts/KenneyFuture.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Kenney Future Narrow';
+  src: url('/fonts/KenneyFutureNarrow.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  --k-face: #ffcc00;
+  --k-hi: #ffea9c;
+  --k-shadow: #dea312;
+  --k-deep: #b48000;
+  --k-grey: #dadce7;
+  --k-grey-shadow: #989aaf;
+  --k-white: #ffffff;
+  --k-ink: #1a1a2e;
+  --k-ink-soft: #4a4a5e;
+  --k-danger: #e4503a;
+  --k-scrim: rgba(12, 12, 20, 0.62);
+
+  /* 한글 글리프가 없는 Kenney 폰트를 앞에 두면 브라우저가 글자별로 폴백한다. */
+  --k-font: 'Kenney Future', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  --k-font-num: 'Kenney Future Narrow', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+}
+
+.k-scrim {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--k-scrim);
+  color: var(--k-white);
+  font-family: var(--k-font);
+}
+
+/* 폭이 가변인 세 요소만 9-slice가 필요하다. 실측 슬라이스는 8px
+   (외곽 2 + 하이라이트 2 + 코너 반경 약 4). depth 스프라이트만 밑단 립 때문에 12. */
+.k-panel {
+  border-style: solid;
+  border-width: 8px;
+  border-image: url('/ui/panel.png') 8 fill stretch;
+  border-radius: 0;
+  background: none;
+  padding: 18px 20px;
+  color: var(--k-ink);
+  font-family: var(--k-font);
+}
+
+.k-btn {
+  border-style: solid;
+  border-width: 8px 8px 12px 8px;
+  border-image: url('/ui/btn.png') 8 8 12 8 fill stretch;
+  border-radius: 0;
+  background: none;
+  padding: 8px 22px 4px;
+  color: var(--k-ink);
+  font-family: var(--k-font);
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.k-btn:active {
+  border-width: 8px;
+  border-image: url('/ui/btn-down.png') 8 fill stretch;
+  padding: 8px 22px;
+  transform: translateY(3px);
+}
+
+.k-btn--ghost {
+  border-image: url('/ui/btn-ghost.png') 8 8 12 8 fill stretch;
+  color: var(--k-ink-soft);
+}
+.k-btn--ghost:active {
+  border-image: url('/ui/btn-ghost-down.png') 8 fill stretch;
+}
+
+.k-btn--off {
+  border-width: 8px;
+  border-image: url('/ui/btn-ghost-down.png') 8 fill stretch;
+  padding: 8px 22px;
+  color: var(--k-grey-shadow);
+  cursor: default;
+}
+.k-btn--off:active {
+  border-image: url('/ui/btn-ghost-down.png') 8 fill stretch;
+  transform: none;
+}
+
+.k-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-style: solid;
+  border-width: 8px;
+  border-image: url('/ui/badge.png') 8 fill stretch;
+  border-radius: 0;
+  background: none;
+  padding: 2px 10px;
+  color: var(--k-ink);
+  font-family: var(--k-font);
+  font-size: 15px;
+  font-weight: bold;
+}
+
+/* 아이콘 버튼은 크기가 고정이라 9-slice가 필요 없다. 원형 스프라이트는 9-slice로
+   자르면 원이 깨지므로 반드시 background-image로 그린다. */
+.k-icon-btn {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  background-image: url('/ui/sq.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  display: grid;
+  place-items: center;
+}
+.k-icon-btn:active {
+  background-image: url('/ui/sq-down.png');
+  transform: translateY(3px);
+}
+.k-icon-btn > img {
+  width: 52%;
+  height: 52%;
+  object-fit: contain;
+}
+
+.k-icon-btn--round {
+  background-image: url('/ui/round.png');
+}
+.k-icon-btn--round:active {
+  background-image: url('/ui/round-down.png');
+}
+
+.k-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.k-icon-btn:disabled:active {
+  transform: none;
+}
+
+.k-divider {
+  height: 4px;
+  background-image: url('/ui/divider.png');
+  background-repeat: repeat-x;
+  background-size: auto 4px;
+  margin: 12px 0;
+}
+
+.k-title {
+  font-family: var(--k-font);
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--k-ink);
+  margin: 0 0 6px;
+}
+
+.k-num {
+  font-family: var(--k-font-num);
+  font-weight: bold;
+}
+
+/* 트랙 본체는 96x16 중 y=4..12뿐이라 세로를 자르면 가운데가 사라진다.
+   가로만 자르고 세로는 원본 높이를 유지한다. */
+.k-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 240px;
+  height: 32px;
+  background: none;
+  cursor: pointer;
+}
+.k-slider::-webkit-slider-runnable-track {
+  height: 16px;
+  border-style: solid;
+  border-width: 0 4px;
+  border-image: url('/ui/slider-track.png') 0 4 fill stretch;
+  background: none;
+}
+.k-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 32px;
+  margin-top: -8px;
+  background-image: url('/ui/slider-thumb.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: none;
+}
+.k-slider::-moz-range-track {
+  height: 16px;
+  border-style: solid;
+  border-width: 0 4px;
+  border-image: url('/ui/slider-track.png') 0 4 fill stretch;
+  background: none;
+}
+.k-slider::-moz-range-thumb {
+  width: 24px;
+  height: 32px;
+  background-image: url('/ui/slider-thumb.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: none;
+  border-radius: 0;
+}
