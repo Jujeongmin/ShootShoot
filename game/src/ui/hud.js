@@ -4,7 +4,7 @@ export function createHud(container) {
   const el = document.createElement('div');
   el.style.cssText = `
     position: absolute; top: 12px; left: 12px;
-    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    display: none; flex-direction: column; align-items: flex-start; gap: 6px;
     pointer-events: none; z-index: 10;
   `;
   container.appendChild(el);
@@ -24,7 +24,13 @@ export function createHud(container) {
   const streakValue = row('연속');
   const roundValue = row('라운드');
 
+  let isVisible = false;
+
   function render({ score, streak, round }) {
+    if (!isVisible) {
+      el.style.display = 'flex';
+      isVisible = true;
+    }
     scoreValue.textContent = score.toLocaleString();
     streakValue.textContent = String(streak);
     roundValue.textContent = String(round);
