@@ -4,7 +4,7 @@ import { createInputController } from '../core/input.js';
 import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
 import { resolveShot, computeHitDamage, resolveKillOutcome } from './shooting.js';
-import { createScoreState, applyShot, calculateShotScore, createHighScoreStore } from './scoring.js';
+import { createScoreState, applyShot, calculateShotScore, settlementGold, createHighScoreStore } from './scoring.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
@@ -69,6 +69,8 @@ export function createGame(container) {
   let obstacles = null;
   let phase = 'menu';
   let scoreState = createScoreState();
+  // 이미 골드로 바꾼 점수. 라운드 정산은 score 와 이 값의 차이만 지급한다.
+  let settledScore = 0;
   let round = 1;
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
@@ -101,6 +103,7 @@ export function createGame(container) {
   function startGame() {
     projectiles.clear();
     scoreState = createScoreState();
+    settledScore = 0;
     phase = 'playing';
     beginRound(1);
     screens.hide();
@@ -593,6 +596,10 @@ export function createGame(container) {
       if (phase === 'playing' && !settingsOpen) {
         updateHud();
         if (targetManager.allCleared() && !projectiles.hasPending()) {
+          // 이 라운드에서 번 만큼만 지급한다. 도중에 나가면 정산을 안 하므로
+          // 그 라운드 점수는 그대로 버려진다.
+          currencyStore.earn(settlementGold(scoreState.score - settledScore, CONFIG.scorePerGold));
+          settledScore = scoreState.score;
           sfx.roundClear();
           stageBanner.show(round + 1);
           beginRound(round + 1);
