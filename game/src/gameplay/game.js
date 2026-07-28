@@ -365,10 +365,6 @@ export function createGame(container) {
     }
 
     updateHud();
-
-    if (scoreState.misses >= CONFIG.missLimit) {
-      endGame();
-    }
   }
 
   function handleWeaponShot(intersections) {

@@ -16,7 +16,6 @@ export const CONFIG = {
     baseMonkeyHp: 1,
     roundsPerMonkeyHpIncrease: 2,
   },
-  missLimit: 5,
   scorePerGold: 10,
   offlineReward: {
     goldPerHour: 10,

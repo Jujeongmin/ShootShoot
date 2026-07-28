@@ -3,6 +3,7 @@ import {
   createScoreState,
   calculateShotScore,
   applyShot,
+  settlementGold,
   createHighScoreStore,
 } from '../game/src/gameplay/scoring.js';
 import { CONFIG } from '../game/src/config.js';
@@ -52,10 +53,9 @@ describe('calculateShotScore', () => {
     const outcome = { isMiss: false, penetrationCount: 0, hits: [] };
     expect(calculateShotScore(outcome, 3, CONFIG)).toBe(0);
 
-    const next = applyShot({ score: 500, streak: 3, misses: 1 }, outcome, CONFIG);
+    const next = applyShot({ score: 500, streak: 3 }, outcome, CONFIG);
     expect(next.score).toBe(500);
     expect(next.streak).toBe(4);
-    expect(next.misses).toBe(1);
   });
 });
 
@@ -66,25 +66,22 @@ describe('applyShot', () => {
     const next = applyShot(state, outcome, CONFIG);
     expect(next.score).toBe(CONFIG.score.baseHit);
     expect(next.streak).toBe(1);
-    expect(next.misses).toBe(0);
   });
 
-  it('resets streak and increments misses on miss', () => {
-    const state = { score: 500, streak: 4, misses: 1 };
+  it('resets the streak on a miss', () => {
+    const state = { score: 500, streak: 4 };
     const outcome = { isMiss: true, penetrationCount: 0, hits: [] };
     const next = applyShot(state, outcome, CONFIG);
     expect(next.score).toBe(500);
     expect(next.streak).toBe(0);
-    expect(next.misses).toBe(2);
   });
 
-  it('leaves score, streak, and misses all unchanged on a neutral outcome', () => {
-    const state = { score: 500, streak: 4, misses: 1 };
+  it('leaves score and streak unchanged on a neutral outcome', () => {
+    const state = { score: 500, streak: 4 };
     const outcome = { isMiss: false, isNeutral: true, penetrationCount: 0, hits: [] };
     const next = applyShot(state, outcome, CONFIG);
     expect(next.score).toBe(500);
     expect(next.streak).toBe(4);
-    expect(next.misses).toBe(1);
   });
 
   it('does not treat a neutral outcome as a miss even from a fresh state', () => {
@@ -92,6 +89,25 @@ describe('applyShot', () => {
     const outcome = { isMiss: false, isNeutral: true, penetrationCount: 0, hits: [] };
     const next = applyShot(state, outcome, CONFIG);
     expect(next).toEqual(state);
+  });
+});
+
+describe('settlementGold', () => {
+  it('converts a whole multiple of the rate', () => {
+    expect(settlementGold(500, 10)).toBe(50);
+  });
+
+  it('drops the remainder rather than carrying it', () => {
+    expect(settlementGold(509, 10)).toBe(50);
+    expect(settlementGold(9, 10)).toBe(0);
+  });
+
+  it('pays nothing for a round that scored nothing', () => {
+    expect(settlementGold(0, 10)).toBe(0);
+  });
+
+  it('pays nothing rather than negative gold if the pending score is below zero', () => {
+    expect(settlementGold(-100, 10)).toBe(0);
   });
 });
 
