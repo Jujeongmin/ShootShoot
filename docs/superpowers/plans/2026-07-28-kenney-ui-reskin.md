@@ -234,7 +234,17 @@ Create `test/uiKit.test.js`:
 
 ```js
 import { describe, it, expect } from 'vitest';
-import { iconUrl, TOKENS } from '../game/src/ui/kit.js';
+import { iconUrl, resolveIconSrc, TOKENS } from '../game/src/ui/kit.js';
+
+describe('resolveIconSrc', () => {
+  it('passes an explicit path through untouched', () => {
+    expect(resolveIconSrc('/ui/arrow-w.png', 'black')).toBe('/ui/arrow-w.png');
+  });
+
+  it('resolves a bare name through the tone folder', () => {
+    expect(resolveIconSrc('cart', 'white')).toBe('/icons/white/cart.png');
+  });
+});
 
 describe('iconUrl', () => {
   it('builds a path under the requested tone folder', () => {
@@ -306,12 +316,18 @@ export function iconUrl(name, tone) {
   }
   return `/icons/${tone}/${name}.png`;
 }
+
+// 상점 화살표처럼 kenney_ui-pack 쪽에 있는 스프라이트는 /icons/{tone}/ 규칙에
+// 맞지 않는다. 슬래시로 시작하면 이미 경로이므로 그대로 통과시킨다.
+export function resolveIconSrc(icon, tone) {
+  return icon.startsWith('/') ? icon : iconUrl(icon, tone);
+}
 ```
 
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `npx vitest run test/uiKit.test.js`
-Expected: PASS, 5 tests
+Expected: PASS, 7 tests
 
 - [ ] **Step 5: `theme.css` 작성**
 
@@ -550,7 +566,7 @@ game.start();
 - [ ] **Step 7: 전체 테스트와 빌드 확인**
 
 Run: `npm test`
-Expected: 119 tests passed (기존 114 + 신규 5)
+Expected: 121 tests passed (기존 114 + 신규 7)
 
 Run: `npm run build`
 Expected: 빌드 성공. `dist/`에 CSS 번들이 생기고 에러가 없어야 한다.
@@ -670,7 +686,10 @@ DOM을 만드는 부분이라 node 환경에서 테스트할 수 없다. 검증�
   - `button(label: string, onClick: Function, variant?: 'primary'|'ghost'|'off'): HTMLButtonElement`
     — `off`면 `disabled = true`이고 `onClick`을 붙이지 않는다
   - `iconButton(icon: string, alt: string, onClick: Function, size: number, opts?: { round?: boolean, tone?: 'white'|'black' }): HTMLButtonElement`
+    — `icon`은 `resolveIconSrc`를 거친다. `'cart'` 같은 이름이면 톤 폴더에서 찾고,
+    `'/ui/arrow-w.png'`처럼 슬래시로 시작하면 그 경로를 그대로 쓴다
   - `badge(text: string, opts?: { icon?: string, tone?: 'white'|'black' }): HTMLDivElement`
+    — `icon`도 같은 규칙
   - `divider(): HTMLDivElement`
   - `title(text: string): HTMLDivElement` — `.k-title`
   - `num(text: string): HTMLSpanElement` — `.k-num`
@@ -756,7 +775,7 @@ export function iconButton(icon, alt, onClick, size, opts = {}) {
   el.style.height = `${size}px`;
   el.title = alt;
   const img = document.createElement('img');
-  img.src = iconUrl(icon, tone);
+  img.src = resolveIconSrc(icon, tone);
   img.alt = alt;
   el.appendChild(img);
   el.addEventListener('click', onClick);
@@ -769,7 +788,7 @@ export function badge(text, opts = {}) {
   el.className = 'k-badge';
   if (icon) {
     const img = document.createElement('img');
-    img.src = iconUrl(icon, tone);
+    img.src = resolveIconSrc(icon, tone);
     img.alt = '';
     img.style.width = '16px';
     img.style.height = '16px';
@@ -789,7 +808,7 @@ export function badge(text, opts = {}) {
 `test/uiKit.test.js`는 그대로 통과해야 한다.
 
 Run: `npm test`
-Expected: 123 tests passed (기존 114 + kit 5 + 상점 상태 4)
+Expected: 125 tests passed (기존 114 + kit 7 + 상점 상태 4)
 
 - [ ] **Step 3: 빌드 확인**
 
@@ -1020,7 +1039,7 @@ Expected: 출력 없음 (exit 1)
 - [ ] **Step 4: 테스트와 빌드**
 
 Run: `npm test`
-Expected: 123 tests passed (기존 114 + kit 5 + 상점 상태 4)
+Expected: 125 tests passed (기존 114 + kit 7 + 상점 상태 4)
 
 Run: `npm run build`
 Expected: 빌드 성공
@@ -1160,7 +1179,7 @@ export function createStageBanner(container) {
 - [ ] **Step 3: 테스트와 빌드**
 
 Run: `npm test`
-Expected: 123 tests passed (기존 114 + kit 5 + 상점 상태 4)
+Expected: 125 tests passed (기존 114 + kit 7 + 상점 상태 4)
 
 Run: `npm run build`
 Expected: 빌드 성공
@@ -1259,8 +1278,7 @@ export function createShopPanel(container) {
     const row = document.createElement('div');
     row.style.cssText = 'display: flex; align-items: center; gap: 10px;';
 
-    const prev = iconButton('cross', '이전', () => { index -= 1; render(); }, 44, { round: true });
-    prev.querySelector('img').src = '/ui/arrow-w.png';
+    const prev = iconButton('/ui/arrow-w.png', '이전', () => { index -= 1; render(); }, 44, { round: true });
     prev.disabled = index === 0;
     row.appendChild(prev);
 
@@ -1296,8 +1314,7 @@ export function createShopPanel(container) {
 
     row.appendChild(card);
 
-    const next = iconButton('cross', '다음', () => { index += 1; render(); }, 44, { round: true });
-    next.querySelector('img').src = '/ui/arrow-e.png';
+    const next = iconButton('/ui/arrow-e.png', '다음', () => { index += 1; render(); }, 44, { round: true });
     next.disabled = index === weapons.length - 1;
     row.appendChild(next);
 
@@ -1336,15 +1353,14 @@ export function createShopPanel(container) {
 }
 ```
 
-`iconButton`에 `'cross'`를 넘긴 뒤 곧바로 `img.src`를 화살표 스프라이트로 덮어쓰는 게
-어색해 보이지만 의도한 것이다. 화살표는 `kenney_game-icons`가 아니라 `kenney_ui-pack`
-쪽에 있어서 `iconUrl`의 `/icons/{tone}/` 규칙에 맞지 않는다. `iconUrl`을 두 팩 모두
-다루도록 넓히는 건 이 한 곳을 위해 과하다.
+화살표는 `kenney_game-icons`가 아니라 `kenney_ui-pack` 쪽에 있어서 `iconUrl`의
+`/icons/{tone}/` 규칙에 맞지 않는다. 그래서 `iconButton`에 경로를 직접 넘긴다 —
+`resolveIconSrc`가 슬래시로 시작하는 값을 그대로 통과시킨다.
 
 - [ ] **Step 2: 테스트와 빌드**
 
 Run: `npm test`
-Expected: 123 tests passed (기존 114 + kit 5 + 상점 상태 4)
+Expected: 125 tests passed (기존 114 + kit 7 + 상점 상태 4)
 
 Run: `npm run build`
 Expected: 빌드 성공
@@ -1558,7 +1574,7 @@ export function createOfflineRewardPopup(container) {
 - [ ] **Step 4: 테스트와 빌드**
 
 Run: `npm test`
-Expected: 123 tests passed (기존 114 + kit 5 + 상점 상태 4)
+Expected: 125 tests passed (기존 114 + kit 7 + 상점 상태 4)
 
 Run: `npm run build`
 Expected: 빌드 성공
@@ -1629,7 +1645,7 @@ Expected: 출력 없음 (exit 1)
 - [ ] **Step 4: 전체 테스트와 빌드**
 
 Run: `npm test`
-Expected: 123 tests passed (기존 114 + kit 5 + 상점 상태 4)
+Expected: 125 tests passed (기존 114 + kit 7 + 상점 상태 4)
 
 Run: `npm run build`
 Expected: 빌드 성공
