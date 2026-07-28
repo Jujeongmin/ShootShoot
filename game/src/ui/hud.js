@@ -1,4 +1,4 @@
-import { badge, TOKENS } from './kit.js';
+import { TOKENS } from './kit.js';
 
 // game.js 의 round 는 1 에서 시작하고 startGame 이 beginRound(1) 로 되돌린다.
 // render 는 플레이 중에만 불리므로, 메뉴에서 보일 값은 이 초기값이다.
@@ -12,16 +12,11 @@ export function createHud(container) {
   `;
   container.appendChild(el);
 
-  const roundBadge = badge(INITIAL_ROUND);
-  roundBadge.classList.add('k-badge--lg');
-  const label = document.createElement('span');
-  label.className = 'k-badge__label';
-  label.textContent = '라운드';
-  roundBadge.insertBefore(label, roundBadge.firstChild);
-  el.appendChild(roundBadge);
-
-  // render는 매 프레임 불릴 수 있다. 배지를 한 번만 만들고 숫자만 갈아 끼운다.
-  const roundValue = roundBadge.querySelector('.k-num');
+  // 프레임도 라벨도 없이 숫자만 놓는다. 배경이 3D 장면이라 외곽선 그림자로 띄운다.
+  const roundValue = document.createElement('div');
+  roundValue.className = 'k-num k-round';
+  roundValue.textContent = INITIAL_ROUND;
+  el.appendChild(roundValue);
 
   // score 와 streak 은 더 이상 표시하지 않는다. game.js 가 계속 보내오지만
   // 화면에 남는 건 라운드뿐이다. 점수는 사격할 때 뜨는 팝업으로만 보인다.

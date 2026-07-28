@@ -213,15 +213,15 @@
   object-fit: contain;
 }
 
-/* 라운드 표시용 큰 배지. 숫자를 키우고 라벨은 작게 눌러 둔다. */
-.k-badge--lg {
-  gap: 10px;
-  padding: 2px 20px;
-  font-size: 30px;
-}
-.k-badge__label {
-  font-size: 14px;
-  color: var(--k-ink-soft);
+/* 라운드 숫자. 프레임 없이 3D 장면 위에 바로 놓이므로 외곽선 그림자로 띄운다. */
+.k-round {
+  font-size: 44px;
+  line-height: 1;
+  color: var(--k-face);
+  text-shadow:
+    0 3px 0 var(--k-deep),
+    0 0 3px rgba(0, 0, 0, 0.9),
+    0 4px 10px rgba(0, 0, 0, 0.7);
 }
 
 /* 아이콘 버튼은 크기가 고정이라 9-slice가 필요 없다. 원형 스프라이트는 9-slice로
