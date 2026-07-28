@@ -169,7 +169,7 @@ export function createScreens(container) {
     const card = panel();
     card.style.cssText = 'width: 340px; text-align: center;';
 
-    card.appendChild(title('게임 종료'));
+    card.appendChild(title('기록'));
 
     const scoreEl = document.createElement('div');
     scoreEl.style.cssText = 'font-size: 46px; color: #1a1a2e; margin: 6px 0 2px;';

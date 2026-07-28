@@ -115,15 +115,18 @@ export function createGame(container) {
     refreshMenu();
   }
 
-  function endGame() {
+  // 판이 끝나는 유일한 길이다. 골드는 라운드 정산에서 이미 줬으므로 여기서는
+  // 주지 않는다. 미정산 점수는 그대로 버려진다.
+  function exitRun() {
+    settingsPanel.hide();
+    settingsOpen = false;
+    settingsOrigin = null;
     phase = 'gameover';
     targetManager.clear();
     projectiles.clear();
     const previousHighScore = highScoreStore.get();
     const highScore = highScoreStore.submit(scoreState.score);
     const isNewHighScore = scoreState.score > previousHighScore && scoreState.score > 0;
-    const goldEarned = Math.floor(scoreState.score / CONFIG.scorePerGold);
-    currencyStore.earn(goldEarned);
     screens.showGameOver({ score: scoreState.score, highScore, isNewHighScore }, returnToMenu);
   }
 
@@ -150,7 +153,7 @@ export function createGame(container) {
     if (phase !== 'playing' || settingsOpen) return;
     settingsOrigin = 'playing';
     settingsOpen = true;
-    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings);
+    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings, exitRun);
   }
 
   function closeSettings() {

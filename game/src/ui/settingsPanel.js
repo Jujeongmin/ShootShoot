@@ -5,7 +5,9 @@ export function createSettingsPanel(container) {
   overlay.style.zIndex = '25';
   container.appendChild(overlay);
 
-  function show(sensitivity, onChange, onClose) {
+  // onExit 는 플레이 중에 열렸을 때만 넘어온다. 메뉴에서 연 설정에
+  // '메뉴로' 가 있으면 말이 안 된다.
+  function show(sensitivity, onChange, onClose, onExit) {
     overlay.innerHTML = '';
 
     const box = panel();
@@ -38,9 +40,13 @@ export function createSettingsPanel(container) {
     });
     box.appendChild(slider);
 
-    const doneBtn = button('닫기', onClose, 'ghost');
-    doneBtn.style.cssText += 'display: block; margin: 16px auto 0;';
-    box.appendChild(doneBtn);
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display: flex; justify-content: center; gap: 12px; margin-top: 16px;';
+    if (typeof onExit === 'function') {
+      actions.appendChild(button('메뉴로', onExit, 'ghost'));
+    }
+    actions.appendChild(button('닫기', onClose, 'ghost'));
+    box.appendChild(actions);
 
     overlay.appendChild(box);
     overlay.style.display = 'flex';
