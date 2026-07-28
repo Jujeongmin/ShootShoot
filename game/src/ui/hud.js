@@ -1,38 +1,31 @@
 import { badge, TOKENS } from './kit.js';
 
+// game.js 의 round 는 1 에서 시작하고 startGame 이 beginRound(1) 로 되돌린다.
+// render 는 플레이 중에만 불리므로, 메뉴에서 보일 값은 이 초기값이다.
+const INITIAL_ROUND = '1';
+
 export function createHud(container) {
   const el = document.createElement('div');
   el.style.cssText = `
-    position: absolute; top: 12px; left: 12px;
-    display: none; flex-direction: column; align-items: flex-start; gap: 6px;
-    pointer-events: none; z-index: 10;
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    pointer-events: none; z-index: 21;
   `;
   container.appendChild(el);
 
+  const roundBadge = badge(INITIAL_ROUND);
+  roundBadge.classList.add('k-badge--lg');
+  const label = document.createElement('span');
+  label.className = 'k-badge__label';
+  label.textContent = '라운드';
+  roundBadge.insertBefore(label, roundBadge.firstChild);
+  el.appendChild(roundBadge);
+
   // render는 매 프레임 불릴 수 있다. 배지를 한 번만 만들고 숫자만 갈아 끼운다.
-  function row(labelText) {
-    const wrapper = badge('0');
-    const label = document.createElement('span');
-    label.textContent = labelText;
-    label.style.cssText = 'font-size: 13px; color: #4a4a5e; margin-right: 2px;';
-    wrapper.insertBefore(label, wrapper.firstChild);
-    el.appendChild(wrapper);
-    return wrapper.querySelector('.k-num');
-  }
+  const roundValue = roundBadge.querySelector('.k-num');
 
-  const scoreValue = row('점수');
-  const streakValue = row('연속');
-  const roundValue = row('라운드');
-
-  let isVisible = false;
-
-  function render({ score, streak, round }) {
-    if (!isVisible) {
-      el.style.display = 'flex';
-      isVisible = true;
-    }
-    scoreValue.textContent = score.toLocaleString();
-    streakValue.textContent = String(streak);
+  // score 와 streak 은 더 이상 표시하지 않는다. game.js 가 계속 보내오지만
+  // 화면에 남는 건 라운드뿐이다. 점수는 사격할 때 뜨는 팝업으로만 보인다.
+  function render({ round }) {
     roundValue.textContent = String(round);
   }
 

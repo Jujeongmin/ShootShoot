@@ -213,6 +213,17 @@
   object-fit: contain;
 }
 
+/* 라운드 표시용 큰 배지. 숫자를 키우고 라벨은 작게 눌러 둔다. */
+.k-badge--lg {
+  gap: 10px;
+  padding: 2px 20px;
+  font-size: 30px;
+}
+.k-badge__label {
+  font-size: 14px;
+  color: var(--k-ink-soft);
+}
+
 /* 아이콘 버튼은 크기가 고정이라 9-slice가 필요 없다. 원형 스프라이트는 9-slice로
    자르면 원이 깨지므로 반드시 background-image로 그린다. */
 .k-icon-btn {
