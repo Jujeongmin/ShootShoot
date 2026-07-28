@@ -213,8 +213,20 @@
   object-fit: contain;
 }
 
-/* 라운드 숫자. 프레임 없이 3D 장면 위에 바로 놓이므로 외곽선 그림자로 띄운다. */
+/* 라운드 표시. 프레임 없이 3D 장면 위에 바로 놓이므로 외곽선 그림자로 띄운다. */
+.k-round-label {
+  font-family: var(--k-font);
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: var(--k-grey);
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
+  margin-bottom: 2px;
+}
+
 .k-round {
+  text-align: center;
   font-size: 44px;
   line-height: 1;
   color: var(--k-face);

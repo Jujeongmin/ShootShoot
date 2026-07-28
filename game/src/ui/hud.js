@@ -12,7 +12,12 @@ export function createHud(container) {
   `;
   container.appendChild(el);
 
-  // 프레임도 라벨도 없이 숫자만 놓는다. 배경이 3D 장면이라 외곽선 그림자로 띄운다.
+  // 감싸는 프레임 없이 라벨과 숫자만 놓는다. 배경이 3D 장면이라 외곽선 그림자로 띄운다.
+  const roundLabel = document.createElement('div');
+  roundLabel.className = 'k-round-label';
+  roundLabel.textContent = '라운드';
+  el.appendChild(roundLabel);
+
   const roundValue = document.createElement('div');
   roundValue.className = 'k-num k-round';
   roundValue.textContent = INITIAL_ROUND;
