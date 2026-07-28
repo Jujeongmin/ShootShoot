@@ -26,17 +26,35 @@ export function createShopPanel(container) {
     return row;
   }
 
+  // 골드가 모자랄 때만 가격 옆에 광고 버튼이 붙는다. 나머지 상태는 버튼 하나다.
+  function insufficientRow(weapon, handlers) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display: flex; align-items: stretch; gap: 8px; margin-top: 12px;';
+
+    const price = button(`🪙 ${weapon.price.toLocaleString()}`, () => {}, 'off');
+    price.style.flex = '1';
+    row.appendChild(price);
+
+    const watch = button('📺 골드 받기', handlers.onWatchAdGold, 'ghost');
+    watch.style.flex = 'none';
+    row.appendChild(watch);
+
+    return row;
+  }
+
   function actionButton(weapon, gold, handlers) {
     const state = weaponButtonState(weapon, gold);
+    if (state === 'insufficient') {
+      return insufficientRow(weapon, handlers);
+    }
+
     let el;
     if (state === 'equipped') {
       el = button('장착 중', () => {}, 'off');
     } else if (state === 'equip') {
       el = button('장착하기', () => handlers.onEquip(weapon.id), 'ghost');
-    } else if (state === 'buy') {
-      el = button(`🪙 ${weapon.price.toLocaleString()} 구매`, () => handlers.onBuy(weapon.id), 'primary');
     } else {
-      el = button(`🪙 ${weapon.price.toLocaleString()} · 골드 부족`, () => {}, 'off');
+      el = button(`🪙 ${weapon.price.toLocaleString()} 구매`, () => handlers.onBuy(weapon.id), 'primary');
     }
     el.style.cssText += 'width: 100%; margin-top: 12px;';
     return el;

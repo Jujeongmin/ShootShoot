@@ -23,7 +23,6 @@ import { createStageBanner } from '../ui/stageBanner.js';
 import { createSettingsPanel } from '../ui/settingsPanel.js';
 import { createShopPanel } from '../ui/shopPanel.js';
 import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
-import { createAdRewardPanel } from '../ui/adRewardPanel.js';
 import { createLastKillEffect } from './lastKillEffect.js';
 import { createWeaponStore } from './weaponStore.js';
 import { computeBlastRadiusPx, findMonkeysInScreenBox, isPointInScreenBox } from './screenTargeting.js';
@@ -55,7 +54,6 @@ export function createGame(container) {
   const settingsPanel = createSettingsPanel(container);
   const shopPanel = createShopPanel(container);
   const offlineRewardPopup = createOfflineRewardPopup(container);
-  const adRewardPanel = createAdRewardPanel(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
   const settingsStore = createSettingsStore(window.localStorage, CONFIG.settingsStorageKey);
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
@@ -213,6 +211,7 @@ export function createGame(container) {
   const shopHandlers = {
     onBuy: buyWeapon,
     onEquip: equipWeapon,
+    onWatchAdGold: watchAdForShopGold,
     onClose: () => closeShop(),
   };
 
@@ -236,22 +235,14 @@ export function createGame(container) {
     refreshMenu();
   }
 
-  function openAdRewardFromMenu() {
-    screens.hide();
-    adRewardPanel.show(closeAdReward, watchAdForGold);
-  }
-
-  function closeAdReward() {
-    adRewardPanel.hide();
-    refreshMenu();
-  }
-
-  function watchAdForGold() {
+  // 상점에서 골드가 모자랄 때 부르는 유일한 골드 광고다. 성공하든 실패하든
+  // 상점을 다시 그려 잔액과 버튼 상태를 맞춘다.
+  function watchAdForShopGold() {
     showRewardedAd().then((success) => {
       if (success) {
         currencyStore.earn(CONFIG.adReward.goldAmount);
       }
-      closeAdReward();
+      refreshShop();
     });
   }
 
@@ -277,7 +268,6 @@ export function createGame(container) {
     onStart: startGame,
     onSettings: openSettingsFromMenu,
     onShop: openShopFromMenu,
-    onAdReward: openAdRewardFromMenu,
     onLevelUpDamage: levelUpDamage,
     onWatchAdDamage: watchAdForDamageUpgrade,
     onLevelUpOffline: levelUpOffline,

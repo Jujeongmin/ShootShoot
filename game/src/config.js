@@ -23,7 +23,9 @@ export const CONFIG = {
     maxHours: 8,
   },
   adReward: {
-    goldAmount: 30,
+    // 상점에서 골드가 모자랄 때 광고 한 번으로 주는 금액. 예전에는 메뉴의
+    // 광고 보상 팝업이 30을 줬는데, 그 팝업이 사라지면서 이 값만 남았다.
+    goldAmount: 500,
   },
   aim: {
     normalFov: 60,

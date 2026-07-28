@@ -40,7 +40,6 @@ export function createScreens(container) {
     const right = document.createElement('div');
     right.style.cssText = 'display: flex; align-items: center; gap: 10px;';
     right.appendChild(badge(`🪙 ${gold.toLocaleString()}`));
-    right.appendChild(iconButton('video', '광고 보상', handlers.onAdReward, 44));
     right.appendChild(iconButton('gear', '설정', handlers.onSettings, 44));
     bar.appendChild(right);
 
