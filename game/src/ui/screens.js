@@ -1,6 +1,8 @@
 import { scrim, panel, button, iconButton, badge, divider, title, num, iconUrl } from './kit.js';
 
 const BAZOOKA_MAX_ROUNDS = 5;
+// game/thumb.html 로 뽑는다. 아직 없어도 카드는 뜨고 그림 자리만 비운다.
+const BAZOOKA_IMAGE = '/images/weapons/bazooka.png';
 
 export function createScreens(container) {
   const overlay = scrim();
@@ -38,7 +40,6 @@ export function createScreens(container) {
     const right = document.createElement('div');
     right.style.cssText = 'display: flex; align-items: center; gap: 10px;';
     right.appendChild(badge(`🪙 ${gold.toLocaleString()}`));
-    right.appendChild(iconButton('cart', '상점', handlers.onShop, 44));
     right.appendChild(iconButton('video', '광고 보상', handlers.onAdReward, 44));
     right.appendChild(iconButton('gear', '설정', handlers.onSettings, 44));
     bar.appendChild(right);
@@ -46,14 +47,31 @@ export function createScreens(container) {
     return bar;
   }
 
-  // 하단 독의 카드 한 장. 강화 카드 두 장과 바주카 카드가 같은 틀을 쓴다.
-  function dockCard(headingText, subtitleNode, actionNode) {
+  // 메뉴의 카드는 전부 이 틀을 쓴다. anchorCss 로 화면 어디에 붙을지만 달라진다.
+  function menuCard(anchorCss, width, headingText, bodyNodes, actionNode) {
     const card = panel();
-    card.style.cssText = 'width: 220px; text-align: center;';
+    card.style.cssText = `${anchorCss} width: ${width}px; text-align: center;`;
     card.appendChild(title(headingText));
-    card.appendChild(subtitleNode);
+    for (const node of bodyNodes) card.appendChild(node);
+    actionNode.style.width = '100%';
     card.appendChild(actionNode);
     return card;
+  }
+
+  // 그림이 아직 없을 수 있다. 깨진 이미지 아이콘 대신 자리만 비운다.
+  function artwork(src, alt, height) {
+    const frame = document.createElement('div');
+    frame.style.cssText = `
+      display: flex; align-items: center; justify-content: center;
+      height: ${height}px; margin: 4px 0 10px;
+    `;
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt;
+    img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+    img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
+    frame.appendChild(img);
+    return frame;
   }
 
   function levelLine(level) {
@@ -64,30 +82,36 @@ export function createScreens(container) {
     return line;
   }
 
-  function upgradeCard(headingText, level, cost, canAfford, onUpgrade, onWatchAd) {
+  function roundsLine(rounds) {
+    const line = document.createElement('div');
+    line.style.cssText = 'color: #4a4a5e; font-size: 15px; margin-bottom: 12px;';
+    line.appendChild(num(`${rounds}/${BAZOOKA_MAX_ROUNDS}`));
+    return line;
+  }
+
+  // 좌하단 / 우하단
+  function upgradeCard(anchorCss, headingText, level, cost, canAfford, onUpgrade, onWatchAd) {
     const action = canAfford
       ? button(`🪙 ${cost.toLocaleString()} 강화`, onUpgrade, 'primary')
       : button('📺 무료강화', onWatchAd, 'ghost');
-    action.style.width = '100%';
-    return dockCard(headingText, levelLine(level), action);
+    return menuCard(anchorCss, 240, headingText, [levelLine(level)], action);
   }
 
+  // 좌측 중앙
+  function shopCard(onShop) {
+    const anchor = 'position: absolute; left: 24px; top: 50%; transform: translateY(-50%);';
+    const art = artwork(iconUrl('cart', 'black'), '', 96);
+    return menuCard(anchor, 200, '상점', [art], button('열기', onShop, 'primary'));
+  }
+
+  // 우측 중앙
   function bazookaCard(rounds, onWatchAd) {
-    let subtitle;
-    let action;
-    if (rounds > 0) {
-      subtitle = document.createElement('div');
-      subtitle.style.cssText = 'color: #4a4a5e; font-size: 15px; margin-bottom: 12px;';
-      subtitle.appendChild(num(`${rounds}/${BAZOOKA_MAX_ROUNDS}`));
-      action = button('보유 중', () => {}, 'off');
-    } else {
-      subtitle = document.createElement('div');
-      subtitle.style.cssText = 'color: #4a4a5e; font-size: 15px; margin-bottom: 12px;';
-      subtitle.appendChild(num(`0/${BAZOOKA_MAX_ROUNDS}`));
-      action = button('📺 획득', onWatchAd, 'ghost');
-    }
-    action.style.width = '100%';
-    return dockCard('바주카포', subtitle, action);
+    const anchor = 'position: absolute; right: 24px; top: 50%; transform: translateY(-50%);';
+    const art = artwork(BAZOOKA_IMAGE, '바주카포', 96);
+    const action = rounds > 0
+      ? button('보유 중', () => {}, 'off')
+      : button('📺 획득', onWatchAd, 'ghost');
+    return menuCard(anchor, 200, '바주카포', [art, roundsLine(rounds)], action);
   }
 
   function showMenu(state, handlers) {
@@ -110,19 +134,22 @@ export function createScreens(container) {
     centre.appendChild(hint);
     overlay.appendChild(centre);
 
-    const dock = document.createElement('div');
-    dock.style.cssText = `
-      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-      display: flex; align-items: flex-end; gap: 16px;
-    `;
-    dock.appendChild(
-      upgradeCard('공격력', damageLevel, damageCost, canAffordDamage, handlers.onLevelUpDamage, handlers.onWatchAdDamage)
+    overlay.appendChild(shopCard(handlers.onShop));
+    overlay.appendChild(bazookaCard(bazookaRounds, handlers.onWatchAdBazooka));
+    overlay.appendChild(
+      upgradeCard(
+        'position: absolute; left: 24px; bottom: 24px;',
+        '공격력', damageLevel, damageCost, canAffordDamage,
+        handlers.onLevelUpDamage, handlers.onWatchAdDamage
+      )
     );
-    dock.appendChild(bazookaCard(bazookaRounds, handlers.onWatchAdBazooka));
-    dock.appendChild(
-      upgradeCard('오프라인', offlineLevel, offlineCost, canAffordOffline, handlers.onLevelUpOffline, handlers.onWatchAdOffline)
+    overlay.appendChild(
+      upgradeCard(
+        'position: absolute; right: 24px; bottom: 24px;',
+        '오프라인', offlineLevel, offlineCost, canAffordOffline,
+        handlers.onLevelUpOffline, handlers.onWatchAdOffline
+      )
     );
-    overlay.appendChild(dock);
 
     show();
   }
