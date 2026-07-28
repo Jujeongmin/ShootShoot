@@ -1,3 +1,5 @@
+import { TOKENS } from './kit.js';
+
 const RETICLE_STYLES = {
   basic: {
     ringVisible: false,
@@ -33,7 +35,7 @@ const DEFAULT_STYLE = RETICLE_STYLES.basic;
 const HEXAGON_CLIP_PATH = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
 
 const BAZOOKA_ID = 'bazooka';
-const BAZOOKA_COLOR = '#e4503a';
+const BAZOOKA_COLOR = TOKENS.danger;
 const BAZOOKA_CORE_COLOR = '#c43a28';
 const BRACKET_THICKNESS = 4;
 
