@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import { driftWrapped, createSeededRandom } from './skyMotion.js';
 
 // 섬이 z = -80 이다. 구름을 항상 그보다 뒤에 두면 조준해서 화각이 좁아져도
-// 표적을 가리지 않는다.
-const CLOUD_Z_NEAR = -130;
+// 표적을 가리지 않는다. 앵커 위치는 z = -160 이어야 한다. 각 구름 내부의
+// 구들은 반지름 ~14 에 지역 오프셋 ~4.2 까지 더해져 앞으로 나갈 수 있기
+// 때문에 z = -80 을 안전하게 넘어서야 한다.
+const CLOUD_Z_NEAR = -160;
 const CLOUD_Z_FAR = -300;
 const CLOUD_COUNT = 14;
 const CLOUD_X_LIMIT = 170;
