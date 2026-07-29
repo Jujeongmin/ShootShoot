@@ -15,7 +15,9 @@ const KEEL_HEIGHT = 14;
 
 export function createWorld(scene) {
   scene.background = new THREE.Color(0x87ceeb);
-  scene.fog = new THREE.Fog(0x87ceeb, 80, 320);
+  // fog 색이 배경색과 같아서 far 를 넘긴 것은 흐려지는 게 아니라 통째로 사라진다.
+  // 하늘 장식(skyDecor.js)이 그 far 안쪽에 다 들어가야 하므로 320 으로는 좁다.
+  scene.fog = new THREE.Fog(0x87ceeb, 80, 560);
 
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0x4a6b3a, 0.9);
   scene.add(hemiLight);

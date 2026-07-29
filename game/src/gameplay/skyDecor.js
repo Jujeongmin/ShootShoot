@@ -2,40 +2,46 @@ import * as THREE from 'three';
 import { driftWrapped, flightProgress, createSeededRandom } from './skyMotion.js';
 
 // 섬이 z = -80 이다. 구름을 항상 그보다 뒤에 두면 조준해서 화각이 좁아져도
-// 표적을 가리지 않는다. 앵커 위치는 z = -160 이어야 한다. 각 구름 내부의
-// 구들은 반지름 ~14 에 지역 오프셋 ~4.2 까지 더해져 앞으로 나갈 수 있기
-// 때문에 z = -80 을 안전하게 넘어서야 한다.
-const CLOUD_Z_NEAR = -160;
-const CLOUD_Z_FAR = -300;
+// 표적을 가리지 않는다. 앵커가 -230 이고 구름 내부의 구는 반지름(최대 25)과
+// 지역 오프셋(최대 ~7.5)만큼 앞으로 나오므로 가장 앞선 표면이 -197 근처다.
+// world.js 의 fog far 가 560 이라 뒤쪽 끝(-330)도 형태가 남는다.
+const CLOUD_Z_NEAR = -230;
+const CLOUD_Z_FAR = -330;
 const CLOUD_COUNT = 14;
 // 배치 반경과 랩(감아넘기기) 반경을 다르게 둔다. 16:9 화면에서 가장 가까운
-// 구름의 z 기준 보이는 폭의 절반이 ~169 인데 구름 뭉치는 앵커에서 최대
-// ~16 까지 튀어나온다. 배치 한계를 랩 한계로 그대로 쓰면 화면 안에서 구름이
+// 구름의 z(-230) 기준 보이는 폭의 절반이 ~236 인데 구름 뭉치는 앵커에서 최대
+// ~28 까지 튀어나온다. 배치 한계를 랩 한계로 그대로 쓰면 화면 안에서 구름이
 // 갑자기 사라지는 게 보이고, 21:9 처럼 더 넓은 화면에서는 화면 중앙 근처에서
-// 그 일이 벌어진다. 배치는 좁게(160), 랩은 넓게(230) 두어 랩이 항상
+// 그 일이 벌어진다. 배치는 좁게(250), 랩은 넓게(360) 두어 랩이 항상
 // 프러스텀 밖에서 일어나게 한다.
-const CLOUD_X_PLACEMENT_LIMIT = 160;
-const CLOUD_X_WRAP_LIMIT = 230;
-const CLOUD_Y_MIN = -25;
-const CLOUD_Y_MAX = 35;
+const CLOUD_X_PLACEMENT_LIMIT = 250;
+const CLOUD_X_WRAP_LIMIT = 360;
+const CLOUD_Y_MIN = -45;
+const CLOUD_Y_MAX = 60;
 const CLOUD_DRIFT_SPEED = 0.6;
 const CLOUD_PUFF_MIN = 4;
 const CLOUD_PUFF_MAX = 6;
+const CLOUD_SCALE_MIN = 11;
+const CLOUD_SCALE_MAX = 25;
 
 // scene.fog 의 색이 scene.background 와 똑같은 0x87ceeb 이다. 즉 fog 는
 // '안개를 낀 것처럼' 보이게 하는 장치가 아니라 거리에 따라 배경색과 섞는
 // 장치이고, far(320) 를 넘어서면 100% 배경색이 되어 통째로 사라진다.
-// 실루엣으로 남으려면 fog 그라디언트(80~320) 안에서 '부분적으로만' 섞여야
-// 한다. 이전에는 250~400 을 썼는데 이 시드에서는 다섯 곳 중 네 곳이
-// far 를 넘어가 순수 하늘색으로만 그려지고 드로우콜만 낭비했다. 230~300 으로
-// 당겨 항상 그라디언트 안에 들게 한다.
+// 실루엣으로 남으려면 fog 그라디언트(80~560) 안에서 '부분적으로만' 섞여야
+// 한다. far 를 넘어가면 순수 하늘색이 되어 드로우콜만 낭비하고, 너무 가까우면
+// 거의 안 섞여 실루엣이 아니라 그냥 또 하나의 섬으로 보인다. 370~460 이면
+// 65~80% 섞여 형태만 흐리게 남는다. fog far 를 320 에서 560 으로 늘렸으므로
+// 예전 범위(230~300)로는 이제 너무 진하게 나온다.
 const DISTANT_ISLAND_COUNT = 5;
-const DISTANT_ISLAND_Z_NEAR = -230;
-const DISTANT_ISLAND_Z_FAR = -300;
-const DISTANT_ISLAND_X_LIMIT = 220;
-const DISTANT_ISLAND_Y_MIN = -30;
-const DISTANT_ISLAND_Y_MAX = 10;
+const DISTANT_ISLAND_Z_NEAR = -370;
+const DISTANT_ISLAND_Z_FAR = -460;
+const DISTANT_ISLAND_X_LIMIT = 380;
+const DISTANT_ISLAND_Y_MIN = -45;
+const DISTANT_ISLAND_Y_MAX = 15;
 const DISTANT_ISLAND_ROTATION_LIMIT = 0.6;
+// 더 멀어진 만큼 키운다. 거리 배율이 약 1.5배다.
+const DISTANT_ISLAND_WIDTH_MIN = 60;
+const DISTANT_ISLAND_WIDTH_MAX = 135;
 
 const BIRD_COUNT = 5;
 const BIRD_FLIGHT_SECONDS = 24;
@@ -71,7 +77,9 @@ function randomBetween(random, min, max) {
 function buildCloud(random, material, puffGeometry) {
   const cloud = new THREE.Group();
   const puffCount = Math.round(randomBetween(random, CLOUD_PUFF_MIN, CLOUD_PUFF_MAX));
-  const scale = randomBetween(random, 6, 14);
+  // 구름을 뒤로 밀면 그만큼 작아 보인다. 화면에서 차지하는 크기를 유지하려고
+  // 거리 배율(약 1.75배)만큼 키운다.
+  const scale = randomBetween(random, CLOUD_SCALE_MIN, CLOUD_SCALE_MAX);
   for (let i = 0; i < puffCount; i += 1) {
     const radius = scale * randomBetween(random, 0.5, 1);
     const puff = new THREE.Mesh(puffGeometry, material);
@@ -90,9 +98,9 @@ function buildCloud(random, material, puffGeometry) {
 // 크기로 두면 그 거리에서 점으로 사라진다.
 function buildDistantIsland(random, topMaterial, keelMaterial) {
   const island = new THREE.Group();
-  const width = randomBetween(random, 40, 90);
+  const width = randomBetween(random, DISTANT_ISLAND_WIDTH_MIN, DISTANT_ISLAND_WIDTH_MAX);
   const depth = width * randomBetween(random, 0.5, 0.9);
-  const thickness = randomBetween(random, 6, 12);
+  const thickness = width * randomBetween(random, 0.1, 0.15);
   const keelHeight = width * 0.8;
 
   const top = new THREE.Mesh(new THREE.BoxGeometry(width, thickness, depth), topMaterial);
