@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { driftWrapped, createSeededRandom } from './skyMotion.js';
+import { driftWrapped, flightProgress, createSeededRandom } from './skyMotion.js';
 
 // 섬이 z = -80 이다. 구름을 항상 그보다 뒤에 두면 조준해서 화각이 좁아져도
 // 표적을 가리지 않는다. 앵커 위치는 z = -160 이어야 한다. 각 구름 내부의
@@ -19,6 +19,17 @@ const CLOUD_PUFF_MAX = 6;
 const DISTANT_ISLAND_COUNT = 5;
 const DISTANT_ISLAND_Z_NEAR = -250;
 const DISTANT_ISLAND_Z_FAR = -400;
+
+const BIRD_COUNT = 5;
+const BIRD_FLIGHT_SECONDS = 24;
+const BIRD_X_SPAN = 180;
+const BIRD_Z = -150;
+const BIRD_Y_MIN = 22;
+const BIRD_Y_MAX = 38;
+const BIRD_WING_SPAN = 1.2;
+const BIRD_WING_CHORD = 0.6;
+const BIRD_FLAP_HZ = 3;
+const BIRD_FLAP_ANGLE = 0.5;
 
 // 배치가 판마다 바뀌면 육안 확인이 무의미해진다.
 const SKY_SEED = 20260729;
@@ -66,6 +77,30 @@ function buildDistantIsland(random, topMaterial, keelMaterial) {
   return island;
 }
 
+// 삼각형 한 장이 날개 하나다. 뿌리를 원점에 두어야 rotation.z 로 접었다 펼 수
+// 있으므로 정점을 그렇게 잡는다.
+function buildWingGeometry(mirrored) {
+  const tipX = mirrored ? -BIRD_WING_SPAN : BIRD_WING_SPAN;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(
+      [0, 0, -BIRD_WING_CHORD / 2, 0, 0, BIRD_WING_CHORD / 2, tipX, 0, 0],
+      3
+    )
+  );
+  return geometry;
+}
+
+function buildBird(material) {
+  const group = new THREE.Group();
+  const left = new THREE.Mesh(buildWingGeometry(false), material);
+  const right = new THREE.Mesh(buildWingGeometry(true), material);
+  group.add(left);
+  group.add(right);
+  return { group, left, right };
+}
+
 export function createSkyDecor(scene) {
   const random = createSeededRandom(SKY_SEED);
   const root = new THREE.Group();
@@ -98,6 +133,32 @@ export function createSkyDecor(scene) {
     root.add(island);
   }
 
+  // 조명 계산 없이 어두운 실루엣이면 된다. 양면으로 두지 않으면 지나가는
+  // 방향에 따라 날개 한쪽이 사라진다.
+  const birdMaterial = new THREE.MeshBasicMaterial({
+    color: 0x3b4451,
+    side: THREE.DoubleSide,
+  });
+
+  const birds = [];
+  for (let i = 0; i < BIRD_COUNT; i += 1) {
+    const bird = buildBird(birdMaterial);
+    // 가운데를 0 으로 두고 양옆으로 벌어진다. 뒤로 물러난 거리를 좌우 거리에
+    // 비례시키면 V 대형이 된다.
+    const lateral = i - (BIRD_COUNT - 1) / 2;
+    bird.offsetX = -Math.abs(lateral) * 2.5;
+    bird.offsetY = randomBetween(random, BIRD_Y_MIN, BIRD_Y_MAX);
+    bird.offsetZ = lateral * 2.5;
+    // 날갯짓을 조금씩 어긋나게 해야 한 몸처럼 안 보인다.
+    bird.flapPhase = randomBetween(random, 0, Math.PI * 2);
+    bird.group.position.set(0, bird.offsetY, BIRD_Z + bird.offsetZ);
+    root.add(bird.group);
+    birds.push(bird);
+  }
+
+  let flightT = 0;
+  let flapPhase = 0;
+
   return {
     update(dt) {
       for (const cloud of clouds) {
@@ -108,6 +169,16 @@ export function createSkyDecor(scene) {
           CLOUD_X_LIMIT
         );
       }
+
+      flightT = flightProgress(flightT, dt, BIRD_FLIGHT_SECONDS);
+      flapPhase += dt * BIRD_FLAP_HZ * Math.PI * 2;
+      const leadX = -BIRD_X_SPAN + flightT * BIRD_X_SPAN * 2;
+      for (const bird of birds) {
+        bird.group.position.x = leadX + bird.offsetX;
+        const flap = Math.sin(flapPhase + bird.flapPhase) * BIRD_FLAP_ANGLE;
+        bird.left.rotation.z = flap;
+        bird.right.rotation.z = -flap;
+      }
     },
     dispose() {
       scene.remove(root);
@@ -117,6 +188,7 @@ export function createSkyDecor(scene) {
       cloudMaterial.dispose();
       islandTopMaterial.dispose();
       islandKeelMaterial.dispose();
+      birdMaterial.dispose();
     },
   };
 }
