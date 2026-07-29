@@ -2,46 +2,46 @@ import * as THREE from 'three';
 import { driftWrapped, flightProgress, createSeededRandom } from './skyMotion.js';
 
 // 섬이 z = -80 이다. 구름을 항상 그보다 뒤에 두면 조준해서 화각이 좁아져도
-// 표적을 가리지 않는다. 앵커가 -230 이고 구름 내부의 구는 반지름(최대 25)과
-// 지역 오프셋(최대 ~7.5)만큼 앞으로 나오므로 가장 앞선 표면이 -197 근처다.
-// world.js 의 fog far 가 560 이라 뒤쪽 끝(-330)도 형태가 남는다.
-const CLOUD_Z_NEAR = -230;
-const CLOUD_Z_FAR = -330;
+// 표적을 가리지 않는다. 앵커가 -400 이고 구름 내부의 구는 반지름(최대 43)과
+// 지역 오프셋(최대 ~13)만큼 앞으로 나오므로 가장 앞선 표면이 -344 근처다.
+// world.js 의 fog far 가 900 이라 뒤쪽 끝(-560)도 형태가 남는다.
+const CLOUD_Z_NEAR = -400;
+const CLOUD_Z_FAR = -560;
 const CLOUD_COUNT = 14;
 // 배치 반경과 랩(감아넘기기) 반경을 다르게 둔다. 16:9 화면에서 가장 가까운
-// 구름의 z(-230) 기준 보이는 폭의 절반이 ~236 인데 구름 뭉치는 앵커에서 최대
-// ~28 까지 튀어나온다. 배치 한계를 랩 한계로 그대로 쓰면 화면 안에서 구름이
+// 구름의 z(-400) 기준 보이는 폭의 절반이 ~410 인데 구름 뭉치는 앵커에서 최대
+// ~56 까지 튀어나온다. 배치 한계를 랩 한계로 그대로 쓰면 화면 안에서 구름이
 // 갑자기 사라지는 게 보이고, 21:9 처럼 더 넓은 화면에서는 화면 중앙 근처에서
-// 그 일이 벌어진다. 배치는 좁게(250), 랩은 넓게(360) 두어 랩이 항상
+// 그 일이 벌어진다. 배치는 좁게(420), 랩은 넓게(620) 두어 랩이 항상
 // 프러스텀 밖에서 일어나게 한다.
-const CLOUD_X_PLACEMENT_LIMIT = 250;
-const CLOUD_X_WRAP_LIMIT = 360;
-const CLOUD_Y_MIN = -45;
-const CLOUD_Y_MAX = 60;
+const CLOUD_X_PLACEMENT_LIMIT = 420;
+const CLOUD_X_WRAP_LIMIT = 620;
+const CLOUD_Y_MIN = -75;
+const CLOUD_Y_MAX = 100;
 const CLOUD_DRIFT_SPEED = 0.6;
 const CLOUD_PUFF_MIN = 4;
 const CLOUD_PUFF_MAX = 6;
-const CLOUD_SCALE_MIN = 11;
-const CLOUD_SCALE_MAX = 25;
+const CLOUD_SCALE_MIN = 19;
+const CLOUD_SCALE_MAX = 43;
 
 // scene.fog 의 색이 scene.background 와 똑같은 0x87ceeb 이다. 즉 fog 는
 // '안개를 낀 것처럼' 보이게 하는 장치가 아니라 거리에 따라 배경색과 섞는
 // 장치이고, far(320) 를 넘어서면 100% 배경색이 되어 통째로 사라진다.
-// 실루엣으로 남으려면 fog 그라디언트(80~560) 안에서 '부분적으로만' 섞여야
+// 실루엣으로 남으려면 fog 그라디언트(80~900) 안에서 '부분적으로만' 섞여야
 // 한다. far 를 넘어가면 순수 하늘색이 되어 드로우콜만 낭비하고, 너무 가까우면
-// 거의 안 섞여 실루엣이 아니라 그냥 또 하나의 섬으로 보인다. 370~460 이면
-// 65~80% 섞여 형태만 흐리게 남는다. fog far 를 320 에서 560 으로 늘렸으므로
-// 예전 범위(230~300)로는 이제 너무 진하게 나온다.
+// 거의 안 섞여 실루엣이 아니라 그냥 또 하나의 섬으로 보인다. 570~680 이면
+// 65~85% 섞여 형태만 흐리게 남는다. 구름을 밀 때마다 fog far 가 따라 늘어나므로
+// 이 범위도 같이 밀어야 한다 — 안 밀면 진하게 나와 섬처럼 보인다.
 const DISTANT_ISLAND_COUNT = 5;
-const DISTANT_ISLAND_Z_NEAR = -370;
-const DISTANT_ISLAND_Z_FAR = -460;
-const DISTANT_ISLAND_X_LIMIT = 380;
-const DISTANT_ISLAND_Y_MIN = -45;
-const DISTANT_ISLAND_Y_MAX = 15;
+const DISTANT_ISLAND_Z_NEAR = -570;
+const DISTANT_ISLAND_Z_FAR = -680;
+const DISTANT_ISLAND_X_LIMIT = 620;
+const DISTANT_ISLAND_Y_MIN = -75;
+const DISTANT_ISLAND_Y_MAX = 25;
 const DISTANT_ISLAND_ROTATION_LIMIT = 0.6;
 // 더 멀어진 만큼 키운다. 거리 배율이 약 1.5배다.
-const DISTANT_ISLAND_WIDTH_MIN = 60;
-const DISTANT_ISLAND_WIDTH_MAX = 135;
+const DISTANT_ISLAND_WIDTH_MIN = 90;
+const DISTANT_ISLAND_WIDTH_MAX = 200;
 
 const BIRD_COUNT = 5;
 const BIRD_FLIGHT_SECONDS = 24;

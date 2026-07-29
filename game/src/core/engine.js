@@ -2,7 +2,8 @@ import * as THREE from 'three';
 
 export function createEngine(container) {
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 800);
+  // far 는 하늘 장식(skyDecor.js)의 가장 먼 요소가 잘리지 않을 만큼 잡는다.
+  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1400);
   camera.position.set(0, 1.6, 0);
   scene.add(camera);
 
