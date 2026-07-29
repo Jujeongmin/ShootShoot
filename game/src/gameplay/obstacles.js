@@ -6,6 +6,8 @@ const SACK_TRENCH_URL = '/models/sack-trench.glb';
 const CRATE_SCALE = 6;
 // 상자를 사격 방향(z)으로만 납작하게 만든다. 총알이 뚫고 지나가는 널빤지로
 // 보여야 하는데, x·y 까지 줄이면 단 높이와 그 위 원숭이 발판이 같이 내려간다.
+// 0.22는 실측값이 아니라 순전히 눈대중으로 고른 비율이다 — 이 값을 뒷받침하는
+// 측정 도구는 없으니 찾으려 하지 말 것.
 const CRATE_DEPTH_RATIO = 0.22;
 const SACK_TRENCH_SCALE = 1;
 const GROUND_Y = -1.0;

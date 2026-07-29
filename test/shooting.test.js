@@ -77,7 +77,7 @@ describe('partitionShotPath', () => {
     expect(path.towerIndices).toEqual([]);
   });
 
-  it('counts a monkey once even when several of its meshes are hit', () => {
+  it('counts a monkey once even when its single mesh yields multiple intersections', () => {
     const path = partitionShotPath([{ monkeyId: 'a' }, { monkeyId: 'a' }, { monkeyId: 'b' }]);
     expect(path.monkeyIds).toEqual(['a', 'b']);
   });

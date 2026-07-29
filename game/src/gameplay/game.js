@@ -385,7 +385,9 @@ export function createGame(container) {
 
   function handleWeaponShot(intersections) {
     // 부위 판정에는 교차점이 필요한데 멈춤 규칙은 그걸 안 본다. 규칙은 순수 함수에
-    // 맡기고, 여기서는 원숭이마다 가장 가까운 교차점만 따로 챙겨 둔다.
+    // 맡기고, 여기서는 원숭이마다 가장 가까운 교차점만 따로 챙겨 둔다. 멈추는 지점을
+    // 아직 모르니 교차 전체를 훑지만, 아래에서는 partitionShotPath가 돌려준 monkeyIds로만
+    // 조회하므로 참호가 멈춘 지점 너머에 담긴 항목은 절대 읽히지 않는다.
     const firstPointByMonkey = new Map();
     const entries = intersections.map((intersection) => {
       const { monkeyId, towerIndex } = intersection.object.userData;
@@ -406,16 +408,24 @@ export function createGame(container) {
     const outcome = resolveShot(hits);
     const weaponDamage = getEquippedWeapon().damage + upgradeStore.getDamageLevel() * CONFIG.damageUpgrade.bonusPerLevel;
 
+    // 팝업은 실제로 죽은 원숭이에 붙어야 한다. 직격이 급소를 스치기만 하고 죽이지
+    // 못했는데 그 자리를 먼저 차지해버리면, 점수는 타워 붕괴로 죽은 원숭이한테서
+    // 나왔으면서 +점수는 살아있는 원숭이 위에 뜬다. 그래서 직격은 실제로 죽였을 때만
+    // popupWorldPosition을 차지하고, 죽은 원숭이가 하나도 없을 때만 첫 피격 지점으로
+    // 되돌아간다(이 경우는 어차피 점수가 0이라 팝업 자체가 안 뜬다).
     let popupWorldPosition = null;
+    let firstDamagedWorldPosition = null;
     const killedHits = [];
     for (const hit of outcome.hits) {
       const monkey = targetManager.findMonkey(hit.monkeyId);
       if (!monkey) continue;
       const worldPos = monkey.getWorldPosition();
-      if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
+      if (!firstDamagedWorldPosition) firstDamagedWorldPosition = worldPos.clone();
       effects.spawnHitBurst(worldPos);
-      if (monkey.damage(computeHitDamage(hit.part, weaponDamage, CONFIG), hit.part)) {
+      const killed = monkey.damage(computeHitDamage(hit.part, weaponDamage, CONFIG), hit.part);
+      if (killed) {
         killedHits.push(hit);
+        if (!popupWorldPosition) popupWorldPosition = worldPos.clone();
       }
     }
 
@@ -427,6 +437,8 @@ export function createGame(container) {
         if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
       }
     }
+
+    if (!popupWorldPosition) popupWorldPosition = firstDamagedWorldPosition;
 
     // 기둥만 맞힌 경우 resolveShot이 isMiss를 주지만 미스가 아니다. 붕괴로 죽은
     // 원숭이가 있으면 그것도 점수에 포함되어야 하므로 결과를 직접 만든다.
