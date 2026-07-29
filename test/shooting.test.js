@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveShot, computeHitDamage, resolveKillOutcome } from '../game/src/gameplay/shooting.js';
+import { resolveShot, computeHitDamage, resolveKillOutcome, partitionShotPath } from '../game/src/gameplay/shooting.js';
 import { CONFIG } from '../game/src/config.js';
 
 describe('resolveShot', () => {
@@ -63,5 +63,50 @@ describe('resolveKillOutcome', () => {
     const outcome = resolveKillOutcome(shot, killed);
     expect(outcome.penetrationCount).toBe(2);
     expect(outcome.hits.map((h) => h.monkeyId)).toEqual(['a', 'c']);
+  });
+});
+
+describe('partitionShotPath', () => {
+  it('returns empty lists for an empty path', () => {
+    expect(partitionShotPath([])).toEqual({ monkeyIds: [], towerIndices: [] });
+  });
+
+  it('passes through two monkeys and keeps their order', () => {
+    const path = partitionShotPath([{ monkeyId: 'a' }, { monkeyId: 'b' }]);
+    expect(path.monkeyIds).toEqual(['a', 'b']);
+    expect(path.towerIndices).toEqual([]);
+  });
+
+  it('counts a monkey once even when several of its meshes are hit', () => {
+    const path = partitionShotPath([{ monkeyId: 'a' }, { monkeyId: 'a' }, { monkeyId: 'b' }]);
+    expect(path.monkeyIds).toEqual(['a', 'b']);
+  });
+
+  it('passes through a crate and still reaches the monkey behind it', () => {
+    const path = partitionShotPath([{ towerIndex: 1 }, { monkeyId: 'a' }]);
+    expect(path.towerIndices).toEqual([1]);
+    expect(path.monkeyIds).toEqual(['a']);
+  });
+
+  it('counts a tower once even when several of its crates are hit', () => {
+    const path = partitionShotPath([{ towerIndex: 1 }, { towerIndex: 1 }, { monkeyId: 'a' }]);
+    expect(path.towerIndices).toEqual([1]);
+    expect(path.monkeyIds).toEqual(['a']);
+  });
+
+  it('collects both towers when one shot crosses two of them', () => {
+    const path = partitionShotPath([{ towerIndex: 0 }, { towerIndex: 1 }]);
+    expect(path.towerIndices).toEqual([0, 1]);
+  });
+
+  it('treats tower index 0 as a real tower rather than as absent', () => {
+    const path = partitionShotPath([{ towerIndex: 0 }]);
+    expect(path.towerIndices).toEqual([0]);
+  });
+
+  it('stops at anything that is neither a monkey nor a crate', () => {
+    const path = partitionShotPath([{ monkeyId: 'a' }, {}, { monkeyId: 'b' }, { towerIndex: 1 }]);
+    expect(path.monkeyIds).toEqual(['a']);
+    expect(path.towerIndices).toEqual([]);
   });
 });
