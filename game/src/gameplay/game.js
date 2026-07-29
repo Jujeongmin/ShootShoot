@@ -348,8 +348,8 @@ export function createGame(container) {
 
   // 붕괴로 죽은 원숭이를 반환한다. 점수는 여기서 더하지 않고 호출부가 일반
   // 사격과 같은 경로(killedHits)로 계산한다 — 구조물 자체는 점수를 주지 않는다.
-  function applyTowerCollapse(hitTowerIndex, burstColor) {
-    obstacles.collapseStructure({ kind: 'tower', index: hitTowerIndex });
+  function applyTowerCollapse(hitTowerIndex, impactPoint, burstColor) {
+    obstacles.collapseStructure({ kind: 'tower', index: hitTowerIndex, impactPoint });
     const towerMonkey = targetManager.findMonkeyAtTower(hitTowerIndex);
     if (!towerMonkey || towerMonkey.isDying()) return null;
     const worldPos = towerMonkey.getWorldPosition();
@@ -389,10 +389,15 @@ export function createGame(container) {
     // 아직 모르니 교차 전체를 훑지만, 아래에서는 partitionShotPath가 돌려준 monkeyIds로만
     // 조회하므로 참호가 멈춘 지점 너머에 담긴 항목은 절대 읽히지 않는다.
     const firstPointByMonkey = new Map();
+    const firstPointByTower = new Map();
     const entries = intersections.map((intersection) => {
       const { monkeyId, towerIndex } = intersection.object.userData;
       if (monkeyId && !firstPointByMonkey.has(monkeyId)) {
         firstPointByMonkey.set(monkeyId, intersection.point);
+      }
+      // towerIndex 는 0 일 수 있으므로 참/거짓으로 보면 첫 타워가 빠진다.
+      if (towerIndex !== undefined && !firstPointByTower.has(towerIndex)) {
+        firstPointByTower.set(towerIndex, intersection.point);
       }
       return { monkeyId, towerIndex };
     });
@@ -431,7 +436,7 @@ export function createGame(container) {
 
     // 한 발이 앞 타워를 뚫고 뒤 타워까지 닿을 수 있다. 지나간 타워는 전부 무너진다.
     for (const towerIndex of towerIndices) {
-      const towerKill = applyTowerCollapse(towerIndex);
+      const towerKill = applyTowerCollapse(towerIndex, firstPointByTower.get(towerIndex));
       if (towerKill) {
         killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
         if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
@@ -480,14 +485,15 @@ export function createGame(container) {
 
     for (const structure of structures) {
       if (structure.kind === 'tower') {
-        const towerKill = applyTowerCollapse(structure.index, 0xff6600);
+        const towerKill = applyTowerCollapse(structure.index, impactPoint, 0xff6600);
         if (towerKill) {
           killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
           if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
         }
         continue;
       }
-      obstacles.collapseStructure(structure);
+      // 폭심에서 밀려나야 한다. structure 는 { kind, index } 뿐이라 명중점을 얹어 넘긴다.
+      obstacles.collapseStructure({ ...structure, impactPoint });
     }
 
     for (const monkey of captured) {
