@@ -3,7 +3,7 @@ import { createEngine } from '../core/engine.js';
 import { createInputController } from '../core/input.js';
 import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
-import { resolveShot, computeHitDamage, resolveKillOutcome } from './shooting.js';
+import { resolveShot, computeHitDamage, resolveKillOutcome, partitionShotPath } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, settlementGold, createHighScoreStore } from './scoring.js';
 import { createReloadState } from './reloadState.js';
 import { createSkyDecor } from './skyDecor.js';
@@ -384,23 +384,23 @@ export function createGame(container) {
   }
 
   function handleWeaponShot(intersections) {
-    const seen = new Set();
-    const hits = [];
-    let hitTowerIndex = null;
-    for (const intersection of intersections) {
+    // 부위 판정에는 교차점이 필요한데 멈춤 규칙은 그걸 안 본다. 규칙은 순수 함수에
+    // 맡기고, 여기서는 원숭이마다 가장 가까운 교차점만 따로 챙겨 둔다.
+    const firstPointByMonkey = new Map();
+    const entries = intersections.map((intersection) => {
       const { monkeyId, towerIndex } = intersection.object.userData;
-      if (monkeyId) {
-        if (seen.has(monkeyId)) continue;
-        seen.add(monkeyId);
-        const monkey = targetManager.findMonkey(monkeyId);
-        if (!monkey) continue;
-        hits.push({ monkeyId, part: monkey.classifyHit(intersection.point) });
-        continue;
+      if (monkeyId && !firstPointByMonkey.has(monkeyId)) {
+        firstPointByMonkey.set(monkeyId, intersection.point);
       }
-      if (towerIndex !== undefined) {
-        hitTowerIndex = towerIndex;
-      }
-      break;
+      return { monkeyId, towerIndex };
+    });
+    const { monkeyIds, towerIndices } = partitionShotPath(entries);
+
+    const hits = [];
+    for (const monkeyId of monkeyIds) {
+      const monkey = targetManager.findMonkey(monkeyId);
+      if (!monkey) continue;
+      hits.push({ monkeyId, part: monkey.classifyHit(firstPointByMonkey.get(monkeyId)) });
     }
 
     const outcome = resolveShot(hits);
@@ -419,8 +419,9 @@ export function createGame(container) {
       }
     }
 
-    if (hitTowerIndex !== null) {
-      const towerKill = applyTowerCollapse(hitTowerIndex);
+    // 한 발이 앞 타워를 뚫고 뒤 타워까지 닿을 수 있다. 지나간 타워는 전부 무너진다.
+    for (const towerIndex of towerIndices) {
+      const towerKill = applyTowerCollapse(towerIndex);
       if (towerKill) {
         killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
         if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
@@ -429,7 +430,7 @@ export function createGame(container) {
 
     // 기둥만 맞힌 경우 resolveShot이 isMiss를 주지만 미스가 아니다. 붕괴로 죽은
     // 원숭이가 있으면 그것도 점수에 포함되어야 하므로 결과를 직접 만든다.
-    const isPureTowerHit = hits.length === 0 && hitTowerIndex !== null;
+    const isPureTowerHit = hits.length === 0 && towerIndices.length > 0;
     const effectiveOutcome = isPureTowerHit
       ? {
           isMiss: false,
@@ -445,7 +446,7 @@ export function createGame(container) {
       effectiveOutcome,
       gained,
       popupWorldPosition,
-      isPureTowerHit: hitTowerIndex !== null,
+      isPureTowerHit,
     });
   }
 
