@@ -4,6 +4,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const CRATE_URL = '/models/crate.glb';
 const SACK_TRENCH_URL = '/models/sack-trench.glb';
 const CRATE_SCALE = 6;
+// 상자를 사격 방향(z)으로만 납작하게 만든다. 총알이 뚫고 지나가는 널빤지로
+// 보여야 하는데, x·y 까지 줄이면 단 높이와 그 위 원숭이 발판이 같이 내려간다.
+const CRATE_DEPTH_RATIO = 0.22;
 const SACK_TRENCH_SCALE = 1;
 const GROUND_Y = -1.0;
 // tools/measure-props.mjs 실측값. 상자 원점은 바닥보다 0.0119 위에 있어서,
@@ -98,7 +101,7 @@ export function loadObstacles(scene) {
         for (const offsetX of [-PILLAR_OFFSET_X, PILLAR_OFFSET_X]) {
           for (let level = 0; level < 2; level++) {
             const crateInstance = crateGltf.scene.clone();
-            crateInstance.scale.setScalar(CRATE_SCALE);
+            crateInstance.scale.set(CRATE_SCALE, CRATE_SCALE, CRATE_SCALE * CRATE_DEPTH_RATIO);
             crateInstance.position.set(
               offsetX,
               GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + level * CRATE_UNIT_HEIGHT,
