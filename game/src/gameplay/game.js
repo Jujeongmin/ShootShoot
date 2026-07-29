@@ -5,6 +5,7 @@ import { createWorld } from './world.js';
 import { createTargetManager } from './targetManager.js';
 import { resolveShot, computeHitDamage, resolveKillOutcome } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, settlementGold, createHighScoreStore } from './scoring.js';
+import { createReloadState } from './reloadState.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
@@ -71,6 +72,7 @@ export function createGame(container) {
   let scoreState = createScoreState();
   // 이미 골드로 바꾼 점수. 라운드 정산은 score 와 이 값의 차이만 지급한다.
   let settledScore = 0;
+  const reload = createReloadState(CONFIG.reload.seconds);
   let round = 1;
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
@@ -104,6 +106,7 @@ export function createGame(container) {
     projectiles.clear();
     scoreState = createScoreState();
     settledScore = 0;
+    reload.reset();
     phase = 'playing';
     beginRound(1);
     screens.hide();
@@ -233,6 +236,11 @@ export function createGame(container) {
     return loadWeaponViewmodel(engine.camera, weapon).then((next) => {
       if (weaponViewmodel) weaponViewmodel.dispose();
       weaponViewmodel = next;
+      // 바주카 마지막 발을 쏘면 여기가 장전 도중에 불린다. 남은 시간으로 다시
+      // 걸지 않으면 새 총이 혼자 멀쩡히 서 있는다.
+      if (reload.isReloading()) {
+        weaponViewmodel.triggerReload(reload.remaining());
+      }
     });
   }
 
@@ -551,6 +559,9 @@ export function createGame(container) {
     } else {
       handleWeaponShot(intersections);
     }
+
+    reload.start();
+    weaponViewmodel.triggerReload(CONFIG.reload.seconds);
   }
 
   input.onAimDown(() => {
@@ -564,6 +575,8 @@ export function createGame(container) {
 
     engine.start((dt) => {
       lastKillEffect.update(dt);
+      reload.tick(dt);
+      input.setEnabled(phase === 'playing' && !settingsOpen && !reload.isReloading());
       const scaledDt = dt * lastKillEffect.getTimeScale();
 
       if (targetManager) {

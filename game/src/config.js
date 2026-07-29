@@ -17,6 +17,10 @@ export const CONFIG = {
     roundsPerMonkeyHpIncrease: 2,
   },
   scorePerGold: 10,
+  reload: {
+    // 일반 총과 바주카포가 같은 값을 쓴다.
+    seconds: 0.8,
+  },
   offlineReward: {
     goldPerHour: 10,
     maxHours: 8,
