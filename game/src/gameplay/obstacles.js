@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { createDebrisBody, impactImpulse } from './debris.js';
 
 const CRATE_URL = '/models/crate.glb';
 const SACK_TRENCH_URL = '/models/sack-trench.glb';
@@ -22,9 +23,14 @@ const FLOOR_ROTATION_X = -Math.PI / 2;
 // floor.position.y(=pillarTopY) 기준 바닥면은 -0.4808, 윗면은 +0.2943에 있다.
 // 즉 원숭이 슬롯이 실제 윗면보다 0.4808만큼 위에 떠 있었다.
 const FLOOR_THICKNESS = 0.2943;
-const COLLAPSE_DURATION = 0.3;
-const COLLAPSE_TILT = Math.PI / 2;
-const COLLAPSE_DROP = 0.6;
+// 조각을 밀어내는 세기. 거리로 나눠 쓰므로 가까운 조각이 이 값에 가깝게 튄다.
+const DEBRIS_IMPACT_STRENGTH = 26;
+// 멈춘 조각을 얼마나 두었다가 지울지. 부순 흔적이 잠깐 남아야 타격감이 산다.
+const DEBRIS_HOLD_SECONDS = 1.5;
+const DEBRIS_FADE_SECONDS = 0.5;
+// 명중점을 못 받았을 때 쓸 기본값. 구조물 중심에서 카메라 쪽으로 이만큼 당긴
+// 지점을 때린 걸로 치면 조각이 카메라 반대편으로 밀려 예전 붕괴와 방향이 비슷하다.
+const DEFAULT_IMPACT_OFFSET_Z = 1.2;
 // tools/measure-props.mjs 실측. 자루 참호는 로컬 y -0.0112 ~ 1.1829(높이 1.1941)라
 // 중심은 그룹 원점(참호는 GROUND_Y)보다 0.586 위다. 타워는 상자 2단 + 발판이 월드
 // y -1.0 ~ 1.229라 중심이 월드 0.11인데, 타워 그룹도 y=0에 있으므로 그룹 원점보다
@@ -48,6 +54,34 @@ function collectMaterials(object, materials) {
   materials.push(...mats);
 }
 
+// 조각 하나를 기록한다. 붕괴가 시작되면 이 오브젝트가 그룹에서 떨어져 나와 혼자 움직인다.
+function makePiece(object) {
+  object.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(object);
+  const worldPosition = new THREE.Vector3();
+  object.getWorldPosition(worldPosition);
+
+  const materials = [];
+  object.traverse((child) => {
+    if (child.isMesh) collectMaterials(child, materials);
+  });
+
+  return {
+    object,
+    materials,
+    homeParent: object.parent,
+    homePosition: object.position.clone(),
+    homeQuaternion: object.quaternion.clone(),
+    // 조각 원점에서 가장 아래 면까지의 거리. 이걸 빼먹으면 원점이 바닥에 닿을 때까지
+    // 내려가서 조각 절반이 땅에 파묻힌 채로 멈춘다.
+    restOffset: worldPosition.y - box.min.y,
+    // 원점이 조각 한가운데가 아니다. 지렛대를 원점으로 재면 회전 방향이 틀린다.
+    centerOffsetY: box.getCenter(new THREE.Vector3()).y - worldPosition.y,
+    body: null,
+    restedFor: 0,
+  };
+}
+
 export function loadObstacles(scene) {
   const loader = new GLTFLoader();
   return Promise.all([loader.loadAsync(CRATE_URL), loader.loadAsync(SACK_TRENCH_URL)]).then(
@@ -66,7 +100,6 @@ export function loadObstacles(scene) {
         group.add(instance);
 
         const meshes = [];
-        const materials = [];
         instance.traverse((object) => {
           if (object.isMesh) {
             object.material = Array.isArray(object.material)
@@ -75,7 +108,6 @@ export function loadObstacles(scene) {
             object.castShadow = true;
             object.receiveShadow = true;
             meshes.push(object);
-            collectMaterials(object, materials);
           }
         });
 
@@ -83,11 +115,10 @@ export function loadObstacles(scene) {
           index: trenchIndex,
           group,
           meshes,
-          materials,
-          baseY: GROUND_Y,
+          // 자루벽 모델은 메시가 하나라 조각도 하나다. 한 덩이로 굴러간다.
+          pieces: [makePiece(instance)],
           collapsing: false,
           collapsed: false,
-          collapseElapsed: 0,
           center: new THREE.Vector3(placement.x, GROUND_Y + TRENCH_CENTER_LOCAL_Y, placement.z),
         });
       });
@@ -98,7 +129,7 @@ export function loadObstacles(scene) {
         scene.add(group);
 
         const pillarMeshes = [];
-        const materials = [];
+        const crateInstances = [];
 
         for (const offsetX of [-PILLAR_OFFSET_X, PILLAR_OFFSET_X]) {
           for (let level = 0; level < 2; level++) {
@@ -110,6 +141,7 @@ export function loadObstacles(scene) {
               0
             );
             group.add(crateInstance);
+            crateInstances.push(crateInstance);
             crateInstance.traverse((object) => {
               if (object.isMesh) {
                 object.material = Array.isArray(object.material)
@@ -119,7 +151,6 @@ export function loadObstacles(scene) {
                 object.receiveShadow = true;
                 object.userData = { towerIndex };
                 pillarMeshes.push(object);
-                collectMaterials(object, materials);
               }
             });
           }
@@ -138,7 +169,6 @@ export function loadObstacles(scene) {
               : object.material.clone();
             object.castShadow = true;
             object.receiveShadow = true;
-            collectMaterials(object, materials);
           }
         });
 
@@ -146,32 +176,88 @@ export function loadObstacles(scene) {
           index: towerIndex,
           group,
           pillarMeshes,
-          materials,
-          baseY: 0,
+          // 상자 4개와 발판 1개. 모델이 전부 메시 하나라 이 이상 못 쪼갠다.
+          pieces: [...crateInstances, floor].map(makePiece),
           center: new THREE.Vector3(placement.x, 0 + TOWER_CENTER_LOCAL_Y, placement.z),
           collapsing: false,
           collapsed: false,
-          collapseElapsed: 0,
           monkeySlot: { x: placement.x, y: pillarTopY + FLOOR_THICKNESS, z: placement.z, towerIndex },
         });
       });
 
+      // 명중점을 못 받은 경우. 구조물 중심보다 카메라 쪽을 때린 걸로 쳐서 조각이
+      // 카메라 반대편으로 밀리게 한다.
+      function defaultImpactPoint(structure) {
+        return new THREE.Vector3(
+          structure.center.x,
+          structure.center.y,
+          structure.center.z + DEFAULT_IMPACT_OFFSET_Z
+        );
+      }
+
+      function startCollapse(structure, impactPoint) {
+        structure.collapsing = true;
+        const impact = impactPoint ?? defaultImpactPoint(structure);
+
+        for (const piece of structure.pieces) {
+          const object = piece.object;
+          // attach 는 월드 변환을 보존하므로 조각이 있던 자리에 그대로 남는다.
+          // 붙이고 나면 scene 이 원점에 있으므로 local 좌표가 곧 월드 좌표다.
+          scene.attach(object);
+          const center = {
+            x: object.position.x,
+            y: object.position.y + piece.centerOffsetY,
+            z: object.position.z,
+          };
+          const { velocity, spin } = impactImpulse(center, impact, DEBRIS_IMPACT_STRENGTH);
+          piece.body = createDebrisBody({
+            position: { x: object.position.x, y: object.position.y, z: object.position.z },
+            rotation: { x: object.rotation.x, y: object.rotation.y, z: object.rotation.z },
+            velocity,
+            spin,
+            restY: GROUND_Y + piece.restOffset,
+          });
+          piece.restedFor = 0;
+        }
+      }
+
       function advanceCollapse(structure, dt) {
         if (!structure.collapsing || structure.collapsed) return;
-        structure.collapseElapsed += dt;
-        const t = Math.min(structure.collapseElapsed / COLLAPSE_DURATION, 1);
-        structure.group.rotation.z = t * COLLAPSE_TILT;
-        // 타워는 y=0, 참호는 y=GROUND_Y에 있다. 각자의 기준 높이에서 떨어뜨려야
-        // 참호가 순간이동하지 않는다.
-        structure.group.position.y = structure.baseY - t * COLLAPSE_DROP;
-        for (const material of structure.materials) {
-          material.transparent = true;
-          material.opacity = 1 - t;
+
+        let allGone = true;
+        for (const piece of structure.pieces) {
+          if (!piece.body) continue;
+          piece.body.step(dt);
+          const position = piece.body.getPosition();
+          const rotation = piece.body.getRotation();
+          piece.object.position.set(position.x, position.y, position.z);
+          piece.object.rotation.set(rotation.x, rotation.y, rotation.z);
+
+          if (!piece.body.isResting()) {
+            allGone = false;
+            continue;
+          }
+
+          piece.restedFor += dt;
+          const fadeElapsed = piece.restedFor - DEBRIS_HOLD_SECONDS;
+          if (fadeElapsed <= 0) {
+            allGone = false;
+            continue;
+          }
+
+          const opacity = Math.max(0, 1 - fadeElapsed / DEBRIS_FADE_SECONDS);
+          for (const material of piece.materials) {
+            material.transparent = true;
+            material.opacity = opacity;
+          }
+          if (opacity > 0) {
+            allGone = false;
+            continue;
+          }
+          piece.object.visible = false;
         }
-        if (t >= 1) {
-          structure.collapsed = true;
-          structure.group.visible = false;
-        }
+
+        if (allGone) structure.collapsed = true;
       }
 
       function update(dt) {
@@ -182,13 +268,22 @@ export function loadObstacles(scene) {
       function resetStructure(structure) {
         structure.collapsing = false;
         structure.collapsed = false;
-        structure.collapseElapsed = 0;
         structure.group.visible = true;
         structure.group.rotation.z = 0;
-        structure.group.position.y = structure.baseY;
-        for (const material of structure.materials) {
-          material.opacity = 1;
-          material.transparent = false;
+
+        for (const piece of structure.pieces) {
+          piece.body = null;
+          piece.restedFor = 0;
+          // 조각이 scene 밑으로 나가 있다. 원래 부모로 돌려놓고 저장해 둔 로컬
+          // 변환을 그대로 씌운다 — attach 가 월드를 보존하려 들기 때문에 덮어야 한다.
+          piece.homeParent.attach(piece.object);
+          piece.object.position.copy(piece.homePosition);
+          piece.object.quaternion.copy(piece.homeQuaternion);
+          piece.object.visible = true;
+          for (const material of piece.materials) {
+            material.opacity = 1;
+            material.transparent = false;
+          }
         }
       }
 
@@ -229,10 +324,10 @@ export function loadObstacles(scene) {
           });
           return found;
         },
-        collapseStructure({ kind, index }) {
+        collapseStructure({ kind, index, impactPoint }) {
           const structure = listOf(kind).find((s) => s.index === index);
           if (!structure || structure.collapsing) return;
-          structure.collapsing = true;
+          startCollapse(structure, impactPoint);
         },
         update,
         reset,
