@@ -6,6 +6,7 @@ import { createTargetManager } from './targetManager.js';
 import { resolveShot, computeHitDamage, resolveKillOutcome } from './shooting.js';
 import { createScoreState, applyShot, calculateShotScore, settlementGold, createHighScoreStore } from './scoring.js';
 import { createReloadState } from './reloadState.js';
+import { createSkyDecor } from './skyDecor.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
@@ -47,6 +48,7 @@ export function createGame(container) {
   const engine = createEngine(container);
   const input = createInputController(engine.domElement);
   createWorld(engine.scene);
+  const skyDecor = createSkyDecor(engine.scene);
   const effects = createEffects(engine.scene);
   const hud = createHud(container);
   const screens = createScreens(container);
@@ -578,6 +580,10 @@ export function createGame(container) {
       reload.tick(dt);
       input.setEnabled(phase === 'playing' && !settingsOpen && !reload.isReloading());
       const scaledDt = dt * lastKillEffect.getTimeScale();
+
+      // 슬로모가 걸리면 하늘도 같이 느려져야 한다. 배경만 제 속도로 흐르면
+      // 마지막 처치 연출이 깨져 보인다.
+      skyDecor.update(scaledDt);
 
       if (targetManager) {
         targetManager.update(scaledDt);

@@ -1,0 +1,120 @@
+import * as THREE from 'three';
+import { driftWrapped, createSeededRandom } from './skyMotion.js';
+
+// 섬이 z = -80 이다. 구름을 항상 그보다 뒤에 두면 조준해서 화각이 좁아져도
+// 표적을 가리지 않는다.
+const CLOUD_Z_NEAR = -130;
+const CLOUD_Z_FAR = -300;
+const CLOUD_COUNT = 14;
+const CLOUD_X_LIMIT = 170;
+const CLOUD_Y_MIN = -25;
+const CLOUD_Y_MAX = 35;
+const CLOUD_DRIFT_SPEED = 0.6;
+const CLOUD_PUFF_MIN = 4;
+const CLOUD_PUFF_MAX = 6;
+
+// fog 가 320에서 끝나므로 이보다 멀면 하늘색에 잠겨 실루엣만 남는다.
+const DISTANT_ISLAND_COUNT = 5;
+const DISTANT_ISLAND_Z_NEAR = -250;
+const DISTANT_ISLAND_Z_FAR = -400;
+
+// 배치가 판마다 바뀌면 육안 확인이 무의미해진다.
+const SKY_SEED = 20260729;
+
+function randomBetween(random, min, max) {
+  return min + random() * (max - min);
+}
+
+// 구 몇 개를 겹쳐 한 덩이로 만든다. 가로로 늘어놓고 서로 반쯤 파묻어야
+// 낱개 구로 안 보인다.
+function buildCloud(random, material) {
+  const cloud = new THREE.Group();
+  const puffCount = Math.round(randomBetween(random, CLOUD_PUFF_MIN, CLOUD_PUFF_MAX));
+  const scale = randomBetween(random, 6, 14);
+  for (let i = 0; i < puffCount; i += 1) {
+    const radius = scale * randomBetween(random, 0.5, 1);
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(radius, 7, 5), material);
+    puff.position.set(
+      (i - (puffCount - 1) / 2) * scale * 0.7,
+      randomBetween(random, -0.2, 0.2) * scale,
+      randomBetween(random, -0.3, 0.3) * scale
+    );
+    cloud.add(puff);
+  }
+  return cloud;
+}
+
+// 지금 섬과 같은 모양(윗면 + 아래로 뻗은 용골)이되 훨씬 크게 잡는다. 같은
+// 크기로 두면 그 거리에서 점으로 사라진다.
+function buildDistantIsland(random, topMaterial, keelMaterial) {
+  const island = new THREE.Group();
+  const width = randomBetween(random, 40, 90);
+  const depth = width * randomBetween(random, 0.5, 0.9);
+  const thickness = randomBetween(random, 6, 12);
+  const keelHeight = width * 0.8;
+
+  const top = new THREE.Mesh(new THREE.BoxGeometry(width, thickness, depth), topMaterial);
+  island.add(top);
+
+  const keel = new THREE.Mesh(new THREE.ConeGeometry(width * 0.45, keelHeight, 6), keelMaterial);
+  keel.rotation.x = Math.PI;
+  keel.position.y = -thickness / 2 - keelHeight / 2;
+  island.add(keel);
+
+  return island;
+}
+
+export function createSkyDecor(scene) {
+  const random = createSeededRandom(SKY_SEED);
+  const root = new THREE.Group();
+  scene.add(root);
+
+  const cloudMaterial = new THREE.MeshLambertMaterial({ color: 0xf2f6fa });
+  const islandTopMaterial = new THREE.MeshLambertMaterial({ color: 0x6b4f3a });
+  const islandKeelMaterial = new THREE.MeshLambertMaterial({ color: 0x5a4230 });
+
+  const clouds = [];
+  for (let i = 0; i < CLOUD_COUNT; i += 1) {
+    const cloud = buildCloud(random, cloudMaterial);
+    cloud.position.set(
+      randomBetween(random, -CLOUD_X_LIMIT, CLOUD_X_LIMIT),
+      randomBetween(random, CLOUD_Y_MIN, CLOUD_Y_MAX),
+      randomBetween(random, CLOUD_Z_FAR, CLOUD_Z_NEAR)
+    );
+    root.add(cloud);
+    clouds.push(cloud);
+  }
+
+  for (let i = 0; i < DISTANT_ISLAND_COUNT; i += 1) {
+    const island = buildDistantIsland(random, islandTopMaterial, islandKeelMaterial);
+    island.position.set(
+      randomBetween(random, -220, 220),
+      randomBetween(random, -30, 10),
+      randomBetween(random, DISTANT_ISLAND_Z_FAR, DISTANT_ISLAND_Z_NEAR)
+    );
+    island.rotation.y = randomBetween(random, -0.6, 0.6);
+    root.add(island);
+  }
+
+  return {
+    update(dt) {
+      for (const cloud of clouds) {
+        cloud.position.x = driftWrapped(
+          cloud.position.x,
+          CLOUD_DRIFT_SPEED * dt,
+          -CLOUD_X_LIMIT,
+          CLOUD_X_LIMIT
+        );
+      }
+    },
+    dispose() {
+      scene.remove(root);
+      root.traverse((child) => {
+        if (child.isMesh) child.geometry.dispose();
+      });
+      cloudMaterial.dispose();
+      islandTopMaterial.dispose();
+      islandKeelMaterial.dispose();
+    },
+  };
+}
