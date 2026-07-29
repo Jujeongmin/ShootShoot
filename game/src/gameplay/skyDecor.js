@@ -8,17 +8,34 @@ import { driftWrapped, flightProgress, createSeededRandom } from './skyMotion.js
 const CLOUD_Z_NEAR = -160;
 const CLOUD_Z_FAR = -300;
 const CLOUD_COUNT = 14;
-const CLOUD_X_LIMIT = 170;
+// 배치 반경과 랩(감아넘기기) 반경을 다르게 둔다. 16:9 화면에서 가장 가까운
+// 구름의 z 기준 보이는 폭의 절반이 ~169 인데 구름 뭉치는 앵커에서 최대
+// ~16 까지 튀어나온다. 배치 한계를 랩 한계로 그대로 쓰면 화면 안에서 구름이
+// 갑자기 사라지는 게 보이고, 21:9 처럼 더 넓은 화면에서는 화면 중앙 근처에서
+// 그 일이 벌어진다. 배치는 좁게(160), 랩은 넓게(230) 두어 랩이 항상
+// 프러스텀 밖에서 일어나게 한다.
+const CLOUD_X_PLACEMENT_LIMIT = 160;
+const CLOUD_X_WRAP_LIMIT = 230;
 const CLOUD_Y_MIN = -25;
 const CLOUD_Y_MAX = 35;
 const CLOUD_DRIFT_SPEED = 0.6;
 const CLOUD_PUFF_MIN = 4;
 const CLOUD_PUFF_MAX = 6;
 
-// fog 가 320에서 끝나므로 이보다 멀면 하늘색에 잠겨 실루엣만 남는다.
+// scene.fog 의 색이 scene.background 와 똑같은 0x87ceeb 이다. 즉 fog 는
+// '안개를 낀 것처럼' 보이게 하는 장치가 아니라 거리에 따라 배경색과 섞는
+// 장치이고, far(320) 를 넘어서면 100% 배경색이 되어 통째로 사라진다.
+// 실루엣으로 남으려면 fog 그라디언트(80~320) 안에서 '부분적으로만' 섞여야
+// 한다. 이전에는 250~400 을 썼는데 이 시드에서는 다섯 곳 중 네 곳이
+// far 를 넘어가 순수 하늘색으로만 그려지고 드로우콜만 낭비했다. 230~300 으로
+// 당겨 항상 그라디언트 안에 들게 한다.
 const DISTANT_ISLAND_COUNT = 5;
-const DISTANT_ISLAND_Z_NEAR = -250;
-const DISTANT_ISLAND_Z_FAR = -400;
+const DISTANT_ISLAND_Z_NEAR = -230;
+const DISTANT_ISLAND_Z_FAR = -300;
+const DISTANT_ISLAND_X_LIMIT = 220;
+const DISTANT_ISLAND_Y_MIN = -30;
+const DISTANT_ISLAND_Y_MAX = 10;
+const DISTANT_ISLAND_ROTATION_LIMIT = 0.6;
 
 const BIRD_COUNT = 5;
 const BIRD_FLIGHT_SECONDS = 24;
@@ -26,6 +43,15 @@ const BIRD_X_SPAN = 180;
 const BIRD_Z = -150;
 const BIRD_Y_MIN = 22;
 const BIRD_Y_MAX = 38;
+// 대형 안에서 새 한 마리가 이웃보다 얼마나 뒤로, 얼마나 처지는지를 정한다.
+// 뒤로 물러나는 거리(화면 가로/깊이 방향)와 처지는 높이(화면 세로 방향)를
+// 같은 상수로 겸용하면 안 된다 — 150 유닛 밖에서는 깊이 차이가 화면에
+// 거의 안 보이지만 세로 차이는 잘 보인다.
+const BIRD_TRAIL_SPACING = 2.5;
+const BIRD_V_SPREAD = 1.6;
+// 새마다 살짝 다른 높이를 줘야 대형이 판박이처럼 안 보이되, 대형 간격보다
+// 훨씬 작아야 V 모양 자체가 흐트러지지 않는다.
+const BIRD_Y_JITTER = 0.3;
 const BIRD_WING_SPAN = 1.2;
 const BIRD_WING_CHORD = 0.6;
 const BIRD_FLAP_HZ = 3;
@@ -39,14 +65,17 @@ function randomBetween(random, min, max) {
 }
 
 // 구 몇 개를 겹쳐 한 덩이로 만든다. 가로로 늘어놓고 서로 반쯤 파묻어야
-// 낱개 구로 안 보인다.
-function buildCloud(random, material) {
+// 낱개 구로 안 보인다. 지오메트리는 단위 구 하나를 공유하고 반지름은
+// 메시 스케일로 표현한다 — 퍼프마다 지오메트리를 새로 만들면 겹치는
+// 이 함수 호출 수만큼(구름 14개 x 퍼프 4~6개) GPU 리소스가 낭비된다.
+function buildCloud(random, material, puffGeometry) {
   const cloud = new THREE.Group();
   const puffCount = Math.round(randomBetween(random, CLOUD_PUFF_MIN, CLOUD_PUFF_MAX));
   const scale = randomBetween(random, 6, 14);
   for (let i = 0; i < puffCount; i += 1) {
     const radius = scale * randomBetween(random, 0.5, 1);
-    const puff = new THREE.Mesh(new THREE.SphereGeometry(radius, 7, 5), material);
+    const puff = new THREE.Mesh(puffGeometry, material);
+    puff.scale.setScalar(radius);
     puff.position.set(
       (i - (puffCount - 1) / 2) * scale * 0.7,
       randomBetween(random, -0.2, 0.2) * scale,
@@ -78,7 +107,8 @@ function buildDistantIsland(random, topMaterial, keelMaterial) {
 }
 
 // 삼각형 한 장이 날개 하나다. 뿌리를 원점에 두어야 rotation.z 로 접었다 펼 수
-// 있으므로 정점을 그렇게 잡는다.
+// 있으므로 정점을 그렇게 잡는다. 좌우 두 모양뿐이므로 새마다 다시 만들지
+// 않고 새 5마리가 지오메트리 2개를 공유한다.
 function buildWingGeometry(mirrored) {
   const tipX = mirrored ? -BIRD_WING_SPAN : BIRD_WING_SPAN;
   const geometry = new THREE.BufferGeometry();
@@ -92,10 +122,10 @@ function buildWingGeometry(mirrored) {
   return geometry;
 }
 
-function buildBird(material) {
+function buildBird(material, wingGeometryLeft, wingGeometryRight) {
   const group = new THREE.Group();
-  const left = new THREE.Mesh(buildWingGeometry(false), material);
-  const right = new THREE.Mesh(buildWingGeometry(true), material);
+  const left = new THREE.Mesh(wingGeometryLeft, material);
+  const right = new THREE.Mesh(wingGeometryRight, material);
   group.add(left);
   group.add(right);
   return { group, left, right };
@@ -110,11 +140,18 @@ export function createSkyDecor(scene) {
   const islandTopMaterial = new THREE.MeshLambertMaterial({ color: 0x6b4f3a });
   const islandKeelMaterial = new THREE.MeshLambertMaterial({ color: 0x5a4230 });
 
+  // 퍼프와 날개는 모양이 하나뿐이라(퍼프는 스케일로, 날개는 좌/우 두 종류로
+  // 크기·형태를 표현) 지오메트리를 공유한다. dispose() 에서도 각각 한 번씩만
+  // 해제해야 한다.
+  const puffGeometry = new THREE.SphereGeometry(1, 7, 5);
+  const wingGeometryLeft = buildWingGeometry(false);
+  const wingGeometryRight = buildWingGeometry(true);
+
   const clouds = [];
   for (let i = 0; i < CLOUD_COUNT; i += 1) {
-    const cloud = buildCloud(random, cloudMaterial);
+    const cloud = buildCloud(random, cloudMaterial, puffGeometry);
     cloud.position.set(
-      randomBetween(random, -CLOUD_X_LIMIT, CLOUD_X_LIMIT),
+      randomBetween(random, -CLOUD_X_PLACEMENT_LIMIT, CLOUD_X_PLACEMENT_LIMIT),
       randomBetween(random, CLOUD_Y_MIN, CLOUD_Y_MAX),
       randomBetween(random, CLOUD_Z_FAR, CLOUD_Z_NEAR)
     );
@@ -125,11 +162,11 @@ export function createSkyDecor(scene) {
   for (let i = 0; i < DISTANT_ISLAND_COUNT; i += 1) {
     const island = buildDistantIsland(random, islandTopMaterial, islandKeelMaterial);
     island.position.set(
-      randomBetween(random, -220, 220),
-      randomBetween(random, -30, 10),
+      randomBetween(random, -DISTANT_ISLAND_X_LIMIT, DISTANT_ISLAND_X_LIMIT),
+      randomBetween(random, DISTANT_ISLAND_Y_MIN, DISTANT_ISLAND_Y_MAX),
       randomBetween(random, DISTANT_ISLAND_Z_FAR, DISTANT_ISLAND_Z_NEAR)
     );
-    island.rotation.y = randomBetween(random, -0.6, 0.6);
+    island.rotation.y = randomBetween(random, -DISTANT_ISLAND_ROTATION_LIMIT, DISTANT_ISLAND_ROTATION_LIMIT);
     root.add(island);
   }
 
@@ -140,18 +177,25 @@ export function createSkyDecor(scene) {
     side: THREE.DoubleSide,
   });
 
+  // 대형 전체가 고도 하나를 공유해야 V 자로 보인다. 새마다 따로 고도를
+  // 뽑으면(이전 버그) 화면 세로축 산포가 대형 간격(BIRD_V_SPREAD)보다
+  // 훨씬 커져서 무작위로 흩어진 다섯 마리로 보인다.
+  const flockAltitude = randomBetween(random, BIRD_Y_MIN, BIRD_Y_MAX);
+
   const birds = [];
   for (let i = 0; i < BIRD_COUNT; i += 1) {
-    const bird = buildBird(birdMaterial);
-    // 가운데를 0 으로 두고 양옆으로 벌어진다. 뒤로 물러난 거리를 좌우 거리에
-    // 비례시키면 V 대형이 된다.
+    const bird = buildBird(birdMaterial, wingGeometryLeft, wingGeometryRight);
+    // 가운데를 0 으로 두고 양옆으로 벌어진다. 화면 세로축(y)은 lateral 에
+    // 비례해 처지게 하고, 화면 가로/깊이축(x)은 뒤로 물러나게 해야 V 대형이
+    // 눈에 보인다 — 이 거리에서 z 축 오프셋만으로는 화면상 폭 차이가
+    // 거의 나지 않는다.
     const lateral = i - (BIRD_COUNT - 1) / 2;
-    bird.offsetX = -Math.abs(lateral) * 2.5;
-    bird.offsetY = randomBetween(random, BIRD_Y_MIN, BIRD_Y_MAX);
-    bird.offsetZ = lateral * 2.5;
+    const jitter = randomBetween(random, -BIRD_Y_JITTER, BIRD_Y_JITTER);
+    bird.offsetX = -Math.abs(lateral) * BIRD_TRAIL_SPACING;
+    bird.offsetY = flockAltitude - Math.abs(lateral) * BIRD_V_SPREAD + jitter;
     // 날갯짓을 조금씩 어긋나게 해야 한 몸처럼 안 보인다.
     bird.flapPhase = randomBetween(random, 0, Math.PI * 2);
-    bird.group.position.set(0, bird.offsetY, BIRD_Z + bird.offsetZ);
+    bird.group.position.set(0, bird.offsetY, BIRD_Z);
     root.add(bird.group);
     birds.push(bird);
   }
@@ -165,8 +209,8 @@ export function createSkyDecor(scene) {
         cloud.position.x = driftWrapped(
           cloud.position.x,
           CLOUD_DRIFT_SPEED * dt,
-          -CLOUD_X_LIMIT,
-          CLOUD_X_LIMIT
+          -CLOUD_X_WRAP_LIMIT,
+          CLOUD_X_WRAP_LIMIT
         );
       }
 
@@ -182,9 +226,21 @@ export function createSkyDecor(scene) {
     },
     dispose() {
       scene.remove(root);
+      // 퍼프/날개 지오메트리는 여러 메시가 공유하므로 traverse 도중 반복
+      // 해제하지 않도록 걸러내고, 아래에서 한 번씩만 해제한다.
       root.traverse((child) => {
-        if (child.isMesh) child.geometry.dispose();
+        if (
+          child.isMesh &&
+          child.geometry !== puffGeometry &&
+          child.geometry !== wingGeometryLeft &&
+          child.geometry !== wingGeometryRight
+        ) {
+          child.geometry.dispose();
+        }
       });
+      puffGeometry.dispose();
+      wingGeometryLeft.dispose();
+      wingGeometryRight.dispose();
       cloudMaterial.dispose();
       islandTopMaterial.dispose();
       islandKeelMaterial.dispose();
