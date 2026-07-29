@@ -1,6 +1,7 @@
 export function createInputController(domElement) {
   const ndc = { x: 0, y: 0 };
   let aiming = false;
+  let enabled = true;
   const downListeners = [];
   const upListeners = [];
 
@@ -11,6 +12,7 @@ export function createInputController(domElement) {
   }
 
   function onMouseDown(event) {
+    if (!enabled) return;
     if (event.button !== 0) return;
     aiming = true;
     for (const cb of downListeners) cb();
@@ -30,6 +32,9 @@ export function createInputController(domElement) {
   return {
     getNdc: () => ({ ...ndc }),
     isAiming: () => aiming,
+    setEnabled(value) {
+      enabled = value;
+    },
     onAimDown(cb) {
       downListeners.push(cb);
     },
