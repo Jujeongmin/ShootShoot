@@ -9,6 +9,7 @@ import { createReloadState } from './reloadState.js';
 import { createSkyDecor } from './skyDecor.js';
 import { createTutorialState } from './tutorialState.js';
 import { createTutorialStore } from './tutorialStore.js';
+import { createProgressStore } from './progressStore.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
@@ -67,6 +68,7 @@ export function createGame(container) {
   const upgradeStore = createUpgradeStore(window.localStorage, CONFIG.upgradeStorageKey);
   const bazookaStore = createBazookaStore(window.localStorage, CONFIG.bazookaStorageKey);
   const tutorialStore = createTutorialStore(window.localStorage, CONFIG.tutorialStorageKey);
+  const progressStore = createProgressStore(window.localStorage, CONFIG.progressStorageKey);
   const tutorial = createTutorialState();
   // tutorial 은 페이지 로드마다 한 번 생성되고 항상 'aim' 에서 시작한다.
   // 저장소가 이미 봤다고 기록해뒀다면, 여기서 바로 끝내두지 않으면 이전
@@ -117,14 +119,16 @@ export function createGame(container) {
     targetManager.spawnRound(roundNumber);
   }
 
-  function startGame() {
+  // 시작 라운드는 부르는 쪽이 정한다 — 이어하기는 도달 라운드를, 라운드 선택은
+  // 고른 라운드를, 새 게임은 1을 넘긴다.
+  function startGame(round) {
     projectiles.clear();
     scoreState = createScoreState();
     settledScore = 0;
     reload.reset();
     if (!tutorialStore.isDone()) tutorial.reset();
     phase = 'playing';
-    beginRound(1);
+    beginRound(round);
     screens.hide();
     updateHud();
   }
@@ -305,7 +309,9 @@ export function createGame(container) {
   }
 
   const menuHandlers = {
-    onStart: startGame,
+    // button() 이 핸들러에 MouseEvent 를 넘긴다. 감싸지 않으면 그게 라운드 번호
+    // 자리로 들어간다.
+    onStart: () => startGame(progressStore.getReachedRound()),
     onSettings: openSettingsFromMenu,
     onShop: openShopFromMenu,
     onLevelUpDamage: levelUpDamage,
@@ -672,6 +678,9 @@ export function createGame(container) {
         if (targetManager.allCleared() && !projectiles.hasPending()) {
           tutorial.handle('roundCleared');
           if (tutorial.isDone()) tutorialStore.markDone();
+          // 골드 정산과 같은 순간에 진행도를 남긴다. 브라우저를 그냥 닫아도
+          // 깬 라운드는 남는다.
+          progressStore.submitCleared(round);
           // 이 라운드에서 번 만큼만 지급한다. 도중에 나가면 정산을 안 하므로
           // 그 라운드 점수는 그대로 버려진다.
           currencyStore.earn(settlementGold(scoreState.score - settledScore, CONFIG.scorePerGold));
