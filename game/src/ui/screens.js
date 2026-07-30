@@ -133,6 +133,9 @@ export function createScreens(container) {
     overlay.appendChild(topBar(gold, handlers));
 
     const centre = document.createElement('div');
+    // 카드와 달리 패널 틀이 없어 글자가 어두운 3D 장면 위에 바로 놓인다. ghost 버튼의
+    // 기본색은 회색 패널을 전제한 --k-ink 라 여기서는 안 보인다. k-on-dark 가 색을 뒤집는다.
+    centre.className = 'k-on-dark';
     centre.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 14px;';
     // 아직 아무것도 못 깬 플레이어에게 '이어하기'는 뜻이 없다. 그때는 예전처럼
     // 큰 버튼 하나만 둔다.
