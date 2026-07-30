@@ -35,7 +35,7 @@ export function createBazookaProjectiles(scene) {
     // 이번 패스에서는 건드리지 않는다.
     for (let i = active.length - 1; i >= 0; i--) {
       const projectile = active[i];
-      // 착탄 콜백이 endGame() 등을 거쳐 clear()를 호출하면 이 패스 도중 배열이
+      // 착탄 콜백이 exitRun() 등을 거쳐 clear()를 호출하면 이 패스 도중 배열이
       // 비워질 수 있다. 그러면 이후 인덱스는 더 이상 유효하지 않으니 중단한다.
       if (!projectile) break;
       projectile.elapsed += dt;

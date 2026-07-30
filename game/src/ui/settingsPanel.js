@@ -1,4 +1,4 @@
-import { scrim, panel, button, iconButton, title, num } from './kit.js';
+import { scrim, panel, button, iconButton, title, num, TOKENS } from './kit.js';
 
 export function createSettingsPanel(container) {
   const overlay = scrim();
@@ -20,7 +20,7 @@ export function createSettingsPanel(container) {
     box.appendChild(title('설정'));
 
     const label = document.createElement('div');
-    label.style.cssText = 'color: #4a4a5e; font-size: 15px; margin: 10px 0 6px;';
+    label.style.cssText = `color: ${TOKENS.inkSoft}; font-size: 15px; margin: 10px 0 6px;`;
     label.appendChild(document.createTextNode('마우스 민감도 '));
     const value = num(`${sensitivity.toFixed(1)}x`);
     label.appendChild(value);

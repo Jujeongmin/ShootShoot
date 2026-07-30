@@ -1,4 +1,4 @@
-import { scrim, panel, button, iconButton, artButton, badge, divider, title, num, iconUrl } from './kit.js';
+import { scrim, panel, button, iconButton, artButton, badge, divider, title, num, iconUrl, TOKENS } from './kit.js';
 
 const BAZOOKA_MAX_ROUNDS = 5;
 // game/thumb.html 로 뽑는다. 아직 없어도 카드는 뜨고 그림 자리만 비운다.
@@ -33,7 +33,7 @@ export function createScreens(container) {
     logo.textContent = 'SHOOTSHOOT';
     logo.style.cssText = `
       font-family: 'Kenney Future', sans-serif; font-size: 22px; letter-spacing: 2px;
-      color: #ffcc00; text-shadow: 0 2px 0 #b48000;
+      color: ${TOKENS.face}; text-shadow: 0 2px 0 ${TOKENS.deep};
     `;
     bar.appendChild(logo);
 
@@ -139,7 +139,7 @@ export function createScreens(container) {
     centre.appendChild(startBtn);
     const hint = document.createElement('div');
     hint.textContent = '클릭하여 조준, 놓아서 발사!';
-    hint.style.cssText = 'color: #dadce7; font-size: 15px;';
+    hint.style.cssText = `color: ${TOKENS.grey}; font-size: 15px;`;
     centre.appendChild(hint);
     overlay.appendChild(centre);
 
@@ -172,14 +172,14 @@ export function createScreens(container) {
     card.appendChild(title('기록'));
 
     const scoreEl = document.createElement('div');
-    scoreEl.style.cssText = 'font-size: 46px; color: #1a1a2e; margin: 6px 0 2px;';
+    scoreEl.style.cssText = `font-size: 46px; color: ${TOKENS.ink}; margin: 6px 0 2px;`;
     scoreEl.appendChild(num(score.toLocaleString()));
     card.appendChild(scoreEl);
 
     card.appendChild(divider());
 
     const highRow = document.createElement('div');
-    highRow.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 8px; color: #4a4a5e; font-size: 16px;';
+    highRow.style.cssText = `display: flex; align-items: center; justify-content: center; gap: 8px; color: ${TOKENS.inkSoft}; font-size: 16px;`;
     if (isNewHighScore) {
       const trophy = document.createElement('img');
       trophy.src = iconUrl('trophy', 'black');
@@ -203,7 +203,7 @@ export function createScreens(container) {
     clear();
     const el = document.createElement('div');
     el.textContent = text;
-    el.style.cssText = 'color: #dadce7; font-size: 18px;';
+    el.style.cssText = `color: ${TOKENS.grey}; font-size: 18px;`;
     overlay.appendChild(el);
     show();
   }

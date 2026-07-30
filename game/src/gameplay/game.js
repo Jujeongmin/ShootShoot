@@ -598,6 +598,8 @@ export function createGame(container) {
       lastKillEffect.update(dt);
       reload.tick(dt);
       input.setEnabled(phase === 'playing' && !settingsOpen && !reload.isReloading());
+      // 안내는 플레이 중에만 띄운다. 설정이 열려 있으면 패널 위로 삐져나오므로 숨긴다.
+      hud.setHintVisible(phase === 'playing' && !settingsOpen);
       const scaledDt = dt * lastKillEffect.getTimeScale();
 
       // 슬로모가 걸리면 하늘도 같이 느려져야 한다. 배경만 제 속도로 흐르면

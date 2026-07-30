@@ -33,6 +33,10 @@ export function createInputController(domElement) {
     getNdc: () => ({ ...ndc }),
     isAiming: () => aiming,
     setEnabled(value) {
+      // 끌 때는 누르고 있던 조준도 함께 버린다. 안 버리면 버튼을 떼는 순간
+      // onMouseUp 이 발사 리스너를 부른다 — 설정을 조준한 채로 열고 떼면 패널이
+      // 열려 있는데 총알이 나가던 버그가 이것이다.
+      if (!value) aiming = false;
       enabled = value;
     },
     onAimDown(cb) {

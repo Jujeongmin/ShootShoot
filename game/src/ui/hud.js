@@ -23,10 +23,34 @@ export function createHud(container) {
   roundValue.textContent = INITIAL_ROUND;
   el.appendChild(roundValue);
 
+  // 나가는 길이 P -> 설정 -> '메뉴로' 하나뿐이라, 첫 판을 하는 사람은 판을 끝낼
+  // 방법을 찾지 못한다. 그래서 안내를 화면에 계속 띄운다.
+  const hint = document.createElement('div');
+  hint.style.cssText = `
+    position: absolute; top: 14px; right: 18px;
+    pointer-events: none; z-index: 21; display: none;
+  `;
+  container.appendChild(hint);
+
+  const hintKey = document.createElement('div');
+  hintKey.className = 'k-hint-key';
+  hintKey.textContent = 'P';
+  hint.appendChild(hintKey);
+
+  const hintText = document.createElement('div');
+  hintText.className = 'k-hint-text';
+  hintText.textContent = '메뉴로 나가기';
+  hint.appendChild(hintText);
+
   // score 와 streak 은 더 이상 표시하지 않는다. game.js 가 계속 보내오지만
   // 화면에 남는 건 라운드뿐이다. 점수는 사격할 때 뜨는 팝업으로만 보인다.
   function render({ round }) {
     roundValue.textContent = String(round);
+  }
+
+  // 매 프레임 불린다. 대입만 하고 아무 일도 하지 않는다.
+  function setHintVisible(visible) {
+    hint.style.display = visible ? 'block' : 'none';
   }
 
   function showScorePopup(text, clientX, clientY) {
@@ -49,7 +73,8 @@ export function createHud(container) {
 
   function dispose() {
     el.remove();
+    hint.remove();
   }
 
-  return { render, showScorePopup, dispose };
+  return { render, setHintVisible, showScorePopup, dispose };
 }

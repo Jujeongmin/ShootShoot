@@ -1,4 +1,4 @@
-import { scrim, panel, button, title, num } from './kit.js';
+import { scrim, panel, button, title, num, TOKENS } from './kit.js';
 
 export function createOfflineRewardPopup(container) {
   const overlay = scrim();
@@ -13,14 +13,14 @@ export function createOfflineRewardPopup(container) {
     box.appendChild(title('오프라인 보상'));
 
     const amount = document.createElement('div');
-    amount.style.cssText = 'font-size: 40px; color: #1a1a2e; margin: 8px 0 4px;';
+    amount.style.cssText = `font-size: 40px; color: ${TOKENS.ink}; margin: 8px 0 4px;`;
     amount.appendChild(document.createTextNode('🪙 '));
     amount.appendChild(num(goldAmount.toLocaleString()));
     box.appendChild(amount);
 
     const message = document.createElement('div');
     message.textContent = '자리를 비운 사이 모은 골드입니다!';
-    message.style.cssText = 'color: #4a4a5e; font-size: 14px;';
+    message.style.cssText = `color: ${TOKENS.inkSoft}; font-size: 14px;`;
     box.appendChild(message);
 
     const claimBtn = button('받기', () => {

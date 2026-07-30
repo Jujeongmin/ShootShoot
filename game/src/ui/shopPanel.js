@@ -1,4 +1,4 @@
-import { scrim, panel, button, iconButton, badge, divider, title } from './kit.js';
+import { scrim, panel, button, iconButton, badge, divider, title, TOKENS } from './kit.js';
 import { weaponButtonState } from './weaponButtonState.js';
 
 const MAX_DAMAGE_PIPS = 5;
@@ -105,14 +105,14 @@ export function createShopPanel(container) {
 
     const name = document.createElement('div');
     name.textContent = weapon.name;
-    name.style.cssText = 'font-size: 19px; font-weight: bold; color: #1a1a2e; margin-top: 10px;';
+    name.style.cssText = `font-size: 19px; font-weight: bold; color: ${TOKENS.ink}; margin-top: 10px;`;
     card.appendChild(name);
     card.appendChild(damagePips(weapon.damage));
     card.appendChild(actionButton(weapon, gold, adGoldAmount, handlers));
 
     if (typeof error === 'string' && error.length > 0) {
       const errorText = document.createElement('div');
-      errorText.style.cssText = 'color: #e4503a; font-size: 12px; margin-top: 8px;';
+      errorText.style.cssText = `color: ${TOKENS.danger}; font-size: 12px; margin-top: 8px;`;
       errorText.textContent = error;
       card.appendChild(errorText);
     }
@@ -132,7 +132,7 @@ export function createShopPanel(container) {
       dot.style.cssText = `
         display: inline-block; height: 8px; border-radius: 4px;
         width: ${i === index ? '20px' : '8px'};
-        background: ${i === index ? '#ffcc00' : '#989aaf'};
+        background: ${i === index ? TOKENS.face : TOKENS.greyShadow};
       `;
       dots.appendChild(dot);
     });
