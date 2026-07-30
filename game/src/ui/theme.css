@@ -366,3 +366,24 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
   margin-top: 2px;
 }
+
+/* 튜토리얼 안내. 화면 하단 중앙에 둔다 — 중앙은 조준선이, 우측 상단은 P 힌트가
+   쓰고 있어서 비켜야 한다. 3D 장면 위에 바로 얹히므로 외곽선 그림자로 띄운다. */
+.k-tutorial {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90%;
+  text-align: center;
+  font-family: var(--k-font);
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--k-white);
+  text-shadow:
+    0 3px 0 var(--k-ink),
+    0 0 6px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  z-index: 21;
+}

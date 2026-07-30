@@ -7,7 +7,9 @@ export function createSettingsPanel(container) {
 
   // onExit 는 플레이 중에 열렸을 때만 넘어온다. 메뉴에서 연 설정에
   // '메뉴로' 가 있으면 말이 안 된다.
-  function show(sensitivity, onChange, onClose, onExit) {
+  // onReplayTutorial 은 메뉴에서도 넘어온다. 조작 설명이라 '메뉴로'와 달리
+  // 어디서 열었든 다시 볼 수 있어야 한다.
+  function show(sensitivity, onChange, onClose, onExit, onReplayTutorial) {
     overlay.innerHTML = '';
 
     const box = panel();
@@ -42,6 +44,9 @@ export function createSettingsPanel(container) {
 
     const actions = document.createElement('div');
     actions.style.cssText = 'display: flex; justify-content: center; gap: 12px; margin-top: 16px;';
+    if (typeof onReplayTutorial === 'function') {
+      actions.appendChild(button('튜토리얼 다시 보기', onReplayTutorial, 'ghost'));
+    }
     if (typeof onExit === 'function') {
       actions.appendChild(button('메뉴로', onExit, 'ghost'));
     }

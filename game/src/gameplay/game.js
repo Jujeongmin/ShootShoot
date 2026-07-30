@@ -7,6 +7,8 @@ import { resolveShot, computeHitDamage, resolveKillOutcome, partitionShotPath } 
 import { createScoreState, applyShot, calculateShotScore, settlementGold, createHighScoreStore } from './scoring.js';
 import { createReloadState } from './reloadState.js';
 import { createSkyDecor } from './skyDecor.js';
+import { createTutorialState } from './tutorialState.js';
+import { createTutorialStore } from './tutorialStore.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
@@ -19,6 +21,7 @@ import { loadWeaponViewmodel } from './weaponViewmodel.js';
 import { loadObstacles } from './obstacles.js';
 import { sfx, resumeAudio } from '../audio/sfx.js';
 import { createHud } from '../ui/hud.js';
+import { createTutorialPrompt } from '../ui/tutorialPrompt.js';
 import { createScreens } from '../ui/screens.js';
 import { createScopeOverlay } from '../ui/scopeOverlay.js';
 import { createStageBanner } from '../ui/stageBanner.js';
@@ -51,6 +54,7 @@ export function createGame(container) {
   const skyDecor = createSkyDecor(engine.scene);
   const effects = createEffects(engine.scene);
   const hud = createHud(container);
+  const tutorialPrompt = createTutorialPrompt(container);
   const screens = createScreens(container);
   const scopeOverlay = createScopeOverlay(container);
   const stageBanner = createStageBanner(container);
@@ -62,6 +66,8 @@ export function createGame(container) {
   const currencyStore = createCurrencyStore(window.localStorage, CONFIG.currencyStorageKey);
   const upgradeStore = createUpgradeStore(window.localStorage, CONFIG.upgradeStorageKey);
   const bazookaStore = createBazookaStore(window.localStorage, CONFIG.bazookaStorageKey);
+  const tutorialStore = createTutorialStore(window.localStorage, CONFIG.tutorialStorageKey);
+  const tutorial = createTutorialState();
   const lastSeenStore = createLastSeenStore(window.localStorage, CONFIG.lastSeenStorageKey);
   const raycaster = new THREE.Raycaster();
   const lastKillEffect = createLastKillEffect();
@@ -75,6 +81,9 @@ export function createGame(container) {
   // 이미 골드로 바꾼 점수. 라운드 정산은 score 와 이 값의 차이만 지급한다.
   let settledScore = 0;
   const reload = createReloadState(CONFIG.reload.seconds);
+  // 장전이 끝나는 프레임을 잡으려면 지난 프레임 값이 필요하다. 튜토리얼의
+  // reloadFinished 가 이 내림 엣지에서 한 번만 나가야 한다.
+  let wasReloading = false;
   let round = 1;
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
@@ -109,6 +118,7 @@ export function createGame(container) {
     scoreState = createScoreState();
     settledScore = 0;
     reload.reset();
+    if (!tutorialStore.isDone()) tutorial.reset();
     phase = 'playing';
     beginRound(1);
     screens.hide();
@@ -151,14 +161,23 @@ export function createGame(container) {
   function openSettingsFromMenu() {
     settingsOrigin = 'menu';
     screens.hide();
-    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings);
+    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings, undefined, replayTutorial);
   }
 
   function openSettingsFromPlay() {
     if (phase !== 'playing' || settingsOpen) return;
     settingsOrigin = 'playing';
     settingsOpen = true;
-    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings, exitRun);
+    settingsPanel.show(sensitivity, handleSensitivityChange, closeSettings, exitRun, replayTutorial);
+  }
+
+  // 기록을 지우고 단계를 처음으로 돌린다. 플레이 중에 눌렀으면 이 판에서 바로
+  // 1단계가 보이고, 메뉴에서 눌렀으면 startGame 이 isDone()을 다시 보므로
+  // 다음 판 시작 때 보인다.
+  function replayTutorial() {
+    tutorialStore.clear();
+    tutorial.reset();
+    closeSettings();
   }
 
   function closeSettings() {
@@ -583,11 +602,13 @@ export function createGame(container) {
 
     reload.start();
     weaponViewmodel.triggerReload(CONFIG.reload.seconds);
+    tutorial.handle('shotFired');
   }
 
   input.onAimDown(() => {
     aimApplied = false;
     resumeAudio();
+    tutorial.handle('aimStarted');
   });
   input.onAimUp(handleShot);
 
@@ -597,9 +618,15 @@ export function createGame(container) {
     engine.start((dt) => {
       lastKillEffect.update(dt);
       reload.tick(dt);
-      input.setEnabled(phase === 'playing' && !settingsOpen && !reload.isReloading());
+      const reloading = reload.isReloading();
+      input.setEnabled(phase === 'playing' && !settingsOpen && !reloading);
       // 안내는 플레이 중에만 띄운다. 설정이 열려 있으면 패널 위로 삐져나오므로 숨긴다.
       hud.setHintVisible(phase === 'playing' && !settingsOpen);
+      if (wasReloading && !reloading) {
+        tutorial.handle('reloadFinished');
+      }
+      wasReloading = reloading;
+      tutorialPrompt.show(phase === 'playing' && !settingsOpen ? tutorial.current() : 'done');
       const scaledDt = dt * lastKillEffect.getTimeScale();
 
       // 슬로모가 걸리면 하늘도 같이 느려져야 한다. 배경만 제 속도로 흐르면
@@ -639,6 +666,8 @@ export function createGame(container) {
       if (phase === 'playing' && !settingsOpen) {
         updateHud();
         if (targetManager.allCleared() && !projectiles.hasPending()) {
+          tutorial.handle('roundCleared');
+          if (tutorial.isDone()) tutorialStore.markDone();
           // 이 라운드에서 번 만큼만 지급한다. 도중에 나가면 정산을 안 하므로
           // 그 라운드 점수는 그대로 버려진다.
           currencyStore.earn(settlementGold(scoreState.score - settledScore, CONFIG.scorePerGold));
