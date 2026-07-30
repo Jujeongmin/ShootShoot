@@ -29,6 +29,7 @@ import { createScopeOverlay } from '../ui/scopeOverlay.js';
 import { createStageBanner } from '../ui/stageBanner.js';
 import { createSettingsPanel } from '../ui/settingsPanel.js';
 import { createConfirmPopup } from '../ui/confirmPopup.js';
+import { createRoundSelect } from '../ui/roundSelect.js';
 import { createShopPanel } from '../ui/shopPanel.js';
 import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { createLastKillEffect } from './lastKillEffect.js';
@@ -63,6 +64,7 @@ export function createGame(container) {
   const stageBanner = createStageBanner(container);
   const settingsPanel = createSettingsPanel(container);
   const confirmPopup = createConfirmPopup(container);
+  const roundSelect = createRoundSelect(container);
   const shopPanel = createShopPanel(container);
   const offlineRewardPopup = createOfflineRewardPopup(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
@@ -166,6 +168,21 @@ export function createGame(container) {
       wipeAndRestart,
       cancelNewGame
     );
+  }
+
+  function openRoundSelect() {
+    screens.hide();
+    roundSelect.show(progressStore.getReachedRound(), pickRound, closeRoundSelect);
+  }
+
+  function pickRound(round) {
+    roundSelect.hide();
+    startGame(round);
+  }
+
+  function closeRoundSelect() {
+    roundSelect.hide();
+    refreshMenu();
   }
 
   // 판이 끝나는 유일한 길이다. 골드는 라운드 정산에서 이미 줬으므로 여기서는
@@ -345,6 +362,7 @@ export function createGame(container) {
     onStart: () => startGame(progressStore.getReachedRound()),
     onContinue: () => startGame(progressStore.getReachedRound()),
     onNewGame: askNewGame,
+    onRoundSelect: openRoundSelect,
     onSettings: openSettingsFromMenu,
     onShop: openShopFromMenu,
     onLevelUpDamage: levelUpDamage,

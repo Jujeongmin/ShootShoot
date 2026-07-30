@@ -140,6 +140,9 @@ export function createScreens(container) {
       const continueBtn = button(`이어하기 (라운드 ${reachedRound})`, handlers.onContinue, 'primary');
       continueBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px;';
       centre.appendChild(continueBtn);
+      const selectBtn = button('라운드 선택', handlers.onRoundSelect, 'ghost');
+      selectBtn.style.cssText += 'width: 320px;';
+      centre.appendChild(selectBtn);
       const newGameBtn = button('처음부터', handlers.onNewGame, 'ghost');
       newGameBtn.style.cssText += 'width: 320px;';
       centre.appendChild(newGameBtn);
