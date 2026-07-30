@@ -68,6 +68,10 @@ export function createGame(container) {
   const bazookaStore = createBazookaStore(window.localStorage, CONFIG.bazookaStorageKey);
   const tutorialStore = createTutorialStore(window.localStorage, CONFIG.tutorialStorageKey);
   const tutorial = createTutorialState();
+  // tutorial 은 페이지 로드마다 한 번 생성되고 항상 'aim' 에서 시작한다.
+  // 저장소가 이미 봤다고 기록해뒀다면, 여기서 바로 끝내두지 않으면 이전
+  // 세션에서 튜토리얼을 마친 플레이어가 재접속했을 때 처음부터 다시 보게 된다.
+  if (tutorialStore.isDone()) tutorial.finish();
   const lastSeenStore = createLastSeenStore(window.localStorage, CONFIG.lastSeenStorageKey);
   const raycaster = new THREE.Raycaster();
   const lastKillEffect = createLastKillEffect();

@@ -32,5 +32,12 @@ export function createTutorialState() {
     reset() {
       step = FIRST_STEP;
     },
+    // 이미 튜토리얼을 본 플레이어라고 저장소(store)가 말해줄 때 쓴다. 그 경우
+    // aim → fire → reload → clear 네 개의 가짜 이벤트를 순서대로 호출해 done
+    // 까지 흉내 내는 건 실제로 일어나지 않은 일을 일어났다고 거짓말하는
+    // 셈이다. 그래서 이벤트를 재생하지 않고 곧장 done 으로 건너뛴다.
+    finish() {
+      step = DONE_STEP;
+    },
   };
 }

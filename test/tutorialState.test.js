@@ -71,4 +71,29 @@ describe('createTutorialState', () => {
     tutorial.handle('somethingElse');
     expect(tutorial.current()).toBe('aim');
   });
+
+  it('finish() jumps a fresh machine straight to done', () => {
+    const tutorial = createTutorialState();
+    tutorial.finish();
+    expect(tutorial.current()).toBe('done');
+    expect(tutorial.isDone()).toBe(true);
+  });
+
+  it('finish() from a mid-way step also lands on done', () => {
+    const tutorial = createTutorialState();
+    tutorial.handle('aimStarted');
+    tutorial.handle('shotFired');
+    expect(tutorial.current()).toBe('reload');
+    tutorial.finish();
+    expect(tutorial.current()).toBe('done');
+    expect(tutorial.isDone()).toBe(true);
+  });
+
+  it('reset() after finish() returns to the first step', () => {
+    const tutorial = createTutorialState();
+    tutorial.finish();
+    tutorial.reset();
+    expect(tutorial.current()).toBe('aim');
+    expect(tutorial.isDone()).toBe(false);
+  });
 });
