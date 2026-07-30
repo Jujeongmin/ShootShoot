@@ -1,10 +1,14 @@
 // 붕괴 조각 하나의 운동만 다룬다. three.js 를 쓰지 않고 { x, y, z } 만 주고받으므로
 // 프레임 루프 밖에서 테스트된다.
 
+// 중력가속도. 실측값이 아니라 낙하가 너무 굼뜨지도 빠르지도 않게 눈대중으로 고른 값이다.
 const GRAVITY = 26;
 // 바닥에 부딪히고 남는 속도 비율. 나무 궤짝이라 잘 안 튄다.
 const RESTITUTION = 0.35;
+// 바닥에 튈 때 수평 속도 중 남기는 비율. 마찰로 깎이는 정도이며 실측이 아니라
+// 눈대중으로 고른 값이다.
 const GROUND_FRICTION = 0.5;
+// 바닥에 튈 때 회전 속도 중 남기는 비율. 실측이 아니라 눈대중으로 고른 값이다.
 const SPIN_DAMPING = 0.5;
 // 이보다 느리게 바닥에 닿으면 더 튀지 않고 멈춘다. 없으면 영원히 잘게 떤다.
 const REST_SPEED = 1.2;
@@ -12,6 +16,10 @@ const REST_SPEED = 1.2;
 const MIN_IMPACT_DISTANCE = 0.5;
 // 위로 띄우는 비율. 없으면 조각이 전부 바닥을 미끄러지기만 한다.
 const IMPACT_LIFT = 0.45;
+// 회전 속도를 얼마나 세게 줄지. 실측이 아니라 눈대중으로 고른 값이며, 예를 들어 한 단
+// 위에서 맞은 상자(dy ≈ 0.6, speed ≈ 10)는 약 14 rad/s로 돌아 착지 전까지 두 바퀴 넘게
+// 구른다 — 착지 순간 자세 보정(obstacles.js의 advanceCollapse)이 얼마나 큰 자세
+// 어긋남까지 감당해야 하는지가 이 값에 달려 있다.
 const SPIN_GAIN = 2.4;
 
 export function createDebrisBody({ position, rotation, velocity, spin, restY }) {

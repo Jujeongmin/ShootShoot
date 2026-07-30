@@ -79,6 +79,8 @@ function makePiece(object) {
     centerOffsetY: box.getCenter(new THREE.Vector3()).y - worldPosition.y,
     body: null,
     restedFor: 0,
+    // 착지 자세 보정(advanceCollapse)을 딱 한 번만 하기 위한 플래그.
+    settled: false,
   };
 }
 
@@ -218,6 +220,7 @@ export function loadObstacles(scene) {
             restY: GROUND_Y + piece.restOffset,
           });
           piece.restedFor = 0;
+          piece.settled = false;
         }
       }
 
@@ -227,13 +230,35 @@ export function loadObstacles(scene) {
         let allGone = true;
         for (const piece of structure.pieces) {
           if (!piece.body) continue;
+          const wasResting = piece.body.isResting();
           piece.body.step(dt);
-          const position = piece.body.getPosition();
-          const rotation = piece.body.getRotation();
-          piece.object.position.set(position.x, position.y, position.z);
-          piece.object.rotation.set(rotation.x, rotation.y, rotation.z);
+          const isResting = piece.body.isResting();
 
-          if (!piece.body.isResting()) {
+          // 몸체가 멈춘 뒤에는 getPosition/getRotation이 착지 순간 값에 얼어붙는다.
+          // 여기서 계속 덮어쓰면 아래 착지 보정으로 옮겨 둔 y가 다음 프레임에 바로
+          // 원래 restY로 되돌아가 버리므로, 보정이 끝난(piece.settled) 조각은 더 이상
+          // 몸체 값을 오브젝트에 복사하지 않는다 — 몸체가 멈췄으니 안 덮어써도 된다.
+          if (!piece.settled) {
+            const position = piece.body.getPosition();
+            const rotation = piece.body.getRotation();
+            piece.object.position.set(position.x, position.y, position.z);
+            piece.object.rotation.set(rotation.x, rotation.y, rotation.z);
+          }
+
+          if (isResting && !wasResting && !piece.settled) {
+            // restY는 붕괴 시작 시점의 "눕지 않은" 자세를 기준으로 잰 값이라, 구르다가
+            // 옆으로 눕거나 기울어진 채로 멈추면 실제 밑면과 어긋난다(상자는 세운
+            // 상태 0.96 높이와 누운 상태 0.21 두께가 크게 다르다). 몸체가 멈춘 이
+            // 프레임에 한해, 지금 자세 그대로의 실제 월드 바운딩 박스로 다시 한 번
+            // 보정한다. 몸체는 멈춘 뒤로 다시는 위치를 바꾸지 않으므로(위 if에서 더는
+            // 복사하지 않으므로) 몸체 내부 y와 오브젝트 y가 이 순간부터 어긋나도
+            // 이후 프레임에 영향이 없다.
+            const box = new THREE.Box3().setFromObject(piece.object);
+            piece.object.position.y += GROUND_Y - box.min.y;
+            piece.settled = true;
+          }
+
+          if (!isResting) {
             allGone = false;
             continue;
           }
@@ -274,6 +299,7 @@ export function loadObstacles(scene) {
         for (const piece of structure.pieces) {
           piece.body = null;
           piece.restedFor = 0;
+          piece.settled = false;
           // 조각이 scene 밑으로 나가 있다. 원래 부모로 돌려놓고 저장해 둔 로컬
           // 변환을 그대로 씌운다 — attach 가 월드를 보존하려 들기 때문에 덮어야 한다.
           piece.homeParent.attach(piece.object);
