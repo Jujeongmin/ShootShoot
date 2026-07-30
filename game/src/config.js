@@ -89,4 +89,5 @@ export const CONFIG = {
   upgradeStorageKey: 'shootshoot.upgrades',
   bazookaStorageKey: 'shootshoot.bazooka',
   tutorialStorageKey: 'shootshoot.tutorial',
+  progressStorageKey: 'shootshoot.progress',
 };
