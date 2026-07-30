@@ -25,12 +25,15 @@ const FLOOR_ROTATION_X = -Math.PI / 2;
 const FLOOR_THICKNESS = 0.2943;
 // 조각을 밀어내는 세기. 거리로 나눠 쓰므로 가까운 조각이 이 값에 가깝게 튄다.
 const DEBRIS_IMPACT_STRENGTH = 26;
-// 자루벽 모델은 메시가 하나라 조각으로 쪼갤 수 없다. 타워와 같은 세기로 밀면 벽이
-// 통째로 붕 떠서 날아가 어색하므로, 참호만 거의 밀지 않고 제자리에서 주저앉힌다.
-// 조금이라도 세기를 남기는 이유는 명중 방향으로 살짝 기울어야 어디를 맞았는지가
-// 보이기 때문이다.
+// 조각이 멀리 날아가면 부서진 게 아니라 튕겨 나간 것처럼 보인다. 미는 세기는
+// 명중 방향으로 기울 만큼만 남기고 나머지는 중력에 맡겨 제자리에서 무너뜨린다.
+// 상자가 참호보다 조금 센 이유: 조각이 다섯이라 아예 안 밀면 같은 자리에 겹쳐
+// 쌓여 한 덩이로 뭉개진다 (조각끼리 충돌을 안 하므로).
+const TOWER_IMPACT_SCALE = 0.25;
 const TRENCH_IMPACT_SCALE = 0.12;
-// 참호가 바닥보다 이만큼 아래로 가라앉는다. 부대어진 모래자루 밭처럼 보이게 한다.
+// 멈출 때 바닥보다 이만큼 아래로 가라앉는다. 지면에 얹힌 게 아니라 파묻힌 잔해로
+// 보인다. 참호가 더 깊은 건 자루벽이 메시 하나라 형태를 그만큼 더 지워야 하기 때문.
+const TOWER_SINK_DEPTH = 0.3;
 const TRENCH_SINK_DEPTH = 0.45;
 // 멈춘 조각을 얼마나 두었다가 지울지. 부순 흔적이 잠깐 남아야 타격감이 산다.
 const DEBRIS_HOLD_SECONDS = 1.5;
@@ -189,8 +192,8 @@ export function loadObstacles(scene) {
           pillarMeshes,
           // 상자 4개와 발판 1개. 모델이 전부 메시 하나라 이 이상 못 쪼갠다.
           pieces: [...crateInstances, floor].map(makePiece),
-          impactScale: 1,
-          sinkDepth: 0,
+          impactScale: TOWER_IMPACT_SCALE,
+          sinkDepth: TOWER_SINK_DEPTH,
           center: new THREE.Vector3(placement.x, 0 + TOWER_CENTER_LOCAL_Y, placement.z),
           collapsing: false,
           collapsed: false,
