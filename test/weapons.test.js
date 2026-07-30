@@ -49,4 +49,14 @@ describe('CONFIG.weapons', () => {
     expect(CONFIG.weapons[0].id).toBe('basic');
     expect(CONFIG.weapons[0].price).toBe(0);
   });
+
+  it('fills the four-star slot with 중화기', () => {
+    const heavy = CONFIG.weapons.find((weapon) => weapon.id === 'heavy');
+    expect(heavy).toBeDefined();
+    expect(heavy.name).toBe('중화기');
+    expect(heavy.damage).toBe(4);
+    expect(heavy.price).toBe(4000);
+    expect(heavy.model).toBe('/models/Rifle.fbx');
+    expect(heavy.format).toBe('fbx');
+  });
 });

@@ -75,6 +75,15 @@ export const CONFIG = {
       damage: 3, price: 2000, image: '/images/weapons/sniper.png',
       scale: 0.00061, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
     },
+    // scale 은 띄워 보고 맞춘 값이 아니다. FBX 무기들의 배율이 모델 길이 때문에
+    // 제각각이라(0.00061 ~ 0.00211) 길이가 비슷한 전기총 값에서 시작한다.
+    // 상점 그림 heavy.png 는 아직 없다. artwork() 가 깨진 이미지를 숨기므로
+    // 그림 자리만 비고 상점은 정상으로 뜬다.
+    {
+      id: 'heavy', name: '중화기', model: '/models/Rifle.fbx', format: 'fbx',
+      damage: 4, price: 4000, image: '/images/weapons/heavy.png',
+      scale: 0.00148, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
+    },
     {
       id: 'raygun', name: '레이건', model: '/models/Ray Gun.fbx', format: 'fbx',
       damage: 5, price: 6000, image: '/images/weapons/raygun.png',
