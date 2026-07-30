@@ -88,4 +88,5 @@ export const CONFIG = {
   weaponStorageKey: 'shootshoot.weapons',
   upgradeStorageKey: 'shootshoot.upgrades',
   bazookaStorageKey: 'shootshoot.bazooka',
+  tutorialStorageKey: 'shootshoot.tutorial',
 };
