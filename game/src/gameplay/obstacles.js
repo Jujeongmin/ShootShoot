@@ -25,6 +25,13 @@ const FLOOR_ROTATION_X = -Math.PI / 2;
 const FLOOR_THICKNESS = 0.2943;
 // 조각을 밀어내는 세기. 거리로 나눠 쓰므로 가까운 조각이 이 값에 가깝게 튄다.
 const DEBRIS_IMPACT_STRENGTH = 26;
+// 자루벽 모델은 메시가 하나라 조각으로 쪼갤 수 없다. 타워와 같은 세기로 밀면 벽이
+// 통째로 붕 떠서 날아가 어색하므로, 참호만 거의 밀지 않고 제자리에서 주저앉힌다.
+// 조금이라도 세기를 남기는 이유는 명중 방향으로 살짝 기울어야 어디를 맞았는지가
+// 보이기 때문이다.
+const TRENCH_IMPACT_SCALE = 0.12;
+// 참호가 바닥보다 이만큼 아래로 가라앉는다. 부대어진 모래자루 밭처럼 보이게 한다.
+const TRENCH_SINK_DEPTH = 0.45;
 // 멈춘 조각을 얼마나 두었다가 지울지. 부순 흔적이 잠깐 남아야 타격감이 산다.
 const DEBRIS_HOLD_SECONDS = 1.5;
 const DEBRIS_FADE_SECONDS = 0.5;
@@ -117,8 +124,10 @@ export function loadObstacles(scene) {
           index: trenchIndex,
           group,
           meshes,
-          // 자루벽 모델은 메시가 하나라 조각도 하나다. 한 덩이로 굴러간다.
+          // 자루벽 모델은 메시가 하나라 조각도 하나다. 날려 보내지 않고 주저앉힌다.
           pieces: [makePiece(instance)],
+          impactScale: TRENCH_IMPACT_SCALE,
+          sinkDepth: TRENCH_SINK_DEPTH,
           collapsing: false,
           collapsed: false,
           center: new THREE.Vector3(placement.x, GROUND_Y + TRENCH_CENTER_LOCAL_Y, placement.z),
@@ -180,6 +189,8 @@ export function loadObstacles(scene) {
           pillarMeshes,
           // 상자 4개와 발판 1개. 모델이 전부 메시 하나라 이 이상 못 쪼갠다.
           pieces: [...crateInstances, floor].map(makePiece),
+          impactScale: 1,
+          sinkDepth: 0,
           center: new THREE.Vector3(placement.x, 0 + TOWER_CENTER_LOCAL_Y, placement.z),
           collapsing: false,
           collapsed: false,
@@ -211,13 +222,17 @@ export function loadObstacles(scene) {
             y: object.position.y + piece.centerOffsetY,
             z: object.position.z,
           };
-          const { velocity, spin } = impactImpulse(center, impact, DEBRIS_IMPACT_STRENGTH);
+          const { velocity, spin } = impactImpulse(
+            center,
+            impact,
+            DEBRIS_IMPACT_STRENGTH * structure.impactScale
+          );
           piece.body = createDebrisBody({
             position: { x: object.position.x, y: object.position.y, z: object.position.z },
             rotation: { x: object.rotation.x, y: object.rotation.y, z: object.rotation.z },
             velocity,
             spin,
-            restY: GROUND_Y + piece.restOffset,
+            restY: GROUND_Y + piece.restOffset - structure.sinkDepth,
           });
           piece.restedFor = 0;
           piece.settled = false;
@@ -254,7 +269,7 @@ export function loadObstacles(scene) {
             // 복사하지 않으므로) 몸체 내부 y와 오브젝트 y가 이 순간부터 어긋나도
             // 이후 프레임에 영향이 없다.
             const box = new THREE.Box3().setFromObject(piece.object);
-            piece.object.position.y += GROUND_Y - box.min.y;
+            piece.object.position.y += GROUND_Y - structure.sinkDepth - box.min.y;
             piece.settled = true;
           }
 
