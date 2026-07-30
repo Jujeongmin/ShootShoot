@@ -10,6 +10,7 @@ import { createSkyDecor } from './skyDecor.js';
 import { createTutorialState } from './tutorialState.js';
 import { createTutorialStore } from './tutorialStore.js';
 import { createProgressStore } from './progressStore.js';
+import { dataKeysToClear, clearGameData } from './gameReset.js';
 import { createSettingsStore } from './settingsStore.js';
 import { calculateOfflineGold, createLastSeenStore } from './offlineReward.js';
 import { showRewardedAd } from './adSdk.js';
@@ -27,6 +28,7 @@ import { createScreens } from '../ui/screens.js';
 import { createScopeOverlay } from '../ui/scopeOverlay.js';
 import { createStageBanner } from '../ui/stageBanner.js';
 import { createSettingsPanel } from '../ui/settingsPanel.js';
+import { createConfirmPopup } from '../ui/confirmPopup.js';
 import { createShopPanel } from '../ui/shopPanel.js';
 import { createOfflineRewardPopup } from '../ui/offlineRewardPopup.js';
 import { createLastKillEffect } from './lastKillEffect.js';
@@ -60,6 +62,7 @@ export function createGame(container) {
   const scopeOverlay = createScopeOverlay(container);
   const stageBanner = createStageBanner(container);
   const settingsPanel = createSettingsPanel(container);
+  const confirmPopup = createConfirmPopup(container);
   const shopPanel = createShopPanel(container);
   const offlineRewardPopup = createOfflineRewardPopup(container);
   const highScoreStore = createHighScoreStore(window.localStorage, CONFIG.highScoreStorageKey);
@@ -136,6 +139,33 @@ export function createGame(container) {
   function returnToMenu() {
     phase = 'menu';
     refreshMenu();
+  }
+
+  // 최고점수만 남기고 전부 지운다. 스토어들은 호출할 때마다 localStorage 를 다시
+  // 읽지만 장착 무기 모델은 game.js 가 이미 로드해 들고 있다. 새로고침 한 줄이
+  // 무기 재장착·HUD 갱신을 손으로 배선하는 것보다 확실하다.
+  function wipeAndRestart() {
+    clearGameData(window.localStorage, dataKeysToClear(CONFIG));
+    window.location.reload();
+  }
+
+  function cancelNewGame() {
+    confirmPopup.hide();
+    refreshMenu();
+  }
+
+  // 되돌릴 수 없으므로 한 번 막는다.
+  function askNewGame() {
+    screens.hide();
+    confirmPopup.show(
+      {
+        heading: '처음부터',
+        message: '골드, 무기, 업그레이드, 라운드 진행도가 모두 지워집니다. 최고점수와 설정은 남습니다.',
+        confirmLabel: '지우고 새로 시작',
+      },
+      wipeAndRestart,
+      cancelNewGame
+    );
   }
 
   // 판이 끝나는 유일한 길이다. 골드는 라운드 정산에서 이미 줬으므로 여기서는
@@ -305,6 +335,7 @@ export function createGame(container) {
       offlineCost,
       canAffordOffline: gold >= offlineCost,
       bazookaRounds: bazookaStore.getRounds(),
+      reachedRound: progressStore.getReachedRound(),
     };
   }
 
@@ -312,6 +343,8 @@ export function createGame(container) {
     // button() 이 핸들러에 MouseEvent 를 넘긴다. 감싸지 않으면 그게 라운드 번호
     // 자리로 들어간다.
     onStart: () => startGame(progressStore.getReachedRound()),
+    onContinue: () => startGame(progressStore.getReachedRound()),
+    onNewGame: askNewGame,
     onSettings: openSettingsFromMenu,
     onShop: openShopFromMenu,
     onLevelUpDamage: levelUpDamage,

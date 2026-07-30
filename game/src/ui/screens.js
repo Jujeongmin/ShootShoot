@@ -126,7 +126,7 @@ export function createScreens(container) {
   function showMenu(state, handlers) {
     const {
       gold, damageLevel, damageCost, canAffordDamage,
-      offlineLevel, offlineCost, canAffordOffline, bazookaRounds,
+      offlineLevel, offlineCost, canAffordOffline, bazookaRounds, reachedRound,
     } = state;
     clear();
 
@@ -134,9 +134,20 @@ export function createScreens(container) {
 
     const centre = document.createElement('div');
     centre.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 14px;';
-    const startBtn = button('탭하여 시작', handlers.onStart, 'primary');
-    startBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px;';
-    centre.appendChild(startBtn);
+    // 아직 아무것도 못 깬 플레이어에게 '이어하기'는 뜻이 없다. 그때는 예전처럼
+    // 큰 버튼 하나만 둔다.
+    if (reachedRound > 1) {
+      const continueBtn = button(`이어하기 (라운드 ${reachedRound})`, handlers.onContinue, 'primary');
+      continueBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px;';
+      centre.appendChild(continueBtn);
+      const newGameBtn = button('처음부터', handlers.onNewGame, 'ghost');
+      newGameBtn.style.cssText += 'width: 320px;';
+      centre.appendChild(newGameBtn);
+    } else {
+      const startBtn = button('탭하여 시작', handlers.onStart, 'primary');
+      startBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px;';
+      centre.appendChild(startBtn);
+    }
     const hint = document.createElement('div');
     hint.textContent = '클릭하여 조준, 놓아서 발사!';
     hint.style.cssText = `color: ${TOKENS.grey}; font-size: 15px;`;
