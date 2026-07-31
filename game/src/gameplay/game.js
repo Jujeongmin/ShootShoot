@@ -426,16 +426,20 @@ export function createGame(container) {
     openSettingsFromPlay();
   });
 
-  // 붕괴로 죽은 원숭이를 반환한다. 점수는 여기서 더하지 않고 호출부가 일반
-  // 사격과 같은 경로(killedHits)로 계산한다 — 구조물 자체는 점수를 주지 않는다.
+  // 붕괴로 죽은 원숭이들을 반환한다. 통로처럼 한 구조물에 여럿이 서 있으면 전부 죽는다.
+  // 점수는 여기서 더하지 않고 호출부가 일반 사격과 같은 경로(killedHits)로 계산한다 —
+  // 구조물 자체는 점수를 주지 않는다.
   function applyTowerCollapse(hitTowerIndex, impactPoint, burstColor) {
     obstacles.collapseStructure({ kind: 'tower', index: hitTowerIndex, impactPoint });
-    const towerMonkey = targetManager.findMonkeyAtTower(hitTowerIndex);
-    if (!towerMonkey || towerMonkey.isDying()) return null;
-    const worldPos = towerMonkey.getWorldPosition();
-    if (!towerMonkey.kill()) return null;
-    effects.spawnHitBurst(worldPos, burstColor);
-    return { monkeyId: towerMonkey.id, worldPos: worldPos.clone() };
+    const kills = [];
+    for (const monkey of targetManager.findMonkeysAtTower(hitTowerIndex)) {
+      if (monkey.isDying()) continue;
+      const worldPos = monkey.getWorldPosition();
+      if (!monkey.kill()) continue;
+      effects.spawnHitBurst(worldPos, burstColor);
+      kills.push({ monkeyId: monkey.id, worldPos: worldPos.clone() });
+    }
+    return kills;
   }
 
   function finishShot({ effectiveOutcome, gained, popupWorldPosition, isPureTowerHit }) {
@@ -516,8 +520,7 @@ export function createGame(container) {
 
     // 한 발이 앞 타워를 뚫고 뒤 타워까지 닿을 수 있다. 지나간 타워는 전부 무너진다.
     for (const towerIndex of towerIndices) {
-      const towerKill = applyTowerCollapse(towerIndex, firstPointByTower.get(towerIndex));
-      if (towerKill) {
+      for (const towerKill of applyTowerCollapse(towerIndex, firstPointByTower.get(towerIndex))) {
         killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
         if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
       }
@@ -565,8 +568,7 @@ export function createGame(container) {
 
     for (const structure of structures) {
       if (structure.kind === 'tower') {
-        const towerKill = applyTowerCollapse(structure.index, impactPoint, 0xff6600);
-        if (towerKill) {
+        for (const towerKill of applyTowerCollapse(structure.index, impactPoint, 0xff6600)) {
           killedHits.push({ monkeyId: towerKill.monkeyId, part: 'body' });
           if (!popupWorldPosition) popupWorldPosition = towerKill.worldPos;
         }

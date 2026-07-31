@@ -1,6 +1,7 @@
 import { createMonkey } from './monkey.js';
 import { getRoundParams } from './difficulty.js';
 import { computeLaneLayout } from './laneLayout.js';
+import { allocateMonkeys } from './monkeyAllocation.js';
 
 // 원숭이를 놓을 때 지면보다 이만큼 내린다. 레인 원숭이와 타워 위 원숭이 모두에
 // 같이 적용되도록 배치 지점 한 곳에서만 뺀다.
@@ -24,7 +25,13 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     clear();
     const params = getRoundParams(roundNumber, config);
 
-    for (const slot of towerSlots) {
+    const split = allocateMonkeys(params.monkeyCount, towerSlots.length);
+    const structureCount = split.structureCount;
+    const laneMonkeyCount = split.laneCount;
+
+    // 슬롯 순서가 우선순위다. 원숭이가 모자라면 뒤쪽 슬롯이 빈 채로 남는다.
+    for (let i = 0; i < structureCount; i++) {
+      const slot = towerSlots[i];
       const monkey = createMonkey({
         id: `monkey-${nextId++}`,
         position: { x: slot.x, y: slot.y - MONKEY_DROP, z: slot.z },
@@ -32,15 +39,21 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
         speed: params.monkeySpeed,
         template: monkeyModel.template,
         clip: monkeyModel.clip,
-        sway: { amplitude: 0, frequency: params.monkeySpeed, phase: 0 },
+        // 순찰 폭과 위상은 슬롯이 정한다. 제자리에 서는 타워는 진폭 0,
+        // 통로는 발판 길이 안에서 오갈 만큼의 진폭을 싣고 온다.
+        sway: {
+          amplitude: slot.sway.amplitude,
+          frequency: slot.sway.frequencyPerSpeed * params.monkeySpeed,
+          phase: slot.sway.phase,
+        },
         hp: params.monkeyHp,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);
-      towerMonkeyIds.set(slot.towerIndex, monkey.id);
+      const ids = towerMonkeyIds.get(slot.towerIndex) ?? [];
+      ids.push(monkey.id);
+      towerMonkeyIds.set(slot.towerIndex, ids);
     }
-
-    const laneMonkeyCount = params.monkeyCount - towerSlots.length;
     const layout = computeLaneLayout(laneMonkeyCount, params.monkeySpeed, params.monkeyScale);
     for (let i = 0; i < laneMonkeyCount; i++) {
       const slot = layout[i];
@@ -81,9 +94,12 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     return monkeys.find((monkey) => monkey.id === id);
   }
 
-  function findMonkeyAtTower(towerIndex) {
-    const id = towerMonkeyIds.get(towerIndex);
-    return id ? findMonkey(id) : undefined;
+  // 통로처럼 한 구조물에 여럿이 서 있을 수 있다. 죽어서 이미 목록에서 빠진 id는
+  // 걸러낸다 — 붕괴가 죽는 연출 도중에 또 들어올 수 있다.
+  function findMonkeysAtTower(towerIndex) {
+    const ids = towerMonkeyIds.get(towerIndex);
+    if (!ids) return [];
+    return ids.map((id) => findMonkey(id)).filter((monkey) => monkey !== undefined);
   }
 
   function allCleared() {
@@ -107,7 +123,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     update,
     getRaycastMeshes,
     findMonkey,
-    findMonkeyAtTower,
+    findMonkeysAtTower,
     allCleared,
     clear,
     hasDyingMonkeys,

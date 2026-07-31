@@ -197,7 +197,13 @@ export function loadObstacles(scene) {
           center: new THREE.Vector3(placement.x, 0 + TOWER_CENTER_LOCAL_Y, placement.z),
           collapsing: false,
           collapsed: false,
-          monkeySlot: { x: placement.x, y: pillarTopY + FLOOR_THICKNESS, z: placement.z, towerIndex },
+          monkeySlot: {
+            x: placement.x,
+            y: pillarTopY + FLOOR_THICKNESS,
+            z: placement.z,
+            towerIndex,
+            sway: { amplitude: 0, frequencyPerSpeed: 1, phase: 0 },
+          },
         });
       });
 
