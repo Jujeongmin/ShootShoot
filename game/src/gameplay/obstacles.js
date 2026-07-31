@@ -59,9 +59,40 @@ const TOWER_PLACEMENTS = [
   { x: -4.5, z: -75 },
 ];
 
+// tools/measure-props.mjs 실측: 자루 포대의 가로가 3.1619다. 판을 이 폭만큼씩
+// 밀어 이어 붙이면 틈 없이 하나의 통로가 된다.
+// 원점이 판 한가운데가 아니다 (로컬 x -1.5247 ~ +1.6372, 중심 +0.0562). 간격을
+// 폭으로 주면 이어 붙는 것은 그대로고 통로 전체가 그룹 원점보다 0.056 오른쪽으로
+// 쏠릴 뿐이라 보정하지 않는다. 이 값을 "버그"로 보고 고치려 하지 말 것.
+const WALKWAY_PANEL_WIDTH = 3.1619;
+const WALKWAY_PANELS = 3;
+// 원숭이 두 마리가 각자 자기 반쪽만 걷는다. 슬롯 간격 4.74가 진폭 두 배(3.6)보다
+// 넓어 서로 겹치지 않고, 바깥 끝 2.37+1.8=4.17이 통로 반폭 4.74보다 안쪽이라
+// 발판에서 떨어지지도 않는다.
+const WALKWAY_SLOT_OFFSET_X = 2.37;
+const WALKWAY_SWAY_AMPLITUDE = 1.8;
+// 레인 원숭이와 같은 값(laneLayout.js의 SWAY_FREQUENCY_PER_SPEED). 통로 위와
+// 아래가 같은 박자로 움직여야 한 판으로 읽힌다.
+const WALKWAY_SWAY_FREQUENCY_PER_SPEED = 1.8;
+// 기존 구조물보다 앞에 세워 앞 겹으로 읽히게 한다. 눈대중 값이다.
+const WALKWAY_PLACEMENTS = [{ x: 0, z: -67 }];
+
 function collectMaterials(object, materials) {
   const mats = Array.isArray(object.material) ? object.material : [object.material];
   materials.push(...mats);
+}
+
+// 인스턴스마다 머티리얼을 복제해야 한 구조물이 부서질 때 나머지가 같이 투명해지지 않는다.
+function prepareInstance(instance, onMesh) {
+  instance.traverse((object) => {
+    if (!object.isMesh) return;
+    object.material = Array.isArray(object.material)
+      ? object.material.map((material) => material.clone())
+      : object.material.clone();
+    object.castShadow = true;
+    object.receiveShadow = true;
+    if (onMesh) onMesh(object);
+  });
 }
 
 // 조각 하나를 기록한다. 붕괴가 시작되면 이 오브젝트가 그룹에서 떨어져 나와 혼자 움직인다.
@@ -102,6 +133,26 @@ export function loadObstacles(scene) {
 
       const trenches = [];
 
+      // 상자 2단짜리 기둥 하나. 타워와 통로가 같은 높이여야 한 층으로 읽히므로
+      // 두 곳이 이 함수를 같이 쓴다.
+      function addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes }) {
+        for (let level = 0; level < 2; level++) {
+          const crateInstance = crateGltf.scene.clone();
+          crateInstance.scale.set(CRATE_SCALE, CRATE_SCALE, CRATE_SCALE * CRATE_DEPTH_RATIO);
+          crateInstance.position.set(
+            offsetX,
+            GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + level * CRATE_UNIT_HEIGHT,
+            0
+          );
+          group.add(crateInstance);
+          crateInstances.push(crateInstance);
+          prepareInstance(crateInstance, (object) => {
+            object.userData = { towerIndex };
+            pillarMeshes.push(object);
+          });
+        }
+      }
+
       GROUND_PLACEMENTS.forEach((placement, trenchIndex) => {
         const group = new THREE.Group();
         group.position.set(placement.x, GROUND_Y, placement.z);
@@ -112,16 +163,7 @@ export function loadObstacles(scene) {
         group.add(instance);
 
         const meshes = [];
-        instance.traverse((object) => {
-          if (object.isMesh) {
-            object.material = Array.isArray(object.material)
-              ? object.material.map((material) => material.clone())
-              : object.material.clone();
-            object.castShadow = true;
-            object.receiveShadow = true;
-            meshes.push(object);
-          }
-        });
+        prepareInstance(instance, (object) => meshes.push(object));
 
         trenches.push({
           index: trenchIndex,
@@ -146,28 +188,7 @@ export function loadObstacles(scene) {
         const crateInstances = [];
 
         for (const offsetX of [-PILLAR_OFFSET_X, PILLAR_OFFSET_X]) {
-          for (let level = 0; level < 2; level++) {
-            const crateInstance = crateGltf.scene.clone();
-            crateInstance.scale.set(CRATE_SCALE, CRATE_SCALE, CRATE_SCALE * CRATE_DEPTH_RATIO);
-            crateInstance.position.set(
-              offsetX,
-              GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + level * CRATE_UNIT_HEIGHT,
-              0
-            );
-            group.add(crateInstance);
-            crateInstances.push(crateInstance);
-            crateInstance.traverse((object) => {
-              if (object.isMesh) {
-                object.material = Array.isArray(object.material)
-                  ? object.material.map((material) => material.clone())
-                  : object.material.clone();
-                object.castShadow = true;
-                object.receiveShadow = true;
-                object.userData = { towerIndex };
-                pillarMeshes.push(object);
-              }
-            });
-          }
+          addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes });
         }
 
         const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + 2 * CRATE_UNIT_HEIGHT;
@@ -176,15 +197,7 @@ export function loadObstacles(scene) {
         floor.rotation.x = FLOOR_ROTATION_X;
         floor.position.set(0, pillarTopY, 0);
         group.add(floor);
-        floor.traverse((object) => {
-          if (object.isMesh) {
-            object.material = Array.isArray(object.material)
-              ? object.material.map((material) => material.clone())
-              : object.material.clone();
-            object.castShadow = true;
-            object.receiveShadow = true;
-          }
-        });
+        prepareInstance(floor);
 
         towers.push({
           index: towerIndex,
@@ -197,13 +210,71 @@ export function loadObstacles(scene) {
           center: new THREE.Vector3(placement.x, 0 + TOWER_CENTER_LOCAL_Y, placement.z),
           collapsing: false,
           collapsed: false,
-          monkeySlot: {
-            x: placement.x,
+          monkeySlots: [
+            {
+              x: placement.x,
+              y: pillarTopY + FLOOR_THICKNESS,
+              z: placement.z,
+              towerIndex,
+              // 발판이 한 장뿐이라 제자리에 선다. frequencyPerSpeed 1은 예전에
+              // targetManager가 하드코딩하던 frequency: monkeySpeed 와 같은 값이다.
+              sway: { amplitude: 0, frequencyPerSpeed: 1, phase: 0 },
+            },
+          ],
+        });
+      });
+
+      // 통로는 "조각이 더 많고 원숭이 슬롯이 둘인 타워"다. towers 배열에 같이 넣으면
+      // 기둥 쏘면 무너지는 경로(userData.towerIndex → collapseStructure)가 그대로 붙는다.
+      WALKWAY_PLACEMENTS.forEach((placement, walkwayIndex) => {
+        const towerIndex = TOWER_PLACEMENTS.length + walkwayIndex;
+        const group = new THREE.Group();
+        group.position.set(placement.x, 0, placement.z);
+        scene.add(group);
+
+        const pillarMeshes = [];
+        const crateInstances = [];
+        const floorInstances = [];
+        const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + 2 * CRATE_UNIT_HEIGHT;
+
+        for (let panel = 0; panel < WALKWAY_PANELS; panel++) {
+          // 가운데를 0으로 두고 판 폭만큼씩 좌우로 민다.
+          const offsetX = (panel - (WALKWAY_PANELS - 1) / 2) * WALKWAY_PANEL_WIDTH;
+          addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes });
+
+          const floor = sackTrenchGltf.scene.clone();
+          floor.scale.setScalar(SACK_TRENCH_SCALE);
+          floor.rotation.x = FLOOR_ROTATION_X;
+          floor.position.set(offsetX, pillarTopY, 0);
+          group.add(floor);
+          floorInstances.push(floor);
+          prepareInstance(floor);
+        }
+
+        towers.push({
+          index: towerIndex,
+          group,
+          pillarMeshes,
+          // 상자 6개와 발판 3장. 지금 타워(5개)의 두 배 가까운 조각이다.
+          pieces: [...crateInstances, ...floorInstances].map(makePiece),
+          impactScale: TOWER_IMPACT_SCALE,
+          sinkDepth: TOWER_SINK_DEPTH,
+          center: new THREE.Vector3(placement.x, 0 + TOWER_CENTER_LOCAL_Y, placement.z),
+          collapsing: false,
+          collapsed: false,
+          monkeySlots: [-WALKWAY_SLOT_OFFSET_X, WALKWAY_SLOT_OFFSET_X].map((slotOffsetX, slotIndex) => ({
+            x: placement.x + slotOffsetX,
             y: pillarTopY + FLOOR_THICKNESS,
             z: placement.z,
             towerIndex,
-            sway: { amplitude: 0, frequencyPerSpeed: 1, phase: 0 },
-          },
+            sway: {
+              amplitude: WALKWAY_SWAY_AMPLITUDE,
+              frequencyPerSpeed: WALKWAY_SWAY_FREQUENCY_PER_SPEED,
+              // 위상을 반대로 줘서 둘이 엇갈려 걷는다. 같은 위상이면 나란히
+              // 붙어 다녀 한 마리처럼 보인다.
+              phase: slotIndex * Math.PI,
+            },
+          })),
         });
       });
 
@@ -358,7 +429,7 @@ export function loadObstacles(scene) {
           return towers.filter((tower) => !tower.collapsing).flatMap((tower) => tower.pillarMeshes);
         },
         getTowerSlots() {
-          return towers.map((tower) => tower.monkeySlot);
+          return towers.flatMap((tower) => tower.monkeySlots);
         },
         findStructuresInBox(isInBox) {
           const found = [];
