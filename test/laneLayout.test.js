@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeLaneLayout } from '../game/src/gameplay/laneLayout.js';
+import { computeLaneLayout } from '../game/src/gameplay/laneLayout';
 
 // 원숭이의 실제 x 좌표 재현: patrolMotion.js의 offsetX와 동일한 공식
 function xAt(slot, t) {

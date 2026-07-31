@@ -1,4 +1,4 @@
-import { scrim, panel, button, iconButton, artButton, badge, divider, title, num, iconUrl, TOKENS } from './kit.js';
+import { scrim, panel, button, iconButton, artButton, badge, divider, title, num, iconUrl, TOKENS } from './kit';
 
 const BAZOOKA_MAX_ROUNDS = 5;
 // game/thumb.html 로 뽑는다. 아직 없어도 카드는 뜨고 그림 자리만 비운다.

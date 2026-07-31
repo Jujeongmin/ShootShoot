@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { driftWrapped, flightProgress, createSeededRandom } from '../game/src/gameplay/skyMotion.js';
+import { driftWrapped, flightProgress, createSeededRandom } from '../game/src/gameplay/skyMotion';
 
 describe('driftWrapped', () => {
   it('moves by the delta while inside the range', () => {

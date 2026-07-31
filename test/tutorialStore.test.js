@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createTutorialStore } from '../game/src/gameplay/tutorialStore.js';
+import { createTutorialStore } from '../game/src/gameplay/tutorialStore';
 
 // 다른 스토어 테스트의 가짜 storage 에는 removeItem 이 없다. clear() 가 그것을
 // 쓰므로 여기서는 셋을 다 갖춘다.

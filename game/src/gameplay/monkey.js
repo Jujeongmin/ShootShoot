@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { cloneMonkeyModel } from './monkeyModel.js';
-import { createPatrol } from './patrolMotion.js';
+import { cloneMonkeyModel } from './monkeyModel';
+import { createPatrol } from './patrolMotion';
 
 const HIT_ANIMATION_DURATION = 0.6;
 const BOB_HEIGHT = 0.06;

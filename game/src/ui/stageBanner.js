@@ -1,4 +1,4 @@
-import { TOKENS } from './kit.js';
+import { TOKENS } from './kit';
 
 export function createStageBanner(container) {
   function show(stageNumber) {

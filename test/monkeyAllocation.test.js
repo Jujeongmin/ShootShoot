@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { allocateMonkeys } from '../game/src/gameplay/monkeyAllocation.js';
-import { getRoundParams } from '../game/src/gameplay/difficulty.js';
-import { CONFIG } from '../game/src/config.js';
+import { allocateMonkeys } from '../game/src/gameplay/monkeyAllocation';
+import { getRoundParams } from '../game/src/gameplay/difficulty';
+import { CONFIG } from '../game/src/config';
 
 // 타워 2개 + 통로 2자리
 const SLOTS = 4;

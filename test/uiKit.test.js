@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { iconUrl, resolveIconSrc, TOKENS } from '../game/src/ui/kit.js';
+import { iconUrl, resolveIconSrc, TOKENS } from '../game/src/ui/kit';
 
 describe('resolveIconSrc', () => {
   it('passes an explicit path through untouched', () => {

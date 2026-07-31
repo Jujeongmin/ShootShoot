@@ -1,7 +1,7 @@
-import { createMonkey } from './monkey.js';
-import { getRoundParams } from './difficulty.js';
-import { computeLaneLayout } from './laneLayout.js';
-import { allocateMonkeys } from './monkeyAllocation.js';
+import { createMonkey } from './monkey';
+import { getRoundParams } from './difficulty';
+import { computeLaneLayout } from './laneLayout';
+import { allocateMonkeys } from './monkeyAllocation';
 
 // 원숭이를 놓을 때 지면보다 이만큼 내린다. 레인 원숭이와 타워 위 원숭이 모두에
 // 같이 적용되도록 배치 지점 한 곳에서만 뺀다.

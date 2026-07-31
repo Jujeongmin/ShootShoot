@@ -1,4 +1,4 @@
-import { scrim, panel, button, iconButton, title, num, TOKENS } from './kit.js';
+import { scrim, panel, button, iconButton, title, num, TOKENS } from './kit';
 
 export function createSettingsPanel(container) {
   const overlay = scrim();

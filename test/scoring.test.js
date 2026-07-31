@@ -5,8 +5,8 @@ import {
   applyShot,
   settlementGold,
   createHighScoreStore,
-} from '../game/src/gameplay/scoring.js';
-import { CONFIG } from '../game/src/config.js';
+} from '../game/src/gameplay/scoring';
+import { CONFIG } from '../game/src/config';
 
 describe('calculateShotScore', () => {
   it('awards base hit score for a single body hit with no streak', () => {

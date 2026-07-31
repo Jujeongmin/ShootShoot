@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateOfflineGold, createLastSeenStore } from '../game/src/gameplay/offlineReward.js';
-import { CONFIG } from '../game/src/config.js';
+import { calculateOfflineGold, createLastSeenStore } from '../game/src/gameplay/offlineReward';
+import { CONFIG } from '../game/src/config';
 
 function createMemoryStorage() {
   const map = new Map();

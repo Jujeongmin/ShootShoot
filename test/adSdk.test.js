@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { showRewardedAd } from '../game/src/gameplay/adSdk.js';
+import { showRewardedAd } from '../game/src/gameplay/adSdk';
 
 describe('showRewardedAd', () => {
   it('resolves to true (stub always succeeds)', async () => {

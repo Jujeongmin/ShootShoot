@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createWeaponStore } from '../game/src/gameplay/weaponStore.js';
+import { createWeaponStore } from '../game/src/gameplay/weaponStore';
 
 function createMemoryStorage(initial) {
   const map = new Map(initial ? Object.entries(initial) : []);

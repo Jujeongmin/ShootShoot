@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createSettingsStore } from '../game/src/gameplay/settingsStore.js';
+import { createSettingsStore } from '../game/src/gameplay/settingsStore';
 
 function createMemoryStorage() {
   const map = new Map();

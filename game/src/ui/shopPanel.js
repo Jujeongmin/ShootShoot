@@ -1,5 +1,5 @@
-import { scrim, panel, button, iconButton, badge, divider, title, TOKENS } from './kit.js';
-import { weaponButtonState } from './weaponButtonState.js';
+import { scrim, panel, button, iconButton, badge, divider, title, TOKENS } from './kit';
+import { weaponButtonState } from './weaponButtonState';
 
 const MAX_DAMAGE_PIPS = 5;
 

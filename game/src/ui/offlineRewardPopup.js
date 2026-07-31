@@ -1,4 +1,4 @@
-import { scrim, panel, button, title, num, TOKENS } from './kit.js';
+import { scrim, panel, button, title, num, TOKENS } from './kit';
 
 export function createOfflineRewardPopup(container) {
   const overlay = scrim();

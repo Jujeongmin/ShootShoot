@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { driftWrapped, flightProgress, createSeededRandom } from './skyMotion.js';
+import { driftWrapped, flightProgress, createSeededRandom } from './skyMotion';
 
 // 섬이 z = -80 이다. 구름을 항상 그보다 뒤에 두면 조준해서 화각이 좁아져도
 // 표적을 가리지 않는다. 앵커가 -400 이고 구름 내부의 구는 반지름(최대 43)과

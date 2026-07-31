@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createDebrisBody, impactImpulse } from '../game/src/gameplay/debris.js';
+import { createDebrisBody, impactImpulse } from '../game/src/gameplay/debris';
 
 function fallingBody(y, velocity = { x: 0, y: 0, z: 0 }, spin = { x: 0, y: 0, z: 0 }) {
   return createDebrisBody({

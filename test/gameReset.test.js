@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { dataKeysToClear, clearGameData } from '../game/src/gameplay/gameReset.js';
-import { CONFIG } from '../game/src/config.js';
+import { dataKeysToClear, clearGameData } from '../game/src/gameplay/gameReset';
+import { CONFIG } from '../game/src/config';
 
 function createMemoryStorage() {
   const map = new Map();

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getRoundParams } from '../game/src/gameplay/difficulty.js';
-import { computeHitDamage } from '../game/src/gameplay/shooting.js';
-import { CONFIG } from '../game/src/config.js';
+import { getRoundParams } from '../game/src/gameplay/difficulty';
+import { computeHitDamage } from '../game/src/gameplay/shooting';
+import { CONFIG } from '../game/src/config';
 
 describe('getRoundParams', () => {
   it('returns base values for round 1', () => {

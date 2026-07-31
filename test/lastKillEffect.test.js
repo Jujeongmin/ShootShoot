@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createLastKillEffect } from '../game/src/gameplay/lastKillEffect.js';
+import { createLastKillEffect } from '../game/src/gameplay/lastKillEffect';
 
 describe('createLastKillEffect', () => {
   it('is inactive before any trigger', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createUpgradeStore, computeUpgradeCost } from '../game/src/gameplay/upgradeStore.js';
-import { CONFIG } from '../game/src/config.js';
+import { createUpgradeStore, computeUpgradeCost } from '../game/src/gameplay/upgradeStore';
+import { CONFIG } from '../game/src/config';
 
 function createMemoryStorage(initial) {
   const map = new Map(initial ? Object.entries(initial) : []);

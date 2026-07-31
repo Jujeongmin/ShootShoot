@@ -1,4 +1,4 @@
-import { scrim, panel, button, iconButton, title, TOKENS } from './kit.js';
+import { scrim, panel, button, iconButton, title, TOKENS } from './kit';
 
 const COLUMNS = 5;
 

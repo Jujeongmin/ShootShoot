@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CONFIG } from '../game/src/config.js';
+import { CONFIG } from '../game/src/config';
 
 const REQUIRED_FIELDS = [
   'id', 'name', 'model', 'format', 'damage', 'price', 'image', 'scale', 'position', 'rotation',

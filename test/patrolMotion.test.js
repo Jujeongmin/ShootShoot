@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createPatrol } from '../game/src/gameplay/patrolMotion.js';
+import { createPatrol } from '../game/src/gameplay/patrolMotion';
 
 const AMPLITUDE = 3;
 // frequency 1, phase 0 이면 elapsed 가 곧 각도다. 아래 시각들의 의미:

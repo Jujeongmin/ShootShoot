@@ -1,4 +1,4 @@
-import { TOKENS } from './kit.js';
+import { TOKENS } from './kit';
 
 const RETICLE_STYLES = {
   basic: {

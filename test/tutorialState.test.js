@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createTutorialState } from '../game/src/gameplay/tutorialState.js';
+import { createTutorialState } from '../game/src/gameplay/tutorialState';
 
 function advanceToDone(tutorial) {
   tutorial.handle('aimStarted');

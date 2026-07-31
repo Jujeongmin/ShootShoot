@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createReloadState } from '../game/src/gameplay/reloadState.js';
+import { createReloadState } from '../game/src/gameplay/reloadState';
 
 describe('createReloadState', () => {
   it('starts idle', () => {

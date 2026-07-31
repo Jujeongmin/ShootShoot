@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createCurrencyStore } from '../game/src/gameplay/currencyStore.js';
+import { createCurrencyStore } from '../game/src/gameplay/currencyStore';
 
 function createMemoryStorage() {
   const map = new Map();

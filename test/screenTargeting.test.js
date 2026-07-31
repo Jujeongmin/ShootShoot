@@ -4,7 +4,7 @@ import {
   computeBlastRadiusPx,
   isPointInScreenBox,
   findMonkeysInScreenBox,
-} from '../game/src/gameplay/screenTargeting.js';
+} from '../game/src/gameplay/screenTargeting';
 
 const RECT = { left: 0, top: 0, width: 800, height: 600 };
 

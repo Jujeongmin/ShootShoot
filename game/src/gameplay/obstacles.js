@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { createDebrisBody, impactImpulse } from './debris.js';
+import { createDebrisBody, impactImpulse } from './debris';
 
 const CRATE_URL = '/models/crate.glb';
 const SACK_TRENCH_URL = '/models/sack-trench.glb';

@@ -1,4 +1,4 @@
-import { scrim, panel, button, title, TOKENS } from './kit.js';
+import { scrim, panel, button, title, TOKENS } from './kit';
 
 // 되돌릴 수 없는 동작 앞에 세우는 얇은 모달. 무엇을 확인하는지는 부르는 쪽이
 // 문구로 넘긴다 — 이 모듈은 새 게임을 모른다.

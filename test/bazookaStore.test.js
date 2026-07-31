@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createBazookaStore } from '../game/src/gameplay/bazookaStore.js';
+import { createBazookaStore } from '../game/src/gameplay/bazookaStore';
 
 function createMemoryStorage() {
   const map = new Map();

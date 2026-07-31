@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolveShot, computeHitDamage, resolveKillOutcome, partitionShotPath } from '../game/src/gameplay/shooting.js';
-import { CONFIG } from '../game/src/config.js';
+import { resolveShot, computeHitDamage, resolveKillOutcome, partitionShotPath } from '../game/src/gameplay/shooting';
+import { CONFIG } from '../game/src/config';
 
 describe('resolveShot', () => {
   it('returns a miss when there are no hits', () => {

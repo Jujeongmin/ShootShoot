@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { createEffects } from '../game/src/gameplay/effects.js';
+import { createEffects } from '../game/src/gameplay/effects';
 
 function fakeScene() {
   return { add: vi.fn(), remove: vi.fn() };

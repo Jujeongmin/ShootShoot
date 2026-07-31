@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { createBazookaProjectiles } from '../game/src/gameplay/bazookaProjectile.js';
+import { createBazookaProjectiles } from '../game/src/gameplay/bazookaProjectile';
 
 function fakeScene() {
   return { add: vi.fn(), remove: vi.fn() };

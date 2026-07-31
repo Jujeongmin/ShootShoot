@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createProgressStore } from '../game/src/gameplay/progressStore.js';
+import { createProgressStore } from '../game/src/gameplay/progressStore';
 
 function createMemoryStorage() {
   const map = new Map();
