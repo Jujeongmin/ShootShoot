@@ -1,10 +1,15 @@
 import * as THREE from 'three';
 import { cloneMonkeyModel } from './monkeyModel.js';
+import { createPatrol } from './patrolMotion.js';
 
 const HIT_ANIMATION_DURATION = 0.6;
 const BOB_HEIGHT = 0.06;
-const TAUNT_INTERVAL_MIN = 2;
-const TAUNT_INTERVAL_MAX = 4.5;
+// 순찰 끝에서 플레이어를 볼 때 몸을 흔드는 정도와 빠르기. 예전 도발 연출의 값 그대로다.
+const TAUNT_SWING = 0.6;
+const TAUNT_FREQUENCY = 10;
+// 1유닛 나아갈 때 걸음 위상이 도는 양(라디안). 최고속이 진폭 3 × 주기 0.9 ≈ 2.7유닛/초라서
+// 2.4면 초당 약 한 걸음 주기가 된다. 화면을 보고 맞출 값이다.
+const STRIDE_PER_UNIT = 2.4;
 // Calibrated against the SkinnedMesh's ANIMATED pose (not rest-pose): live-sampling the
 // idle clip's full loop found the reachable local Y range is about -81 to +28 (head/torso/
 // arms/legs; the tail is excluded as its bind-relative Y swings wildly and isn't a reliable
@@ -80,14 +85,18 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
   const swayFrequency = sway.frequency !== undefined ? sway.frequency : speed;
   const swayPhase = sway.phase !== undefined ? sway.phase : Math.random() * Math.PI * 2;
 
+  const patrol = createPatrol({
+    amplitude: swayAmplitude,
+    frequency: swayFrequency,
+    phase: swayPhase,
+  });
+
   const state = {
     phase: 'idle',
     phaseOffset: Math.random() * Math.PI * 2,
     elapsed: 0,
     hitElapsed: 0,
-    nextTauntAt: TAUNT_INTERVAL_MIN + Math.random() * (TAUNT_INTERVAL_MAX - TAUNT_INTERVAL_MIN),
-    tauntElapsed: 0,
-    isTaunting: false,
+    gaitPhase: Math.random() * Math.PI * 2,
     dead: false,
     hp,
     maxHp: hp,
@@ -103,23 +112,16 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     const bobPhase = Math.sin(state.elapsed * 3 + state.phaseOffset) * 0.5 + 0.5;
     group.position.y = position.y + bobPhase * BOB_HEIGHT;
 
-    const swayOffset = Math.sin(state.elapsed * swayFrequency + swayPhase) * swayAmplitude;
-    group.position.x = position.x + swayOffset;
+    const motion = patrol.sample(state.elapsed, dt);
+    group.position.x = position.x + motion.offsetX;
 
-    if (state.isTaunting) {
-      state.tauntElapsed += dt;
-      group.rotation.y = Math.sin(state.tauntElapsed * 10) * 0.6;
-      if (state.tauntElapsed > 0.8) {
-        state.isTaunting = false;
-        state.tauntElapsed = 0;
-        state.nextTauntAt = state.elapsed + TAUNT_INTERVAL_MIN + Math.random() * (TAUNT_INTERVAL_MAX - TAUNT_INTERVAL_MIN);
-      }
-    } else {
-      group.rotation.y = 0;
-      if (state.elapsed >= state.nextTauntAt) {
-        state.isTaunting = true;
-      }
-    }
+    // 도발은 순찰 끝에서 플레이어를 보는 순간에만 나온다. taunt가 그때 1이라
+    // 별도의 타이머 없이 진행 방향 위에 얹기만 하면 된다.
+    const wobble = Math.sin(state.elapsed * TAUNT_FREQUENCY) * TAUNT_SWING * motion.taunt;
+    group.rotation.y = motion.facing + wobble;
+
+    // 시간이 아니라 나아간 거리로 걸음을 돌린다. 이래야 발이 안 미끄러진다.
+    state.gaitPhase += motion.gaitDelta * STRIDE_PER_UNIT;
   }
 
   function updateHit(dt) {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeLaneLayout } from '../game/src/gameplay/laneLayout.js';
 
-// 원숭이의 실제 x 좌표 재현: monkey.js의 updateIdle과 동일한 공식
+// 원숭이의 실제 x 좌표 재현: patrolMotion.js의 offsetX와 동일한 공식
 function xAt(slot, t) {
   return slot.x + Math.sin(slot.swayFrequency * t + slot.swayPhase) * slot.swayAmplitude;
 }
