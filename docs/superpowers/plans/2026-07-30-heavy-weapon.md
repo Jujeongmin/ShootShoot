@@ -33,7 +33,7 @@
 - 상점은 `shopPanel.js` 가 그린다. `let index = 0` 으로 한 번에 무기 하나를 보여주고, 이전/다음 버튼이 `index === 0` 과 `index === weapons.length - 1` 에서 각각 비활성화된다. 하단 점 표시도 `state.weapons` 를 순회한다. **무기 개수에 대해 이미 일반적이다.**
 - 별은 `shopPanel.js` 의 `damagePips(damage)` 가 그리고 `MAX_DAMAGE_PIPS = 5` 다.
 - `weaponStore` 는 소유 id 를 문자열 배열로 `localStorage` 에 넣는다. 모르는 id 는 미보유로 나오므로 기존 세이브가 안 깨진다.
-- 상점 그림은 `artwork()` 가 그리는데 `img.addEventListener('error', ...)` 로 깨진 이미지를 숨긴다. **PNG 가 없어도 상점은 정상으로 뜬다.**
+- ~~상점 그림은 `artwork()` 가 그리는데 `img.addEventListener('error', ...)` 로 깨진 이미지를 숨긴다.~~ **이 줄은 틀렸다.** `artwork()` 는 `screens.js` 에 있고 메인 메뉴의 바주카 카드에만 쓰인다. 상점 무기 그림은 `shopPanel.js` 가 그리는 리스너 없는 맨 `<img>` 였다. 구현 중 발견돼 사용자 판정으로 `shopPanel.js` 에 `error` 리스너를 달았다 (커밋 `18b1499`). 지금은 PNG 가 없어도 자리만 비고 상점이 정상으로 뜬다.
 - 테스트는 `test/` 아래 평평하게 있고 `import { CONFIG } from '../game/src/config.js';` 로 설정을 읽는다 (`test/gameReset.test.js` 가 그렇게 한다).
 
 ## 파일 구조
@@ -52,7 +52,9 @@
 
 **건드리지 않는 파일**
 
-`shopPanel.js`, `weaponStore.js`, `weaponButtonState.js`, `weaponViewmodel.js`, `shooting.js`, `scoring.js`, `game.js`. 전부 무기 개수에 대해 이미 일반적이다.
+`weaponStore.js`, `weaponButtonState.js`, `weaponViewmodel.js`, `shooting.js`, `scoring.js`, `game.js`. 전부 무기 개수에 대해 이미 일반적이다.
+
+`shopPanel.js` 도 원래 이 목록에 있었으나, 위의 정정 때문에 무기 그림에 `error` 리스너 한 줄이 들어갔다. 무기 개수와는 무관한 변경이다.
 
 ---
 
@@ -204,8 +206,8 @@ after:
     },
     // scale 은 띄워 보고 맞춘 값이 아니다. FBX 무기들의 배율이 모델 길이 때문에
     // 제각각이라(0.00061 ~ 0.00211) 길이가 비슷한 전기총 값에서 시작한다.
-    // 상점 그림 heavy.png 는 아직 없다. artwork() 가 깨진 이미지를 숨기므로
-    // 그림 자리만 비고 상점은 정상으로 뜬다.
+    // 상점 그림 heavy.png 는 아직 없다. shopPanel.js 가 로드 실패한 그림을 숨기므로
+    // heavy.png 를 굽기 전까지는 그림 자리만 비고 상점은 정상으로 뜬다.
     {
       id: 'heavy', name: '중화기', model: '/models/Rifle.fbx', format: 'fbx',
       damage: 4, price: 4000, image: '/images/weapons/heavy.png',

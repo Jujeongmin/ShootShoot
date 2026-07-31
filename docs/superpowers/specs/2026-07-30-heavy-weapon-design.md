@@ -52,7 +52,18 @@ FBX 무기들의 배율이 제각각이다 — 전기총 `0.00148`, 저격소총
 ### 상점 그림은 사용자가 굽는다
 
 `image: '/images/weapons/heavy.png'` 를 가리키되, 파일은 나중에 들어온다.
-`artwork()` 가 깨진 이미지를 숨기므로 그림이 없어도 상점은 정상으로 뜬다. 자리만 빈다.
+
+> **정정 (구현 중 발견).** 이 문단은 원래 "`artwork()` 가 깨진 이미지를 숨기므로
+> 그림이 없어도 자리만 빈다"고 적혀 있었다. **틀렸다.** `artwork()` 는
+> `screens.js` 에 있고 메인 메뉴의 바주카 카드에만 쓰인다. 상점 무기 그림은
+> `shopPanel.js` 가 그리는 리스너 없는 맨 `<img>` 였다 — 그림이 없으면 브라우저의
+> 깨진 이미지 아이콘과 대체 텍스트가 떴다.
+>
+> 사용자 판정에 따라 코드를 이 문서의 약속에 맞췄다: `shopPanel.js` 의 무기 그림에도
+> `error` 리스너를 달았다 (커밋 `18b1499`). 그래서 아래 문장은 **이제** 참이다.
+
+그림이 없으면 `shopPanel.js` 가 로드 실패한 그림을 숨긴다. 상점은 정상으로 뜨고
+자리만 빈다.
 
 굽는 순서: `game/thumb.html` 로 512×512 투명 PNG 를 뽑고 → **반드시**
 `tools/crop-weapon-art.mjs` 를 한 번 돌린다. 안 돌리면 정사각 캔버스 여백 때문에
@@ -75,5 +86,8 @@ FBX 무기들의 배율이 제각각이다 — 전기총 `0.00148`, 저격소총
 
 ## 건드리지 않는 것
 
-`shopPanel.js`, `weaponStore.js`, `weaponButtonState.js`, `weaponViewmodel.js`,
-`shooting.js`. 전부 무기 개수에 대해 이미 일반적이다.
+`weaponStore.js`, `weaponButtonState.js`, `weaponViewmodel.js`, `shooting.js`.
+전부 무기 개수에 대해 이미 일반적이다.
+
+`shopPanel.js` 도 원래 이 목록에 있었으나, 위의 정정 때문에 `error` 리스너 한 줄이
+들어갔다. 무기 개수와는 무관한 변경이다.
