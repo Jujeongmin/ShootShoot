@@ -2,7 +2,7 @@
 // 수명이 달라서 한 모듈에 두면 '다시 보기'가 무엇을 지워야 하는지 흐려진다.
 const DONE_VALUE = '1';
 
-export function createTutorialStore(storage, key) {
+export function createTutorialStore(storage: Storage, key: string) {
   return {
     isDone() {
       return storage.getItem(key) === DONE_VALUE;

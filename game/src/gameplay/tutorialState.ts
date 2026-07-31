@@ -3,24 +3,26 @@
 //
 // 각 단계는 자기가 기다리는 이벤트 하나에만 반응한다. 그래서 조준을 여러 번
 // 누르거나 엉뚱한 순서로 이벤트가 와도 단계가 건너뛰어지지 않는다.
-const NEXT_STEP = {
+type Step = 'aim' | 'fire' | 'reload' | 'clear' | 'done';
+
+const NEXT_STEP: Partial<Record<Step, { event: string; next: Step }>> = {
   aim: { event: 'aimStarted', next: 'fire' },
   fire: { event: 'shotFired', next: 'reload' },
   reload: { event: 'reloadFinished', next: 'clear' },
   clear: { event: 'roundCleared', next: 'done' },
 };
 
-const FIRST_STEP = 'aim';
-const DONE_STEP = 'done';
+const FIRST_STEP: Step = 'aim';
+const DONE_STEP: Step = 'done';
 
 export function createTutorialState() {
-  let step = FIRST_STEP;
+  let step: Step = FIRST_STEP;
 
   return {
     current() {
       return step;
     },
-    handle(event) {
+    handle(event: string) {
       const transition = NEXT_STEP[step];
       if (!transition) return;
       if (transition.event !== event) return;

@@ -1,8 +1,18 @@
-export function computeUpgradeCost(level, config) {
+interface UpgradeCostConfig {
+  baseCost: number;
+  costMultiplier: number;
+}
+
+interface UpgradeState {
+  damageLevel: number;
+  offlineLevel: number;
+}
+
+export function computeUpgradeCost(level: number, config: UpgradeCostConfig): number {
   return Math.round(config.baseCost * config.costMultiplier ** level);
 }
 
-function readState(storage, key) {
+function readState(storage: Storage, key: string): UpgradeState {
   const raw = storage.getItem(key);
   if (raw === null) return { damageLevel: 0, offlineLevel: 0 };
 
@@ -18,8 +28,8 @@ function readState(storage, key) {
   return { damageLevel, offlineLevel };
 }
 
-export function createUpgradeStore(storage, key) {
-  function write(state) {
+export function createUpgradeStore(storage: Storage, key: string) {
+  function write(state: UpgradeState) {
     storage.setItem(key, JSON.stringify(state));
   }
 

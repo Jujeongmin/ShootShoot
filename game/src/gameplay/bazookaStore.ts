@@ -1,11 +1,11 @@
-export function createBazookaStore(storage, key) {
-  function read() {
+export function createBazookaStore(storage: Storage, key: string) {
+  function read(): number {
     const raw = storage.getItem(key);
     const value = raw === null ? 0 : Number.parseInt(raw, 10);
     return Number.isNaN(value) ? 0 : value;
   }
 
-  function write(rounds) {
+  function write(rounds: number): void {
     storage.setItem(key, String(rounds));
   }
 
@@ -13,7 +13,7 @@ export function createBazookaStore(storage, key) {
     getRounds() {
       return read();
     },
-    refill(maxRounds) {
+    refill(maxRounds: number) {
       write(maxRounds);
       return maxRounds;
     },

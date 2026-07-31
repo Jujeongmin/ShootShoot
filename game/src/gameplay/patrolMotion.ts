@@ -12,9 +12,23 @@ const FACE_THRESHOLD = 0.25;
 // (sinθ, 0, cosθ)이므로 +X를 향하려면 θ = +π/2다.
 const RIGHT_FACING = Math.PI / 2;
 
-export function createPatrol({ amplitude, frequency, phase }) {
+export interface PatrolSample {
+  offsetX: number;
+  facing: number;
+  gaitDelta: number;
+  stride: number;
+  taunt: number;
+}
+
+interface PatrolParams {
+  amplitude: number;
+  frequency: number;
+  phase: number;
+}
+
+export function createPatrol({ amplitude, frequency, phase }: PatrolParams) {
   return {
-    sample(elapsed, dt) {
+    sample(elapsed: number, dt: number): PatrolSample {
       const angle = elapsed * frequency + phase;
       const cosine = Math.cos(angle);
       const speedNorm = Math.abs(cosine);

@@ -15,7 +15,7 @@ export function createLastKillEffect() {
     elapsed = 0;
   }
 
-  function update(realDt) {
+  function update(realDt: number) {
     if (elapsed < EFFECT_DURATION) {
       elapsed += realDt;
     }

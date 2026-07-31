@@ -2,8 +2,8 @@
 // 규칙이라, 라운드 선택으로 낮은 라운드를 다시 깨도 도달 라운드가 깎이지 않는다.
 const FIRST_ROUND = 1;
 
-export function createProgressStore(storage, key) {
-  function read() {
+export function createProgressStore(storage: Storage, key: string) {
+  function read(): number {
     const raw = storage.getItem(key);
     if (raw === null) return FIRST_ROUND;
     const value = Number.parseInt(raw, 10);
@@ -16,7 +16,7 @@ export function createProgressStore(storage, key) {
       return read();
     },
     // 깬 라운드를 넣으면 그 다음 라운드가 도달 라운드가 된다.
-    submitCleared(round) {
+    submitCleared(round: number) {
       const next = Math.max(read(), round + 1);
       storage.setItem(key, String(next));
       return next;

@@ -1,3 +1,21 @@
+export interface WeaponModel {
+  id: string;
+  name: string;
+  model: string;
+  format: 'glb' | 'fbx';
+  scale: number;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+}
+
+// 바주카는 무기 목록(weapons)에 안 들어가고 damage·price·image 도 없다 —
+// 상점에서 사고파는 대상이 아니라 항상 갖고 있는 별도 무기라서다.
+export interface Weapon extends WeaponModel {
+  damage: number;
+  price: number;
+  image: string;
+}
+
 export const CONFIG = {
   score: {
     baseHit: 100,
@@ -63,7 +81,7 @@ export const CONFIG = {
     weapon: {
       id: 'bazooka', name: '바주카포', model: '/models/bazooka.glb', format: 'glb',
       scale: 0.22552, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
-    },
+    } satisfies WeaponModel,
   },
   weapons: [
     {
@@ -93,7 +111,7 @@ export const CONFIG = {
       damage: 5, price: 6000, image: '/images/weapons/raygun.png',
       scale: 0.00211, position: { x: 0.4, y: -0.3, z: -0.7 }, rotation: { x: 0, y: 0, z: 0 },
     },
-  ],
+  ] satisfies Weapon[],
   highScoreStorageKey: 'shootshoot.highscore',
   settingsStorageKey: 'shootshoot.settings',
   currencyStorageKey: 'shootshoot.gold',

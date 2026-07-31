@@ -5,7 +5,7 @@ const ANGULAR_SWAY_AMPLITUDE = 0.038;
 const SWAY_FREQUENCY_PER_SPEED = 1.8;
 const GROUND_Y = -1.0;
 
-function partitionIntoLanes(count) {
+function partitionIntoLanes(count: number): number[] {
   if (count === 1) return [1];
   const remainder = count % 3;
   let threes = Math.floor(count / 3);
@@ -22,7 +22,7 @@ function partitionIntoLanes(count) {
   return sizes;
 }
 
-export function computeLaneLayout(monkeyCount, monkeySpeed, monkeyScale) {
+export function computeLaneLayout(monkeyCount: number, monkeySpeed: number, monkeyScale: number) {
   const laneSizes = partitionIntoLanes(monkeyCount);
   const laneCount = laneSizes.length;
   const frequency = SWAY_FREQUENCY_PER_SPEED * monkeySpeed;

@@ -3,11 +3,17 @@
 // 원숭이는 메시가 하나뿐이지만(raycastMesh 하나), 그 SkinnedMesh 하나가 레이 하나로도
 // 앞면 교차점을 여러 번 낼 수 있다(팔을 스치고 몸통에서 또 걸리는 식). 한 타워는
 // 상자 여러 개로 이뤄지므로 그쪽도 같은 이유로 각각 한 번만 담는다.
-export function partitionShotPath(entries) {
-  const monkeyIds = [];
-  const towerIndices = [];
-  const seenMonkeys = new Set();
-  const seenTowers = new Set();
+
+interface ShotPathEntry {
+  monkeyId?: string;
+  towerIndex?: number;
+}
+
+export function partitionShotPath(entries: ShotPathEntry[]) {
+  const monkeyIds: string[] = [];
+  const towerIndices: number[] = [];
+  const seenMonkeys = new Set<string>();
+  const seenTowers = new Set<number>();
 
   for (const entry of entries) {
     if (entry.monkeyId) {
@@ -31,21 +37,27 @@ export function partitionShotPath(entries) {
   return { monkeyIds, towerIndices };
 }
 
-export function resolveShot(sortedHits) {
+export function resolveShot<T>(sortedHits: T[]) {
   if (sortedHits.length === 0) {
-    return { isMiss: true, penetrationCount: 0, hits: [] };
+    return { isMiss: true, penetrationCount: 0, hits: [] as (T & { penetrationIndex: number })[] };
   }
   const hits = sortedHits.map((hit, index) => ({ ...hit, penetrationIndex: index }));
   return { isMiss: false, penetrationCount: hits.length, hits };
 }
 
-export function computeHitDamage(part, weaponDamage, config) {
+interface WeaponDamageConfig {
+  weaponDamage: {
+    headshotMultiplier: number;
+  };
+}
+
+export function computeHitDamage(part: string, weaponDamage: number, config: WeaponDamageConfig): number {
   return part === 'head' ? weaponDamage * config.weaponDamage.headshotMultiplier : weaponDamage;
 }
 
-export function resolveKillOutcome(shotOutcome, killedHits) {
+export function resolveKillOutcome<T>(shotOutcome: { isMiss: boolean }, killedHits: T[]) {
   if (shotOutcome.isMiss) {
-    return { isMiss: true, penetrationCount: 0, hits: [] };
+    return { isMiss: true, penetrationCount: 0, hits: [] as T[] };
   }
   return { isMiss: false, penetrationCount: killedHits.length, hits: killedHits };
 }

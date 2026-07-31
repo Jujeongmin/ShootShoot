@@ -22,7 +22,21 @@ const IMPACT_LIFT = 0.45;
 // 어긋남까지 감당해야 하는지가 이 값에 달려 있다.
 const SPIN_GAIN = 2.4;
 
-export function createDebrisBody({ position, rotation, velocity, spin, restY }) {
+interface Vector3Like {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface DebrisBodyParams {
+  position: Vector3Like;
+  rotation: Vector3Like;
+  velocity: Vector3Like;
+  spin: Vector3Like;
+  restY: number;
+}
+
+export function createDebrisBody({ position, rotation, velocity, spin, restY }: DebrisBodyParams) {
   const currentPosition = { x: position.x, y: position.y, z: position.z };
   const currentRotation = { x: rotation.x, y: rotation.y, z: rotation.z };
   const currentVelocity = { x: velocity.x, y: velocity.y, z: velocity.z };
@@ -30,7 +44,7 @@ export function createDebrisBody({ position, rotation, velocity, spin, restY }) 
   let resting = false;
 
   return {
-    step(dt) {
+    step(dt: number) {
       if (resting) return;
 
       currentVelocity.y -= GRAVITY * dt;
@@ -77,7 +91,7 @@ export function createDebrisBody({ position, rotation, velocity, spin, restY }) 
 }
 
 // 조각은 맞은 곳의 반대편으로 밀린다. 가까울수록 세게 난다.
-export function impactImpulse(pieceCenter, impactPoint, strength) {
+export function impactImpulse(pieceCenter: Vector3Like, impactPoint: Vector3Like, strength: number) {
   const dx = pieceCenter.x - impactPoint.x;
   const dy = pieceCenter.y - impactPoint.y;
   const dz = pieceCenter.z - impactPoint.z;

@@ -33,7 +33,7 @@ globalThis.URL.createObjectURL = () => '';
 const THREE = await import('three');
 const { FBXLoader } = await import('three/examples/jsm/loaders/FBXLoader.js');
 const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-const { CONFIG } = await import('../game/src/config.js');
+const { CONFIG } = await import('../game/src/config.ts');
 
 const OUT_DIR = 'game/public/images/weapons';
 const PUBLIC_DIR = 'game/public';

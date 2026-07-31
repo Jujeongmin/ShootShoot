@@ -1,8 +1,12 @@
-const DEFAULT_SETTINGS = { sensitivity: 1.0 };
+interface Settings {
+  sensitivity: number;
+}
 
-export function createSettingsStore(storage, key) {
+const DEFAULT_SETTINGS: Settings = { sensitivity: 1.0 };
+
+export function createSettingsStore(storage: Storage, key: string) {
   return {
-    get() {
+    get(): Settings {
       const raw = storage.getItem(key);
       if (raw === null) return { ...DEFAULT_SETTINGS };
       try {
@@ -13,7 +17,7 @@ export function createSettingsStore(storage, key) {
         return { ...DEFAULT_SETTINGS };
       }
     },
-    set(settings) {
+    set(settings: Settings) {
       storage.setItem(key, JSON.stringify(settings));
     },
   };
