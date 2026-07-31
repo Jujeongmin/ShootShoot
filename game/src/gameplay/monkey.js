@@ -10,6 +10,8 @@ const TAUNT_FREQUENCY = 10;
 // 1유닛 나아갈 때 걸음 위상이 도는 양(라디안). 최고속이 진폭 3 × 주기 0.9 ≈ 2.7유닛/초라서
 // 2.4면 초당 약 한 걸음 주기가 된다. 화면을 보고 맞출 값이다.
 const STRIDE_PER_UNIT = 2.4;
+// 다리 스윙 폭(라디안). 화면을 보고 맞출 값이다. 조준(FOV 9)해야 눈에 들어온다.
+const LEG_SWING = 0.35;
 // Calibrated against the SkinnedMesh's ANIMATED pose (not rest-pose): live-sampling the
 // idle clip's full loop found the reachable local Y range is about -81 to +28 (head/torso/
 // arms/legs; the tail is excluded as its bind-relative Y swings wildly and isn't a reliable
@@ -71,6 +73,12 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     }
   });
 
+  // 이 FBX에는 애니메이션 클립이 idle 하나뿐이라 걸음은 절차적으로 만든다.
+  // 이름이 없으면 다리 갱신을 건너뛴다.
+  const leftLeg = model.getObjectByName('b_Left_Leg01');
+  const rightLeg = model.getObjectByName('b_Right_Leg01');
+  const legs = leftLeg && rightLeg ? { left: leftLeg, right: rightLeg } : null;
+
   const baseColors = materials.map((material) => (material.color ? material.color.clone() : null));
 
   const hpBar = createHpBar();
@@ -122,6 +130,15 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
 
     // 시간이 아니라 나아간 거리로 걸음을 돌린다. 이래야 발이 안 미끄러진다.
     state.gaitPhase += motion.gaitDelta * STRIDE_PER_UNIT;
+  }
+
+  // 믹서가 클립 포즈를 쓴 뒤에 불러야 한다. 앞에서 부르면 클립이 덮어써서 사라진다.
+  // '=' 가 아니라 '+=' 라서 idle 클립의 숨쉬기가 살아있고 그 위에 걸음만 얹힌다.
+  function applyGait() {
+    if (!legs) return;
+    const swing = Math.sin(state.gaitPhase) * LEG_SWING;
+    legs.left.rotation.x += swing;
+    legs.right.rotation.x -= swing;
   }
 
   function updateHit(dt) {
@@ -190,6 +207,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
         updateHit(dt);
       } else {
         updateIdle(dt);
+        applyGait();
         if (state.isFlashing) {
           updateFlash(dt);
         }
