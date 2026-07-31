@@ -67,20 +67,33 @@ describe('createPatrol', () => {
     expect(still.sample(0, 0.016).taunt).toBe(0);
   });
 
-  it('reports full speed at top speed and zero at the patrol ends', () => {
+  it('keeps a full stride everywhere except the brief slowdown at each end', () => {
     const p = patrol();
-    expect(p.sample(0, 0.016).speed).toBeCloseTo(1, 10);
-    expect(p.sample(Math.PI, 0.016).speed).toBeCloseTo(1, 10);
-    expect(p.sample(Math.PI / 2, 0.016).speed).toBeCloseTo(0, 10);
-    expect(p.sample(Math.PI * 1.5, 0.016).speed).toBeCloseTo(0, 10);
+    expect(p.sample(0, 0.016).stride).toBeCloseTo(1, 10);
+    expect(p.sample(Math.PI, 0.016).stride).toBeCloseTo(1, 10);
+    // |cos| = 0.5 인 지점. 주기의 3분의 1이 이보다 느리므로, 다리 스윙을 생속도에
+    // 그대로 곱하면 그 3분의 1 내내 걸음이 죽어 "가끔 걷기 애니메이션이 안 나온다"가 된다.
+    expect(p.sample(Math.PI / 3, 0.016).stride).toBeCloseTo(1, 10);
+    expect(p.sample((Math.PI * 2) / 3, 0.016).stride).toBeCloseTo(1, 10);
   });
 
-  it('reports zero speed for a zero-amplitude monkey, never the raw speedNorm', () => {
+  it('eases the stride to zero at the patrol ends instead of cutting it', () => {
+    const p = patrol();
+    expect(p.sample(Math.PI / 2, 0.016).stride).toBeCloseTo(0, 10);
+    expect(p.sample(Math.PI * 1.5, 0.016).stride).toBeCloseTo(0, 10);
+    // 끝에 다가갈수록 단조 감소해야 한다. 뚝 끊기면 다리가 튄다.
+    const samples = [1.35, 1.45, 1.52, 1.56].map((t) => p.sample(t, 0.016).stride);
+    for (let i = 1; i < samples.length; i += 1) {
+      expect(samples[i]).toBeLessThan(samples[i - 1]);
+    }
+  });
+
+  it('reports zero stride for a zero-amplitude monkey, never the raw speed', () => {
     // amplitude 0인 원숭이는 speedNorm이 뭐든 실제로는 안 움직이므로,
-    // 다리 스윙이 speed에 곱해질 때 항상 0이어야 한다(굳은 자세 방지).
+    // 다리 스윙이 stride에 곱해질 때 항상 0이어야 한다(굳은 자세 방지).
     const still = createPatrol({ amplitude: 0, frequency: 1, phase: 0 });
     for (const t of [0, 0.5, Math.PI / 2, Math.PI, 4.2]) {
-      expect(still.sample(t, 0.016).speed).toBe(0);
+      expect(still.sample(t, 0.016).stride).toBe(0);
     }
   });
 

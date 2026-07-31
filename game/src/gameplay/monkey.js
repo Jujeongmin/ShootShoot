@@ -105,7 +105,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     elapsed: 0,
     hitElapsed: 0,
     gaitPhase: Math.random() * Math.PI * 2,
-    speed: 0,
+    stride: 0,
     dead: false,
     hp,
     maxHp: hp,
@@ -132,16 +132,18 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
 
     // 시간이 아니라 나아간 거리로 걸음을 돌린다. 이래야 발이 안 미끄러진다.
     state.gaitPhase += motion.gaitDelta * STRIDE_PER_UNIT;
-    state.speed = motion.speed;
+    state.stride = motion.stride;
   }
 
   // 믹서가 클립 포즈를 쓴 뒤에 불러야 한다. 앞에서 부르면 클립이 덮어써서 사라진다.
   // '=' 가 아니라 '+=' 라서 idle 클립의 숨쉬기가 살아있고 그 위에 걸음만 얹힌다.
-  // speed를 곱해야 한다 — 안 그러면 멈춘 원숭이도 gaitPhase 시드값만큼 다리가
+  // stride를 곱해야 한다 — 안 그러면 멈춘 원숭이도 gaitPhase 시드값만큼 다리가
   // 벌어진 채로 굳어버린다(타워 원숭이는 항상, 순찰 원숭이는 양 끝에서 잠깐).
+  // stride는 생속도가 아니라 순찰 끝에서만 0으로 떨어지는 곡선이다. 생속도를 쓰면
+  // 주기의 3분의 1 동안 스윙이 죽어 걷기 동작이 사라진 것처럼 보인다.
   function applyGait() {
     if (!legs) return;
-    const swing = Math.sin(state.gaitPhase) * LEG_SWING * state.speed;
+    const swing = Math.sin(state.gaitPhase) * LEG_SWING * state.stride;
     legs.left.rotation.x += swing;
     legs.right.rotation.x -= swing;
   }

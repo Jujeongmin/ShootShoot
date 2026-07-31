@@ -21,20 +21,26 @@ export function createPatrol({ amplitude, frequency, phase }) {
       const taunt = Math.max(0, 1 - speedNorm / FACE_THRESHOLD);
 
       // 타워 위 원숭이는 진폭이 0이다. 안 움직이니 몸을 틀 방향도 걸음도 없다.
-      // speed도 raw speedNorm이 아니라 0을 줘야 한다 — 실제로는 전혀 이동하지 않으므로
-      // 다리를 벌린 채 굳는 대신 idle 클립 포즈 그대로 서 있어야 한다.
+      // stride도 0이어야 한다 — 실제로 이동하지 않으므로, 다리를 벌린 채 굳는 대신
+      // idle 클립 포즈 그대로 서 있어야 한다.
       if (amplitude === 0) {
-        return { offsetX: 0, facing: 0, gaitDelta: 0, speed: 0, taunt };
+        return { offsetX: 0, facing: 0, gaitDelta: 0, stride: 0, taunt };
       }
 
-      const blend = Math.min(speedNorm / FACE_THRESHOLD, 1);
+      // 몸을 트는 정도와 다리를 흔드는 정도가 같은 곡선을 쓴다. 걸음이 온전한 구간에서
+      // 옆을 보고, 멈추는 순간에 정면으로 돌며 다리를 모은다.
+      //
+      // stride에 speedNorm을 그대로 쓰면 안 된다. |cos| < 0.5인 구간이 매 주기의
+      // 3분의 1이라, 다리 스윙 폭이 그만큼 오래 죽어 걷기 동작이 사라진 것처럼 보인다.
+      // 여기서 잘라 줘야 실제로 멈추는 순간에만 다리가 모인다.
+      const stride = Math.min(speedNorm / FACE_THRESHOLD, 1);
       const direction = cosine >= 0 ? 1 : -1;
 
       return {
         offsetX: Math.sin(angle) * amplitude,
-        facing: direction * RIGHT_FACING * blend,
+        facing: direction * RIGHT_FACING * stride,
         gaitDelta: speedNorm * amplitude * frequency * dt,
-        speed: speedNorm,
+        stride,
         taunt,
       };
     },

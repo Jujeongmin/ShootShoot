@@ -11,9 +11,13 @@ export const CONFIG = {
     monkeyCountIncreasePerRound: 1,
     maxMonkeyCount: 10,
     // 원숭이가 오가는 폭(laneLayout의 진폭)은 그대로 두고 속도만 늦춘다. 순찰이
-    // 보이게 된 뒤로는 좌우로 쓸려 다니는 것처럼 빨랐다.
-    baseMonkeySpeed: 0.35,
-    monkeySpeedIncreasePerRound: 0.05,
+    // 보이게 된 뒤로는 좌우로 쓸려 다니는 것처럼 빨랐다. 0.5에서 두 번 내린 값이다.
+    //
+    // 이 값이 도발 빈도까지 정한다는 점을 알고 있어야 한다. 도발은 순찰 끝에서만
+    // 나오고 순찰 주기가 2π/(1.8 × 속도)라, 0.25면 약 14초 주기에 끝이 7초마다다.
+    // 더 내리면 도발이 눈에 띄게 드물어진다.
+    baseMonkeySpeed: 0.25,
+    monkeySpeedIncreasePerRound: 0.035,
     baseMonkeyScale: 1.0,
     baseMonkeyHp: 1,
     roundsPerMonkeyHpIncrease: 2,
