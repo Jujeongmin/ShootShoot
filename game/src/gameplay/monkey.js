@@ -105,6 +105,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     elapsed: 0,
     hitElapsed: 0,
     gaitPhase: Math.random() * Math.PI * 2,
+    speed: 0,
     dead: false,
     hp,
     maxHp: hp,
@@ -124,19 +125,23 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     group.position.x = position.x + motion.offsetX;
 
     // 도발은 순찰 끝에서 플레이어를 보는 순간에만 나온다. taunt가 그때 1이라
-    // 별도의 타이머 없이 진행 방향 위에 얹기만 하면 된다.
-    const wobble = Math.sin(state.elapsed * TAUNT_FREQUENCY) * TAUNT_SWING * motion.taunt;
+    // 별도의 타이머 없이 진행 방향 위에 얹기만 하면 된다. phaseOffset을 더해야
+    // swayPhase가 같은 원숭이끼리(타워 두 마리 등) 도발이 완전히 겹치지 않는다.
+    const wobble = Math.sin(state.elapsed * TAUNT_FREQUENCY + state.phaseOffset) * TAUNT_SWING * motion.taunt;
     group.rotation.y = motion.facing + wobble;
 
     // 시간이 아니라 나아간 거리로 걸음을 돌린다. 이래야 발이 안 미끄러진다.
     state.gaitPhase += motion.gaitDelta * STRIDE_PER_UNIT;
+    state.speed = motion.speed;
   }
 
   // 믹서가 클립 포즈를 쓴 뒤에 불러야 한다. 앞에서 부르면 클립이 덮어써서 사라진다.
   // '=' 가 아니라 '+=' 라서 idle 클립의 숨쉬기가 살아있고 그 위에 걸음만 얹힌다.
+  // speed를 곱해야 한다 — 안 그러면 멈춘 원숭이도 gaitPhase 시드값만큼 다리가
+  // 벌어진 채로 굳어버린다(타워 원숭이는 항상, 순찰 원숭이는 양 끝에서 잠깐).
   function applyGait() {
     if (!legs) return;
-    const swing = Math.sin(state.gaitPhase) * LEG_SWING;
+    const swing = Math.sin(state.gaitPhase) * LEG_SWING * state.speed;
     legs.left.rotation.x += swing;
     legs.right.rotation.x -= swing;
   }
@@ -186,6 +191,9 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     state.isFlashing = false;
     setFlashColor(false);
     group.position.z = position.z;
+    // 순찰 중 도발로 틀어진 y축 회전을 지운다. 안 지우면 죽음 텀블이
+    // Rx·Ry·Rz 합성 때문에 옆으로 돌아간 몸에 걸려서 방향이 매번 달라진다.
+    group.rotation.y = 0;
     state.phase = 'hit';
     state.hitElapsed = 0;
     state.lastHitPart = part;

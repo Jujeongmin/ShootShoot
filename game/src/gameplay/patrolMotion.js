@@ -21,8 +21,10 @@ export function createPatrol({ amplitude, frequency, phase }) {
       const taunt = Math.max(0, 1 - speedNorm / FACE_THRESHOLD);
 
       // 타워 위 원숭이는 진폭이 0이다. 안 움직이니 몸을 틀 방향도 걸음도 없다.
+      // speed도 raw speedNorm이 아니라 0을 줘야 한다 — 실제로는 전혀 이동하지 않으므로
+      // 다리를 벌린 채 굳는 대신 idle 클립 포즈 그대로 서 있어야 한다.
       if (amplitude === 0) {
-        return { offsetX: 0, facing: 0, gaitDelta: 0, taunt };
+        return { offsetX: 0, facing: 0, gaitDelta: 0, speed: 0, taunt };
       }
 
       const blend = Math.min(speedNorm / FACE_THRESHOLD, 1);
@@ -32,6 +34,7 @@ export function createPatrol({ amplitude, frequency, phase }) {
         offsetX: Math.sin(angle) * amplitude,
         facing: direction * RIGHT_FACING * blend,
         gaitDelta: speedNorm * amplitude * frequency * dt,
+        speed: speedNorm,
         taunt,
       };
     },

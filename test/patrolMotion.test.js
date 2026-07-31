@@ -67,6 +67,23 @@ describe('createPatrol', () => {
     expect(still.sample(0, 0.016).taunt).toBe(0);
   });
 
+  it('reports full speed at top speed and zero at the patrol ends', () => {
+    const p = patrol();
+    expect(p.sample(0, 0.016).speed).toBeCloseTo(1, 10);
+    expect(p.sample(Math.PI, 0.016).speed).toBeCloseTo(1, 10);
+    expect(p.sample(Math.PI / 2, 0.016).speed).toBeCloseTo(0, 10);
+    expect(p.sample(Math.PI * 1.5, 0.016).speed).toBeCloseTo(0, 10);
+  });
+
+  it('reports zero speed for a zero-amplitude monkey, never the raw speedNorm', () => {
+    // amplitude 0인 원숭이는 speedNorm이 뭐든 실제로는 안 움직이므로,
+    // 다리 스윙이 speed에 곱해질 때 항상 0이어야 한다(굳은 자세 방지).
+    const still = createPatrol({ amplitude: 0, frequency: 1, phase: 0 });
+    for (const t of [0, 0.5, Math.PI / 2, Math.PI, 4.2]) {
+      expect(still.sample(t, 0.016).speed).toBe(0);
+    }
+  });
+
   it('respects the phase offset', () => {
     const shifted = createPatrol({ amplitude: AMPLITUDE, frequency: 1, phase: Math.PI / 2 });
     expect(shifted.sample(0, 0.016).offsetX).toBeCloseTo(AMPLITUDE, 10);
