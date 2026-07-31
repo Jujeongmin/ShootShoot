@@ -17,6 +17,10 @@ const GROUND_Y = -1.0;
 const CRATE_UNIT_HEIGHT = 0.9614;
 const CRATE_ORIGIN_TO_BOTTOM = 0.0119;
 const PILLAR_OFFSET_X = 0.8;
+// 기둥 한 개가 쌓는 상자 단수. addCratePillar의 반복 횟수와 pillarTopY 계산이
+// 서로 다른 곳에서 이 숫자를 따로 하드코딩하면, 단수를 바꿀 때 한쪽만 고쳐서
+// 발판과 원숭이가 상자보다 위나 아래에 떠 버릴 수 있다.
+const PILLAR_LEVELS = 2;
 const FLOOR_ROTATION_X = -Math.PI / 2;
 // tools/measure-tower-floor.mjs 실측값. 이전 값(0.7751)은 회전 전 z깊이를 그대로
 // "두께"로 썼는데, 실제로 눕히면 원점이 두께 중간이 아니라 걸쳐 있어서
@@ -27,8 +31,9 @@ const FLOOR_THICKNESS = 0.2943;
 const DEBRIS_IMPACT_STRENGTH = 26;
 // 조각이 멀리 날아가면 부서진 게 아니라 튕겨 나간 것처럼 보인다. 미는 세기는
 // 명중 방향으로 기울 만큼만 남기고 나머지는 중력에 맡겨 제자리에서 무너뜨린다.
-// 상자가 참호보다 조금 센 이유: 조각이 다섯이라 아예 안 밀면 같은 자리에 겹쳐
-// 쌓여 한 덩이로 뭉개진다 (조각끼리 충돌을 안 하므로).
+// 상자가 참호보다 조금 센 이유: 타워는 조각이 다섯, 통로는 아홉(그마저도 9.5
+// 폭에 흩어져 있다)이라 아예 안 밀면 같은 자리에 겹쳐 쌓여 한 덩이로 뭉개진다
+// (조각끼리 충돌을 안 하므로). 둘 다 이 값을 그대로 같이 쓴다.
 const TOWER_IMPACT_SCALE = 0.25;
 const TRENCH_IMPACT_SCALE = 0.12;
 // 멈출 때 바닥보다 이만큼 아래로 가라앉는다. 지면에 얹힌 게 아니라 파묻힌 잔해로
@@ -136,7 +141,7 @@ export function loadObstacles(scene) {
       // 상자 2단짜리 기둥 하나. 타워와 통로가 같은 높이여야 한 층으로 읽히므로
       // 두 곳이 이 함수를 같이 쓴다.
       function addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes }) {
-        for (let level = 0; level < 2; level++) {
+        for (let level = 0; level < PILLAR_LEVELS; level++) {
           const crateInstance = crateGltf.scene.clone();
           crateInstance.scale.set(CRATE_SCALE, CRATE_SCALE, CRATE_SCALE * CRATE_DEPTH_RATIO);
           crateInstance.position.set(
@@ -151,6 +156,17 @@ export function loadObstacles(scene) {
             pillarMeshes.push(object);
           });
         }
+      }
+
+      // 발판 한 장. 타워는 한 장, 통로는 세 장을 x만 바꿔 가며 이 함수로 만든다.
+      function addFloorPanel({ group, offsetX, pillarTopY }) {
+        const floor = sackTrenchGltf.scene.clone();
+        floor.scale.setScalar(SACK_TRENCH_SCALE);
+        floor.rotation.x = FLOOR_ROTATION_X;
+        floor.position.set(offsetX, pillarTopY, 0);
+        group.add(floor);
+        prepareInstance(floor);
+        return floor;
       }
 
       GROUND_PLACEMENTS.forEach((placement, trenchIndex) => {
@@ -191,13 +207,8 @@ export function loadObstacles(scene) {
           addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes });
         }
 
-        const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + 2 * CRATE_UNIT_HEIGHT;
-        const floor = sackTrenchGltf.scene.clone();
-        floor.scale.setScalar(SACK_TRENCH_SCALE);
-        floor.rotation.x = FLOOR_ROTATION_X;
-        floor.position.set(0, pillarTopY, 0);
-        group.add(floor);
-        prepareInstance(floor);
+        const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + PILLAR_LEVELS * CRATE_UNIT_HEIGHT;
+        const floor = addFloorPanel({ group, offsetX: 0, pillarTopY });
 
         towers.push({
           index: towerIndex,
@@ -235,20 +246,13 @@ export function loadObstacles(scene) {
         const pillarMeshes = [];
         const crateInstances = [];
         const floorInstances = [];
-        const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + 2 * CRATE_UNIT_HEIGHT;
+        const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + PILLAR_LEVELS * CRATE_UNIT_HEIGHT;
 
         for (let panel = 0; panel < WALKWAY_PANELS; panel++) {
           // 가운데를 0으로 두고 판 폭만큼씩 좌우로 민다.
           const offsetX = (panel - (WALKWAY_PANELS - 1) / 2) * WALKWAY_PANEL_WIDTH;
           addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes });
-
-          const floor = sackTrenchGltf.scene.clone();
-          floor.scale.setScalar(SACK_TRENCH_SCALE);
-          floor.rotation.x = FLOOR_ROTATION_X;
-          floor.position.set(offsetX, pillarTopY, 0);
-          group.add(floor);
-          floorInstances.push(floor);
-          prepareInstance(floor);
+          floorInstances.push(addFloorPanel({ group, offsetX, pillarTopY }));
         }
 
         towers.push({

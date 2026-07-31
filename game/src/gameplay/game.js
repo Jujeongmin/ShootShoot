@@ -447,12 +447,15 @@ export function createGame(container) {
       lastKillEffect.trigger();
     }
 
-    if (isPureTowerHit) {
+    // 통로 기둥 하나가 원숭이 둘을 같이 죽이면 isPureTowerHit이면서 penetrationCount도
+    // 2다. 콤보 판정을 기둥 판정보다 먼저 물어야 점수는 더블킬로 매기고 소리는
+    // 히트음만 내는 불일치가 안 생긴다.
+    if (effectiveOutcome.penetrationCount > 1) {
+      sfx.combo();
+    } else if (isPureTowerHit) {
       sfx.hit();
     } else if (effectiveOutcome.isMiss) {
       sfx.miss();
-    } else if (effectiveOutcome.penetrationCount > 1) {
-      sfx.combo();
     } else if (effectiveOutcome.hits[0]?.part === 'head') {
       sfx.headshot();
     } else {
