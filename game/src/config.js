@@ -10,8 +10,10 @@ export const CONFIG = {
     baseMonkeyCount: 3,
     monkeyCountIncreasePerRound: 1,
     maxMonkeyCount: 10,
-    baseMonkeySpeed: 0.5,
-    monkeySpeedIncreasePerRound: 0.08,
+    // 원숭이가 오가는 폭(laneLayout의 진폭)은 그대로 두고 속도만 늦춘다. 순찰이
+    // 보이게 된 뒤로는 좌우로 쓸려 다니는 것처럼 빨랐다.
+    baseMonkeySpeed: 0.35,
+    monkeySpeedIncreasePerRound: 0.05,
     baseMonkeyScale: 1.0,
     baseMonkeyHp: 1,
     roundsPerMonkeyHpIncrease: 2,
