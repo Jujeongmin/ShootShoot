@@ -77,8 +77,8 @@ export const CONFIG = {
     },
     // scale 은 띄워 보고 맞춘 값이 아니다. FBX 무기들의 배율이 모델 길이 때문에
     // 제각각이라(0.00061 ~ 0.00211) 길이가 비슷한 전기총 값에서 시작한다.
-    // 상점 그림 heavy.png 는 아직 없다. artwork() 가 깨진 이미지를 숨기므로
-    // 그림 자리만 비고 상점은 정상으로 뜬다.
+    // 상점 그림 heavy.png 는 아직 없다. shopPanel.js 가 로드 실패한 그림을 숨기므로
+    // heavy.png 를 굽기 전까지는 그림 자리만 비고 상점은 정상으로 뜬다.
     {
       id: 'heavy', name: '중화기', model: '/models/Rifle.fbx', format: 'fbx',
       damage: 4, price: 4000, image: '/images/weapons/heavy.png',

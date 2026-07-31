@@ -100,6 +100,9 @@ export function createShopPanel(container) {
     img.src = weapon.image;
     img.alt = weapon.name;
     img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+    // 무기 그림이 아직 없을 수 있다. 깨진 이미지 아이콘 대신 자리만 비운다.
+    // screens.js 의 artwork() 와 같은 처리다.
+    img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
     frame.appendChild(img);
     card.appendChild(frame);
 
