@@ -42,8 +42,8 @@ export function createHud(container: HTMLElement) {
   hintText.textContent = '메뉴로 나가기';
   hint.appendChild(hintText);
 
-  // score 와 streak 은 더 이상 표시하지 않는다. game.js 가 계속 보내오지만
-  // 화면에 남는 건 라운드뿐이다. 점수는 사격할 때 뜨는 팝업으로만 보인다.
+  // score 와 streak 은 더 이상 표시하지 않아서 받지도 않는다. 화면에 남는 건
+  // 라운드뿐이고, 점수는 사격할 때 뜨는 팝업으로만 보인다.
   function render({ round }: { round: number }) {
     roundValue.textContent = String(round);
   }

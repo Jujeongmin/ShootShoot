@@ -37,9 +37,27 @@ import { createLastKillEffect } from './lastKillEffect';
 import { createWeaponStore } from './weaponStore';
 import { computeBlastRadiusPx, findMonkeysInScreenBox, isPointInScreenBox } from './screenTargeting';
 import { createBazookaProjectiles } from './bazookaProjectile';
-import { CONFIG } from '../config';
+import { CONFIG, type WeaponModel } from '../config';
+import type { HitUserData } from './hitUserData';
+import type { Monkey } from './monkey';
 
-function worldToScreen(position, camera, container) {
+// 로딩이 끝나야 생기는 세 모듈의 타입. 각 모듈이 실제로 반환하는 모양을 그대로
+// 가져다 쓴다 — 손으로 옮겨 적으면 같은 목록이 두 벌이 된다.
+type TargetManager = ReturnType<typeof createTargetManager>;
+type WeaponViewmodel = Awaited<ReturnType<typeof loadWeaponViewmodel>>;
+type Obstacles = Awaited<ReturnType<typeof loadObstacles>>;
+type CapturedStructure = ReturnType<Obstacles['findStructuresInBox']>[number];
+
+// finishShot 은 일반 사격과 바주카 두 경로에서 불린다. 두 경로가 만드는 결과의
+// 공통분모만 적는다. isNeutral 은 구조물만 부순 발사에서만 붙으므로 선택 필드다.
+interface ShotSummary {
+  isMiss: boolean;
+  isNeutral?: boolean;
+  penetrationCount: number;
+  hits: { part: string }[];
+}
+
+function worldToScreen(position: THREE.Vector3, camera: THREE.Camera, container: HTMLElement) {
   const vector = position.clone().project(camera);
   const rect = container.getBoundingClientRect();
   return {
@@ -48,11 +66,11 @@ function worldToScreen(position, camera, container) {
   };
 }
 
-function clampToUnit(value) {
+function clampToUnit(value: number) {
   return Math.max(-1, Math.min(1, value));
 }
 
-export function createGame(container) {
+export function createGame(container: HTMLElement) {
   const engine = createEngine(container);
   const input = createInputController(engine.domElement);
   createWorld(engine.scene);
@@ -85,9 +103,12 @@ export function createGame(container) {
   const lastKillEffect = createLastKillEffect();
   const projectiles = createBazookaProjectiles(engine.scene);
 
-  let targetManager = null;
-  let weaponViewmodel = null;
-  let obstacles = null;
+  // 이 셋은 아래 start() 의 Promise.all 이 끝나야 채워진다. 그때까지 도는 것은
+  // tick 루프뿐이고 거기서는 if 로 막는다. 나머지 호출부는 전부 메뉴를 거쳐야
+  // 닿는데 메뉴는 로딩이 끝난 뒤에만 뜨므로, 그 자리에서는 null 이 아니다.
+  let targetManager: TargetManager | null = null;
+  let weaponViewmodel: WeaponViewmodel | null = null;
+  let obstacles: Obstacles | null = null;
   let phase = 'menu';
   let scoreState = createScoreState();
   // 이미 골드로 바꾼 점수. 라운드 정산은 score 와 이 값의 차이만 지급한다.
@@ -99,11 +120,11 @@ export function createGame(container) {
   let round = 1;
   let sensitivity = settingsStore.get().sensitivity;
   let settingsOpen = false;
-  let settingsOrigin = null;
+  let settingsOrigin: 'menu' | 'playing' | null = null;
   let aimApplied = false;
 
   const weaponStore = createWeaponStore(window.localStorage, CONFIG.weaponStorageKey);
-  let shopError = null;
+  let shopError: string | null = null;
   let shopOpen = false;
 
   function getEquippedWeapon() {
@@ -115,19 +136,19 @@ export function createGame(container) {
     return bazookaStore.getRounds() > 0 ? CONFIG.bazooka.weapon.id : getEquippedWeapon().id;
   }
 
-  function getBlastRadiusPx(rect) {
+  function getBlastRadiusPx(rect: DOMRect) {
     return computeBlastRadiusPx(rect.height, CONFIG.bazooka.blastScreenRatio);
   }
 
-  function beginRound(roundNumber) {
+  function beginRound(roundNumber: number) {
     round = roundNumber;
-    obstacles.reset();
-    targetManager.spawnRound(roundNumber);
+    obstacles!.reset();
+    targetManager!.spawnRound(roundNumber);
   }
 
   // 시작 라운드는 부르는 쪽이 정한다 — 이어하기는 도달 라운드를, 라운드 선택은
   // 고른 라운드를, 새 게임은 1을 넘긴다.
-  function startGame(round) {
+  function startGame(round: number) {
     projectiles.clear();
     scoreState = createScoreState();
     settledScore = 0;
@@ -176,7 +197,7 @@ export function createGame(container) {
     roundSelect.show(progressStore.getReachedRound(), pickRound, closeRoundSelect);
   }
 
-  function pickRound(round) {
+  function pickRound(round: number) {
     roundSelect.hide();
     startGame(round);
   }
@@ -193,7 +214,7 @@ export function createGame(container) {
     settingsOpen = false;
     settingsOrigin = null;
     phase = 'gameover';
-    targetManager.clear();
+    targetManager!.clear();
     projectiles.clear();
     const previousHighScore = highScoreStore.get();
     const highScore = highScoreStore.submit(scoreState.score);
@@ -201,15 +222,13 @@ export function createGame(container) {
     screens.showGameOver({ score: scoreState.score, highScore, isNewHighScore }, returnToMenu);
   }
 
+  // HUD 개편 이후 화면에 남는 건 라운드뿐이다. score·streak 은 여기서 보내도
+  // 버려지므로 보내지 않는다 — 정산과 게임오버 화면이 scoreState 를 직접 읽는다.
   function updateHud() {
-    hud.render({
-      score: scoreState.score,
-      streak: scoreState.streak,
-      round,
-    });
+    hud.render({ round });
   }
 
-  function handleSensitivityChange(value) {
+  function handleSensitivityChange(value: number) {
     sensitivity = value;
     settingsStore.set({ sensitivity });
   }
@@ -269,7 +288,7 @@ export function createGame(container) {
     shopPanel.show(buildShopState(), shopHandlers);
   }
 
-  function buyWeapon(id) {
+  function buyWeapon(id: string) {
     shopError = null;
     const weapon = CONFIG.weapons.find((entry) => entry.id === id);
     if (!weapon || weaponStore.isOwned(id)) return;
@@ -278,7 +297,7 @@ export function createGame(container) {
     refreshShop();
   }
 
-  function equipWeapon(id) {
+  function equipWeapon(id: string) {
     shopError = null;
     const weapon = CONFIG.weapons.find((entry) => entry.id === id);
     const previousId = weaponStore.getEquipped();
@@ -309,7 +328,7 @@ export function createGame(container) {
     refreshShop();
   }
 
-  function swapWeaponViewmodel(weapon) {
+  function swapWeaponViewmodel(weapon: WeaponModel) {
     return loadWeaponViewmodel(engine.camera, weapon).then((next) => {
       if (weaponViewmodel) weaponViewmodel.dispose();
       weaponViewmodel = next;
@@ -430,10 +449,10 @@ export function createGame(container) {
   // 붕괴로 죽은 원숭이들을 반환한다. 통로처럼 한 구조물에 여럿이 서 있으면 전부 죽는다.
   // 점수는 여기서 더하지 않고 호출부가 일반 사격과 같은 경로(killedHits)로 계산한다 —
   // 구조물 자체는 점수를 주지 않는다.
-  function applyTowerCollapse(hitTowerIndex, impactPoint, burstColor) {
-    obstacles.collapseStructure({ kind: 'tower', index: hitTowerIndex, impactPoint });
+  function applyTowerCollapse(hitTowerIndex: number, impactPoint?: THREE.Vector3, burstColor?: number) {
+    obstacles!.collapseStructure({ kind: 'tower', index: hitTowerIndex, impactPoint });
     const kills = [];
-    for (const monkey of targetManager.findMonkeysAtTower(hitTowerIndex)) {
+    for (const monkey of targetManager!.findMonkeysAtTower(hitTowerIndex)) {
       if (monkey.isDying()) continue;
       const worldPos = monkey.getWorldPosition();
       if (!monkey.kill()) continue;
@@ -443,8 +462,18 @@ export function createGame(container) {
     return kills;
   }
 
-  function finishShot({ effectiveOutcome, gained, popupWorldPosition, isPureTowerHit }) {
-    if (!effectiveOutcome.isMiss && !effectiveOutcome.isNeutral && !targetManager.hasAliveMonkeys()) {
+  function finishShot({
+    effectiveOutcome,
+    gained,
+    popupWorldPosition,
+    isPureTowerHit,
+  }: {
+    effectiveOutcome: ShotSummary;
+    gained: number;
+    popupWorldPosition: THREE.Vector3 | null;
+    isPureTowerHit: boolean;
+  }) {
+    if (!effectiveOutcome.isMiss && !effectiveOutcome.isNeutral && !targetManager!.hasAliveMonkeys()) {
       lastKillEffect.trigger();
     }
 
@@ -471,15 +500,17 @@ export function createGame(container) {
     updateHud();
   }
 
-  function handleWeaponShot(intersections) {
+  function handleWeaponShot(intersections: THREE.Intersection[]) {
     // 부위 판정에는 교차점이 필요한데 멈춤 규칙은 그걸 안 본다. 규칙은 순수 함수에
     // 맡기고, 여기서는 원숭이마다 가장 가까운 교차점만 따로 챙겨 둔다. 멈추는 지점을
     // 아직 모르니 교차 전체를 훑지만, 아래에서는 partitionShotPath가 돌려준 monkeyIds로만
     // 조회하므로 참호가 멈춘 지점 너머에 담긴 항목은 절대 읽히지 않는다.
-    const firstPointByMonkey = new Map();
-    const firstPointByTower = new Map();
+    const firstPointByMonkey = new Map<string, THREE.Vector3>();
+    const firstPointByTower = new Map<number, THREE.Vector3>();
     const entries = intersections.map((intersection) => {
-      const { monkeyId, towerIndex } = intersection.object.userData;
+      // three 의 userData 는 any 라 심는 쪽과 읽는 쪽이 문자열 키로만 통한다.
+      // 선언해 둔 모양을 씌워 읽는다.
+      const { monkeyId, towerIndex }: HitUserData = intersection.object.userData;
       if (monkeyId && !firstPointByMonkey.has(monkeyId)) {
         firstPointByMonkey.set(monkeyId, intersection.point);
       }
@@ -493,9 +524,11 @@ export function createGame(container) {
 
     const hits = [];
     for (const monkeyId of monkeyIds) {
-      const monkey = targetManager.findMonkey(monkeyId);
+      const monkey = targetManager!.findMonkey(monkeyId);
       if (!monkey) continue;
-      hits.push({ monkeyId, part: monkey.classifyHit(firstPointByMonkey.get(monkeyId)) });
+      // monkeyIds 는 바로 위 entries 에서 나오고, 그 루프가 monkeyId 가 있는
+      // 항목마다 firstPointByMonkey 를 함께 채웠다. 그래서 여기서 비어 있을 수 없다.
+      hits.push({ monkeyId, part: monkey.classifyHit(firstPointByMonkey.get(monkeyId)!) });
     }
 
     const outcome = resolveShot(hits);
@@ -506,11 +539,11 @@ export function createGame(container) {
     // 나왔으면서 +점수는 살아있는 원숭이 위에 뜬다. 그래서 직격은 실제로 죽였을 때만
     // popupWorldPosition을 차지하고, 죽은 원숭이가 하나도 없을 때만 첫 피격 지점으로
     // 되돌아간다(이 경우는 어차피 점수가 0이라 팝업 자체가 안 뜬다).
-    let popupWorldPosition = null;
-    let firstDamagedWorldPosition = null;
+    let popupWorldPosition: THREE.Vector3 | null = null;
+    let firstDamagedWorldPosition: THREE.Vector3 | null = null;
     const killedHits = [];
     for (const hit of outcome.hits) {
-      const monkey = targetManager.findMonkey(hit.monkeyId);
+      const monkey = targetManager!.findMonkey(hit.monkeyId);
       if (!monkey) continue;
       const worldPos = monkey.getWorldPosition();
       if (!firstDamagedWorldPosition) firstDamagedWorldPosition = worldPos.clone();
@@ -554,7 +587,17 @@ export function createGame(container) {
     });
   }
 
-  function resolveBazookaImpact({ impactPoint, captured, capturedStructures, hitTowerIndex }) {
+  function resolveBazookaImpact({
+    impactPoint,
+    captured,
+    capturedStructures,
+    hitTowerIndex,
+  }: {
+    impactPoint: THREE.Vector3;
+    captured: Monkey[];
+    capturedStructures: CapturedStructure[];
+    hitTowerIndex: number | null;
+  }) {
     effects.spawnExplosion(impactPoint);
     sfx.explosion();
 
@@ -562,7 +605,7 @@ export function createGame(container) {
     if (phase !== 'playing') return;
 
     const killedHits = [];
-    let popupWorldPosition = null;
+    let popupWorldPosition: THREE.Vector3 | null = null;
 
     // 직접 맞힌 타워와 상자 안에 들어온 구조물을 합쳐서 중복 없이 무너뜨린다.
     const structures = [...capturedStructures];
@@ -579,7 +622,7 @@ export function createGame(container) {
         continue;
       }
       // 폭심에서 밀려나야 한다. structure 는 { kind, index } 뿐이라 명중점을 얹어 넘긴다.
-      obstacles.collapseStructure({ ...structure, impactPoint });
+      obstacles!.collapseStructure({ ...structure, impactPoint });
     }
 
     for (const monkey of captured) {
@@ -608,11 +651,11 @@ export function createGame(container) {
     });
   }
 
-  function handleBazookaShot(intersections) {
-    const first = intersections[0];
-    const hitTowerIndex = first && first.object.userData.towerIndex !== undefined
-      ? first.object.userData.towerIndex
-      : null;
+  function handleBazookaShot(intersections: THREE.Intersection[]) {
+    const first: THREE.Intersection | undefined = intersections[0];
+    const firstUserData: HitUserData | undefined = first?.object.userData;
+    // towerIndex 는 0 일 수 있어서 참/거짓으로 보면 첫 타워가 빠진다.
+    const hitTowerIndex = firstUserData?.towerIndex !== undefined ? firstUserData.towerIndex : null;
 
     // 아무것도 안 맞아도 포탄은 날아간다. 원숭이 대열 부근(maxRange)에서 터진다.
     const impactPoint = first
@@ -623,12 +666,12 @@ export function createGame(container) {
     const rect = container.getBoundingClientRect();
     const blastRadiusPx = getBlastRadiusPx(rect);
     const captured = findMonkeysInScreenBox(
-      targetManager.getMonkeys(),
+      targetManager!.getMonkeys(),
       engine.camera,
       rect,
       blastRadiusPx
     );
-    const capturedStructures = obstacles.findStructuresInBox((point) =>
+    const capturedStructures = obstacles!.findStructuresInBox((point) =>
       isPointInScreenBox(point, engine.camera, rect, blastRadiusPx)
     );
 
@@ -652,12 +695,12 @@ export function createGame(container) {
     // 그 상태로 쏘면 카메라가 확대 전 FOV라 판정 범위가 훨씬 넓어지므로 무시한다.
     if (!aimApplied) return;
     sfx.shoot();
-    weaponViewmodel.triggerRecoil();
-    raycaster.setFromCamera({ x: 0, y: 0 }, engine.camera);
+    weaponViewmodel!.triggerRecoil();
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), engine.camera);
     const raycastTargets = [
-      ...targetManager.getRaycastMeshes(),
-      ...obstacles.getBlockingMeshes(),
-      ...obstacles.getPillarMeshes(),
+      ...targetManager!.getRaycastMeshes(),
+      ...obstacles!.getBlockingMeshes(),
+      ...obstacles!.getPillarMeshes(),
     ];
     const intersections = raycaster.intersectObjects(raycastTargets, false);
 
@@ -668,7 +711,7 @@ export function createGame(container) {
     }
 
     reload.start();
-    weaponViewmodel.triggerReload(CONFIG.reload.seconds);
+    weaponViewmodel!.triggerReload(CONFIG.reload.seconds);
     tutorial.handle('shotFired');
   }
 
@@ -732,7 +775,7 @@ export function createGame(container) {
 
       if (phase === 'playing' && !settingsOpen) {
         updateHud();
-        if (targetManager.allCleared() && !projectiles.hasPending()) {
+        if (targetManager!.allCleared() && !projectiles.hasPending()) {
           tutorial.handle('roundCleared');
           if (tutorial.isDone()) tutorialStore.markDone();
           // 골드 정산과 같은 순간에 진행도를 남긴다. 브라우저를 그냥 닫아도

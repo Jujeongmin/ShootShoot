@@ -40,7 +40,9 @@ export function isPointInScreenBox(worldPoint: Vector3Like, camera: unknown, rec
   return Math.abs(x - centerX) <= radiusPx && Math.abs(y - centerY) <= radiusPx;
 }
 
-export function findMonkeysInScreenBox(monkeys: TargetableMonkey[], camera: unknown, rect: ScreenRect, radiusPx: number) {
+// 넘긴 원숭이를 그대로 골라 돌려준다. 제네릭이 아니면 반환값이 여기서 요구하는
+// 최소 모양(TargetableMonkey)으로 좁아져서, 부르는 쪽이 kill()·id 를 다시 못 쓴다.
+export function findMonkeysInScreenBox<T extends TargetableMonkey>(monkeys: T[], camera: unknown, rect: ScreenRect, radiusPx: number): T[] {
   return monkeys.filter((monkey) => {
     if (monkey.isDying()) return false;
     return isPointInScreenBox(monkey.getCenterWorldPosition(), camera, rect, radiusPx);
