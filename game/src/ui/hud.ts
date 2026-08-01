@@ -1,4 +1,4 @@
-import { TOKENS } from './kit';
+import type { PopupTone } from './scorePopupTone';
 
 // game.js 의 round 는 1 에서 시작하고 startGame 이 beginRound(1) 로 되돌린다.
 // render 는 플레이 중에만 불리므로, 메뉴에서 보일 값은 이 초기값이다.
@@ -53,20 +53,24 @@ export function createHud(container: HTMLElement) {
     hint.style.display = visible ? 'block' : 'none';
   }
 
-  function showScorePopup(text: string, clientX: number, clientY: number) {
+  // 톤별로 더 붙는 클래스. 헤드샷은 브래킷을 두르고 관통은 아래 눈금 줄을 쓴다 —
+  // 같은 장식을 두 뜻으로 쓰지 않는다.
+  const TONE_CLASS: Record<PopupTone, string> = {
+    normal: '',
+    head: 'k-score-popup--head k-bracket',
+    combo: 'k-score-popup--combo',
+  };
+
+  function showScorePopup(text: string, clientX: number, clientY: number, tone: PopupTone = 'normal') {
     const popup = document.createElement('div');
     popup.textContent = text;
-    popup.style.cssText = `
-      position: absolute; left: ${clientX}px; top: ${clientY}px; transform: translate(-50%, -50%);
-      color: ${TOKENS.face}; font-family: 'Kenney Future Narrow', sans-serif; font-weight: bold;
-      font-size: 24px; pointer-events: none;
-      text-shadow: 0 2px 0 ${TOKENS.deep}, 0 1px 4px rgba(0,0,0,0.8);
-      transition: transform 0.6s ease-out, opacity 0.6s ease-out; z-index: 15;
-    `;
+    popup.className = `k-score-popup ${TONE_CLASS[tone]}`.trim();
+    // 맞은 자리는 매번 다르므로 위치만 인라인이다. 나머지 모양은 전부 CSS다.
+    popup.style.left = `${clientX}px`;
+    popup.style.top = `${clientY}px`;
     container.appendChild(popup);
     requestAnimationFrame(() => {
-      popup.style.transform = 'translate(-50%, -120%)';
-      popup.style.opacity = '0';
+      popup.classList.add('k-score-popup--rise');
     });
     setTimeout(() => popup.remove(), 650);
   }

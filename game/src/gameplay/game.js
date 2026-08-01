@@ -23,6 +23,7 @@ import { loadWeaponViewmodel } from './weaponViewmodel';
 import { loadObstacles } from './obstacles';
 import { sfx, resumeAudio } from '../audio/sfx';
 import { createHud } from '../ui/hud';
+import { scorePopupTone } from '../ui/scorePopupTone';
 import { createTutorialPrompt } from '../ui/tutorialPrompt';
 import { createScreens } from '../ui/screens';
 import { createScopeOverlay } from '../ui/scopeOverlay';
@@ -464,7 +465,7 @@ export function createGame(container) {
 
     if (!effectiveOutcome.isMiss && popupWorldPosition && gained > 0) {
       const screenPos = worldToScreen(popupWorldPosition, engine.camera, container);
-      hud.showScorePopup(`+${gained}`, screenPos.x, screenPos.y);
+      hud.showScorePopup(`+${gained}`, screenPos.x, screenPos.y, scorePopupTone(effectiveOutcome));
     }
 
     updateHud();
