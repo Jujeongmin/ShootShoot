@@ -13,7 +13,7 @@ const GROUND_Y = -1.0;
 const KEEL_TOP_RADIUS = 12;
 const KEEL_HEIGHT = 14;
 
-export function createWorld(scene) {
+export function createWorld(scene: THREE.Scene) {
   scene.background = new THREE.Color(0x87ceeb);
   // fog 색이 배경색과 같아서 far 를 넘긴 것은 흐려지는 게 아니라 통째로 사라진다.
   // 하늘 장식(skyDecor.js)이 그 far 안쪽에 다 들어가야 한다.

@@ -5,13 +5,35 @@ const PARTICLE_LIFETIME = 0.5;
 const EXPLOSION_PARTICLE_COUNT = 30;
 const EXPLOSION_LIFETIME = 0.9;
 
-export function createEffects(scene) {
-  const bursts = [];
+interface Particle {
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+}
 
-  function spawnBurst({ position, color, count, radius, minSpeed, speedRange, lifetime }) {
+interface Burst {
+  group: THREE.Group;
+  particles: Particle[];
+  elapsed: number;
+  lifetime: number;
+}
+
+interface BurstParams {
+  position: THREE.Vector3;
+  color: number;
+  count: number;
+  radius: number;
+  minSpeed: number;
+  speedRange: number;
+  lifetime: number;
+}
+
+export function createEffects(scene: THREE.Scene) {
+  const bursts: Burst[] = [];
+
+  function spawnBurst({ position, color, count, radius, minSpeed, speedRange, lifetime }: BurstParams) {
     const group = new THREE.Group();
     const material = new THREE.MeshBasicMaterial({ color });
-    const particles = [];
+    const particles: Particle[] = [];
     for (let i = 0; i < count; i++) {
       const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 4, 4), material);
       mesh.position.copy(position);
@@ -28,7 +50,7 @@ export function createEffects(scene) {
     bursts.push({ group, particles, elapsed: 0, lifetime });
   }
 
-  function spawnHitBurst(position, color = 0xffdd55) {
+  function spawnHitBurst(position: THREE.Vector3, color = 0xffdd55) {
     spawnBurst({
       position,
       color,
@@ -40,7 +62,7 @@ export function createEffects(scene) {
     });
   }
 
-  function spawnExplosion(position, color = 0xff8800) {
+  function spawnExplosion(position: THREE.Vector3, color = 0xff8800) {
     spawnBurst({
       position,
       color,
@@ -52,7 +74,7 @@ export function createEffects(scene) {
     });
   }
 
-  function update(dt) {
+  function update(dt: number) {
     for (let i = bursts.length - 1; i >= 0; i--) {
       const burst = bursts[i];
       burst.elapsed += dt;

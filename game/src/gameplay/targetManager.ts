@@ -1,16 +1,30 @@
-import { createMonkey } from './monkey';
+import * as THREE from 'three';
+import { createMonkey, type Monkey } from './monkey';
 import { getRoundParams } from './difficulty';
 import { computeLaneLayout } from './laneLayout';
 import { allocateMonkeys } from './monkeyAllocation';
+import type { loadMonkeyModel } from './monkeyModel';
+import type { StructureSlot } from './obstacles';
 
 // 원숭이를 놓을 때 지면보다 이만큼 내린다. 레인 원숭이와 타워 위 원숭이 모두에
 // 같이 적용되도록 배치 지점 한 곳에서만 뺀다.
 const MONKEY_DROP = 0;
 
-export function createTargetManager(scene, config, monkeyModel, towerSlots) {
-  let monkeys = [];
+// getRoundParams가 실제로 받는 모양 그대로를 가져다 쓴다 — RoundConfig를
+// difficulty.ts에서 따로 export하지 않아도 된다.
+type RoundConfig = Parameters<typeof getRoundParams>[1];
+// loadMonkeyModel이 실제로 반환하는 모양 그대로를 가져다 쓴다.
+type MonkeyModel = Awaited<ReturnType<typeof loadMonkeyModel>>;
+
+export function createTargetManager(
+  scene: THREE.Scene,
+  config: RoundConfig,
+  monkeyModel: MonkeyModel,
+  towerSlots: StructureSlot[]
+) {
+  let monkeys: Monkey[] = [];
   let nextId = 0;
-  let towerMonkeyIds = new Map();
+  let towerMonkeyIds = new Map<number, string[]>();
 
   function clear() {
     for (const monkey of monkeys) {
@@ -21,7 +35,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     towerMonkeyIds = new Map();
   }
 
-  function spawnRound(roundNumber) {
+  function spawnRound(roundNumber: number) {
     clear();
     const params = getRoundParams(roundNumber, config);
 
@@ -74,7 +88,7 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     return params;
   }
 
-  function update(dt) {
+  function update(dt: number) {
     for (const monkey of monkeys) monkey.update(dt);
     monkeys = monkeys.filter((monkey) => {
       if (monkey.isDead()) {
@@ -90,16 +104,16 @@ export function createTargetManager(scene, config, monkeyModel, towerSlots) {
     return monkeys.flatMap((monkey) => monkey.getRaycastMeshes());
   }
 
-  function findMonkey(id) {
+  function findMonkey(id: string) {
     return monkeys.find((monkey) => monkey.id === id);
   }
 
   // 통로처럼 한 구조물에 여럿이 서 있을 수 있다. 죽어서 이미 목록에서 빠진 id는
   // 걸러낸다 — 붕괴가 죽는 연출 도중에 또 들어올 수 있다.
-  function findMonkeysAtTower(towerIndex) {
+  function findMonkeysAtTower(towerIndex: number) {
     const ids = towerMonkeyIds.get(towerIndex);
     if (!ids) return [];
-    return ids.map((id) => findMonkey(id)).filter((monkey) => monkey !== undefined);
+    return ids.map((id) => findMonkey(id)).filter((monkey): monkey is Monkey => monkey !== undefined);
   }
 
   function allCleared() {

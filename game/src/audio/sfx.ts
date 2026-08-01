@@ -1,6 +1,18 @@
-const audioCtx = typeof window !== 'undefined' ? new (window.AudioContext || window.webkitAudioContext)() : null;
+// webkitAudioContext는 구형 Safari를 위한 접두사 이름이라 lib.dom.d.ts에 없다.
+// window에 없는 프로퍼티이므로 단언 없이는 접근할 수 없다.
+const AudioContextCtor =
+  window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+const audioCtx: AudioContext | null = typeof window !== 'undefined' ? new AudioContextCtor() : null;
 
-function playTone({ frequency, frequencyEnd, duration, type = 'sine', gain = 0.2 }) {
+interface ToneParams {
+  frequency: number;
+  frequencyEnd?: number;
+  duration: number;
+  type?: OscillatorType;
+  gain?: number;
+}
+
+function playTone({ frequency, frequencyEnd, duration, type = 'sine', gain = 0.2 }: ToneParams) {
   if (!audioCtx) return;
   const oscillator = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();

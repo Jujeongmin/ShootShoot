@@ -1,6 +1,56 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createDebrisBody, impactImpulse } from './debris';
+import type { HitUserData } from './hitUserData';
+
+// 원숭이가 올라설 수 있는 자리 하나. targetManager가 이 슬롯 배열을 받아
+// 타워/통로 위에 원숭이를 앉힌다.
+export interface StructureSlot {
+  x: number;
+  y: number;
+  z: number;
+  towerIndex: number;
+  sway: { amplitude: number; frequencyPerSpeed: number; phase: number };
+}
+
+type StructureKind = 'tower' | 'trench';
+
+// 붕괴 애니메이션이 굴리는 조각 하나. makePiece가 만들고 startCollapse/
+// advanceCollapse/resetStructure가 같이 다룬다.
+interface Piece {
+  object: THREE.Object3D;
+  materials: THREE.Material[];
+  homeParent: THREE.Object3D | null;
+  homePosition: THREE.Vector3;
+  homeQuaternion: THREE.Quaternion;
+  restOffset: number;
+  centerOffsetY: number;
+  body: ReturnType<typeof createDebrisBody> | null;
+  restedFor: number;
+  settled: boolean;
+}
+
+// 타워와 통로(참호 포함)가 붕괴 로직에서 공유하는 필드. 타워/통로에는
+// pillarMeshes·monkeySlots가, 참호에는 meshes가 따로 붙는다.
+interface Structure {
+  index: number;
+  group: THREE.Group;
+  pieces: Piece[];
+  impactScale: number;
+  sinkDepth: number;
+  center: THREE.Vector3;
+  collapsing: boolean;
+  collapsed: boolean;
+}
+
+interface Tower extends Structure {
+  pillarMeshes: THREE.Object3D[];
+  monkeySlots: StructureSlot[];
+}
+
+interface Trench extends Structure {
+  meshes: THREE.Object3D[];
+}
 
 const CRATE_URL = '/models/crate.glb';
 const SACK_TRENCH_URL = '/models/sack-trench.glb';
@@ -82,15 +132,15 @@ const WALKWAY_SWAY_FREQUENCY_PER_SPEED = 1.8;
 // 기존 구조물보다 앞에 세워 앞 겹으로 읽히게 한다. 눈대중 값이다.
 const WALKWAY_PLACEMENTS = [{ x: 0, z: -67 }];
 
-function collectMaterials(object, materials) {
+function collectMaterials(object: THREE.Mesh, materials: THREE.Material[]) {
   const mats = Array.isArray(object.material) ? object.material : [object.material];
   materials.push(...mats);
 }
 
 // 인스턴스마다 머티리얼을 복제해야 한 구조물이 부서질 때 나머지가 같이 투명해지지 않는다.
-function prepareInstance(instance, onMesh) {
+function prepareInstance(instance: THREE.Object3D, onMesh?: (object: THREE.Mesh) => void) {
   instance.traverse((object) => {
-    if (!object.isMesh) return;
+    if (!(object instanceof THREE.Mesh)) return;
     object.material = Array.isArray(object.material)
       ? object.material.map((material) => material.clone())
       : object.material.clone();
@@ -101,15 +151,15 @@ function prepareInstance(instance, onMesh) {
 }
 
 // 조각 하나를 기록한다. 붕괴가 시작되면 이 오브젝트가 그룹에서 떨어져 나와 혼자 움직인다.
-function makePiece(object) {
+function makePiece(object: THREE.Object3D): Piece {
   object.updateWorldMatrix(true, true);
   const box = new THREE.Box3().setFromObject(object);
   const worldPosition = new THREE.Vector3();
   object.getWorldPosition(worldPosition);
 
-  const materials = [];
+  const materials: THREE.Material[] = [];
   object.traverse((child) => {
-    if (child.isMesh) collectMaterials(child, materials);
+    if (child instanceof THREE.Mesh) collectMaterials(child, materials);
   });
 
   return {
@@ -130,17 +180,29 @@ function makePiece(object) {
   };
 }
 
-export function loadObstacles(scene) {
+export function loadObstacles(scene: THREE.Scene) {
   const loader = new GLTFLoader();
   return Promise.all([loader.loadAsync(CRATE_URL), loader.loadAsync(SACK_TRENCH_URL)]).then(
     ([crateGltf, sackTrenchGltf]) => {
-      const towers = [];
+      const towers: Tower[] = [];
 
-      const trenches = [];
+      const trenches: Trench[] = [];
 
       // 상자 2단짜리 기둥 하나. 타워와 통로가 같은 높이여야 한 층으로 읽히므로
       // 두 곳이 이 함수를 같이 쓴다.
-      function addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes }) {
+      function addCratePillar({
+        group,
+        offsetX,
+        towerIndex,
+        crateInstances,
+        pillarMeshes,
+      }: {
+        group: THREE.Group;
+        offsetX: number;
+        towerIndex: number;
+        crateInstances: THREE.Object3D[];
+        pillarMeshes: THREE.Object3D[];
+      }) {
         for (let level = 0; level < PILLAR_LEVELS; level++) {
           const crateInstance = crateGltf.scene.clone();
           crateInstance.scale.set(CRATE_SCALE, CRATE_SCALE, CRATE_SCALE * CRATE_DEPTH_RATIO);
@@ -152,14 +214,22 @@ export function loadObstacles(scene) {
           group.add(crateInstance);
           crateInstances.push(crateInstance);
           prepareInstance(crateInstance, (object) => {
-            object.userData = { towerIndex };
+            object.userData = { towerIndex } satisfies HitUserData;
             pillarMeshes.push(object);
           });
         }
       }
 
       // 발판 한 장. 타워는 한 장, 통로는 세 장을 x만 바꿔 가며 이 함수로 만든다.
-      function addFloorPanel({ group, offsetX, pillarTopY }) {
+      function addFloorPanel({
+        group,
+        offsetX,
+        pillarTopY,
+      }: {
+        group: THREE.Group;
+        offsetX: number;
+        pillarTopY: number;
+      }) {
         const floor = sackTrenchGltf.scene.clone();
         floor.scale.setScalar(SACK_TRENCH_SCALE);
         floor.rotation.x = FLOOR_ROTATION_X;
@@ -178,7 +248,7 @@ export function loadObstacles(scene) {
         instance.scale.setScalar(SACK_TRENCH_SCALE);
         group.add(instance);
 
-        const meshes = [];
+        const meshes: THREE.Object3D[] = [];
         prepareInstance(instance, (object) => meshes.push(object));
 
         trenches.push({
@@ -200,8 +270,8 @@ export function loadObstacles(scene) {
         group.position.set(placement.x, 0, placement.z);
         scene.add(group);
 
-        const pillarMeshes = [];
-        const crateInstances = [];
+        const pillarMeshes: THREE.Object3D[] = [];
+        const crateInstances: THREE.Object3D[] = [];
 
         for (const offsetX of [-PILLAR_OFFSET_X, PILLAR_OFFSET_X]) {
           addCratePillar({ group, offsetX, towerIndex, crateInstances, pillarMeshes });
@@ -243,9 +313,9 @@ export function loadObstacles(scene) {
         group.position.set(placement.x, 0, placement.z);
         scene.add(group);
 
-        const pillarMeshes = [];
-        const crateInstances = [];
-        const floorInstances = [];
+        const pillarMeshes: THREE.Object3D[] = [];
+        const crateInstances: THREE.Object3D[] = [];
+        const floorInstances: THREE.Object3D[] = [];
         const pillarTopY = GROUND_Y + CRATE_ORIGIN_TO_BOTTOM + PILLAR_LEVELS * CRATE_UNIT_HEIGHT;
 
         for (let panel = 0; panel < WALKWAY_PANELS; panel++) {
@@ -284,7 +354,7 @@ export function loadObstacles(scene) {
 
       // 명중점을 못 받은 경우. 구조물 중심보다 카메라 쪽을 때린 걸로 쳐서 조각이
       // 카메라 반대편으로 밀리게 한다.
-      function defaultImpactPoint(structure) {
+      function defaultImpactPoint(structure: Structure) {
         return new THREE.Vector3(
           structure.center.x,
           structure.center.y,
@@ -292,7 +362,7 @@ export function loadObstacles(scene) {
         );
       }
 
-      function startCollapse(structure, impactPoint) {
+      function startCollapse(structure: Structure, impactPoint?: THREE.Vector3) {
         structure.collapsing = true;
         const impact = impactPoint ?? defaultImpactPoint(structure);
 
@@ -323,7 +393,7 @@ export function loadObstacles(scene) {
         }
       }
 
-      function advanceCollapse(structure, dt) {
+      function advanceCollapse(structure: Structure, dt: number) {
         if (!structure.collapsing || structure.collapsed) return;
 
         let allGone = true;
@@ -384,12 +454,12 @@ export function loadObstacles(scene) {
         if (allGone) structure.collapsed = true;
       }
 
-      function update(dt) {
+      function update(dt: number) {
         for (const tower of towers) advanceCollapse(tower, dt);
         for (const trench of trenches) advanceCollapse(trench, dt);
       }
 
-      function resetStructure(structure) {
+      function resetStructure(structure: Structure) {
         structure.collapsing = false;
         structure.collapsed = false;
         structure.group.visible = true;
@@ -401,7 +471,8 @@ export function loadObstacles(scene) {
           piece.settled = false;
           // 조각이 scene 밑으로 나가 있다. 원래 부모로 돌려놓고 저장해 둔 로컬
           // 변환을 그대로 씌운다 — attach 가 월드를 보존하려 들기 때문에 덮어야 한다.
-          piece.homeParent.attach(piece.object);
+          // homeParent는 makePiece가 부를 당시의 부모를 그대로 기록한 값이라 null일 수 없다.
+          piece.homeParent!.attach(piece.object);
           piece.object.position.copy(piece.homePosition);
           piece.object.quaternion.copy(piece.homeQuaternion);
           piece.object.visible = true;
@@ -417,7 +488,7 @@ export function loadObstacles(scene) {
         for (const trench of trenches) resetStructure(trench);
       }
 
-      function listOf(kind) {
+      function listOf(kind: StructureKind): Structure[] {
         if (kind === 'tower') return towers;
         if (kind === 'trench') return trenches;
         return [];
@@ -435,8 +506,8 @@ export function loadObstacles(scene) {
         getTowerSlots() {
           return towers.flatMap((tower) => tower.monkeySlots);
         },
-        findStructuresInBox(isInBox) {
-          const found = [];
+        findStructuresInBox(isInBox: (point: THREE.Vector3) => boolean) {
+          const found: Array<{ kind: StructureKind; index: number }> = [];
           towers.forEach((tower) => {
             if (!tower.collapsing && isInBox(tower.center)) {
               found.push({ kind: 'tower', index: tower.index });
@@ -449,7 +520,15 @@ export function loadObstacles(scene) {
           });
           return found;
         },
-        collapseStructure({ kind, index, impactPoint }) {
+        collapseStructure({
+          kind,
+          index,
+          impactPoint,
+        }: {
+          kind: StructureKind;
+          index: number;
+          impactPoint?: THREE.Vector3;
+        }) {
           const structure = listOf(kind).find((s) => s.index === index);
           if (!structure || structure.collapsing) return;
           startCollapse(structure, impactPoint);

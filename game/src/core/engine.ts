@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export function createEngine(container) {
+export function createEngine(container: HTMLElement) {
   const scene = new THREE.Scene();
   // far 는 하늘 장식(skyDecor.js)의 가장 먼 요소가 잘리지 않을 만큼 잡는다.
   const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1400);
@@ -16,7 +16,7 @@ export function createEngine(container) {
 
   let running = false;
   let lastTime = 0;
-  let tickCallback = null;
+  let tickCallback: ((dt: number, elapsed: number) => void) | null = null;
 
   function resize() {
     camera.aspect = container.clientWidth / container.clientHeight;
@@ -25,7 +25,7 @@ export function createEngine(container) {
   }
   window.addEventListener('resize', resize);
 
-  function loop(time) {
+  function loop(time: number) {
     if (!running) return;
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
@@ -39,7 +39,7 @@ export function createEngine(container) {
     camera,
     renderer,
     domElement: renderer.domElement,
-    start(onTick) {
+    start(onTick: (dt: number, elapsed: number) => void) {
       tickCallback = onTick;
       running = true;
       lastTime = performance.now();
@@ -48,7 +48,7 @@ export function createEngine(container) {
     stop() {
       running = false;
     },
-    setFov(fov) {
+    setFov(fov: number) {
       camera.fov = fov;
       camera.updateProjectionMatrix();
     },

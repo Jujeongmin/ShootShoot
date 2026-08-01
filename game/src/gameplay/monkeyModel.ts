@@ -6,9 +6,14 @@ const MODEL_URL = '/textures/Monkey_animated/monkey.FBX';
 const MODEL_SCALE = 0.01;
 const RECENTER_OFFSET = { x: 0.0432, y: 0.0053, z: 0.2513 };
 
-let cachedModelPromise = null;
+interface MonkeyModel {
+  template: THREE.Group;
+  clip: THREE.AnimationClip;
+}
 
-export function loadMonkeyModel() {
+let cachedModelPromise: Promise<MonkeyModel> | null = null;
+
+export function loadMonkeyModel(): Promise<MonkeyModel> {
   if (!cachedModelPromise) {
     const loader = new FBXLoader();
     cachedModelPromise = loader.loadAsync(MODEL_URL).then((fbx) => {
@@ -18,10 +23,10 @@ export function loadMonkeyModel() {
   return cachedModelPromise;
 }
 
-export function cloneMonkeyModel(template) {
+export function cloneMonkeyModel(template: THREE.Object3D) {
   const cloned = cloneSkeleton(template);
   cloned.traverse((child) => {
-    if (child.isMesh) {
+    if (child instanceof THREE.Mesh) {
       child.material = Array.isArray(child.material)
         ? child.material.map((m) => m.clone())
         : child.material.clone();

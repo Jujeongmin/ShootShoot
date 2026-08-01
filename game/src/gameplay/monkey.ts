@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { cloneMonkeyModel } from './monkeyModel';
 import { createPatrol } from './patrolMotion';
+import type { HitUserData } from './hitUserData';
 
 const HIT_ANIMATION_DURATION = 0.6;
 const BOB_HEIGHT = 0.06;
@@ -31,7 +32,14 @@ function createHpBar() {
   const canvas = document.createElement('canvas');
   canvas.width = HP_BAR_CANVAS_WIDTH;
   canvas.height = HP_BAR_CANVAS_HEIGHT;
-  const context = canvas.getContext('2d');
+  const canvasContext = canvas.getContext('2d');
+  // 브라우저 캔버스가 2d 컨텍스트를 못 만드는 경우는 사실상 없지만, 타입상
+  // null이 가능하므로 한 번 확인하고 넘긴다. draw 안에서 다시 좁혀지지 않도록
+  // 확인이 끝난 값을 별도 이름으로 잡아 둔다.
+  if (!canvasContext) {
+    throw new Error('2D 캔버스 컨텍스트를 가져오지 못했다.');
+  }
+  const context: CanvasRenderingContext2D = canvasContext;
   const texture = new THREE.CanvasTexture(canvas);
   const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
   const sprite = new THREE.Sprite(material);
@@ -40,7 +48,7 @@ function createHpBar() {
   sprite.visible = false;
   sprite.renderOrder = 999;
 
-  function draw(current, max) {
+  function draw(current: number, max: number) {
     const ratio = Math.max(0, current) / max;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = 'rgba(0,0,0,0.65)';
@@ -53,7 +61,30 @@ function createHpBar() {
   return { sprite, draw, dispose: () => { texture.dispose(); material.dispose(); } };
 }
 
-export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip, sway = {}, hp = 1 }) {
+interface Sway {
+  amplitude?: number;
+  frequency?: number;
+  phase?: number;
+}
+
+interface CreateMonkeyParams {
+  id: string;
+  position: { x: number; y: number; z: number };
+  scale?: number;
+  speed?: number;
+  template: THREE.Object3D;
+  clip?: THREE.AnimationClip;
+  sway?: Sway;
+  hp?: number;
+}
+
+// material.color는 기본 Material에 없고 실제로 쓰는 서브타입(MeshPhongMaterial 등)에만
+// 있다. FBX가 어떤 구체 타입을 물어올지 모르므로, 존재 여부로 좁혀서 쓴다.
+function hasColor(material: THREE.Material): material is THREE.Material & { color: THREE.Color } {
+  return 'color' in material;
+}
+
+export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip, sway = {}, hp = 1 }: CreateMonkeyParams) {
   const group = new THREE.Group();
   group.position.set(position.x, position.y, position.z);
   group.scale.setScalar(scale);
@@ -61,13 +92,13 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
   const model = cloneMonkeyModel(template);
   group.add(model);
 
-  let raycastMesh = null;
-  const materials = [];
+  let raycastMesh: THREE.Mesh | null = null;
+  const materials: THREE.Material[] = [];
   model.traverse((child) => {
-    if (child.isMesh) {
+    if (child instanceof THREE.Mesh) {
       raycastMesh = child;
       child.castShadow = true;
-      child.userData = { monkeyId: id };
+      child.userData = { monkeyId: id } satisfies HitUserData;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       materials.push(...mats);
     }
@@ -79,7 +110,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
   const rightLeg = model.getObjectByName('b_Right_Leg01');
   const legs = leftLeg && rightLeg ? { left: leftLeg, right: rightLeg } : null;
 
-  const baseColors = materials.map((material) => (material.color ? material.color.clone() : null));
+  const baseColors = materials.map((material) => (hasColor(material) ? material.color.clone() : null));
 
   const hpBar = createHpBar();
   group.add(hpBar.sprite);
@@ -99,7 +130,20 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     phase: swayPhase,
   });
 
-  const state = {
+  const state: {
+    phase: 'idle' | 'hit';
+    phaseOffset: number;
+    elapsed: number;
+    hitElapsed: number;
+    gaitPhase: number;
+    stride: number;
+    dead: boolean;
+    hp: number;
+    maxHp: number;
+    isFlashing: boolean;
+    flashElapsed: number;
+    lastHitPart?: string;
+  } = {
     phase: 'idle',
     phaseOffset: Math.random() * Math.PI * 2,
     elapsed: 0,
@@ -113,7 +157,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     flashElapsed: 0,
   };
 
-  function updateIdle(dt) {
+  function updateIdle(dt: number) {
     state.elapsed += dt;
 
     // 위로만 흔들리게 한다. 대칭으로 흔들면 절반의 시간 동안 발이 지면을 파고들어
@@ -148,7 +192,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     legs.right.rotation.x -= swing;
   }
 
-  function updateHit(dt) {
+  function updateHit(dt: number) {
     state.hitElapsed += dt;
     const t = Math.min(state.hitElapsed / HIT_ANIMATION_DURATION, 1);
     group.position.y = position.y + t * 1.5;
@@ -165,9 +209,9 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     }
   }
 
-  function setFlashColor(active) {
+  function setFlashColor(active: boolean) {
     materials.forEach((material, index) => {
-      if (!material.color) return;
+      if (!hasColor(material)) return;
       if (active) {
         material.color.setHex(FLASH_COLOR);
       } else if (baseColors[index]) {
@@ -176,7 +220,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     });
   }
 
-  function updateFlash(dt) {
+  function updateFlash(dt: number) {
     state.flashElapsed += dt;
     const t = Math.min(state.flashElapsed / FLASH_DURATION, 1);
     group.position.z = position.z - (1 - t) * FLINCH_DISTANCE;
@@ -187,7 +231,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     }
   }
 
-  function startDeath(part) {
+  function startDeath(part: string) {
     state.hp = 0;
     hpBar.sprite.visible = false;
     state.isFlashing = false;
@@ -207,11 +251,12 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     getRaycastMeshes() {
       return raycastMesh ? [raycastMesh] : [];
     },
-    classifyHit(worldPoint) {
-      const local = raycastMesh.worldToLocal(worldPoint.clone());
+    classifyHit(worldPoint: THREE.Vector3) {
+      // 레이캐스트로 명중했을 때만 불리므로 raycastMesh가 이미 채워져 있다.
+      const local = raycastMesh!.worldToLocal(worldPoint.clone());
       return local.y > HEAD_CUTOFF_LOCAL_Y ? 'head' : 'body';
     },
-    update(dt) {
+    update(dt: number) {
       mixer.update(dt);
       if (state.phase === 'hit') {
         updateHit(dt);
@@ -223,7 +268,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
         }
       }
     },
-    damage(amount, part) {
+    damage(amount: number, part: string) {
       if (state.phase === 'hit') return false;
       state.hp -= amount;
       if (state.hp <= 0) {
@@ -261,3 +306,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     },
   };
 }
+
+// createMonkey가 반환하는 객체 리터럴에서 메서드 목록을 그대로 뽑아낸다. 손으로
+// 나열하면 같은 목록이 두 벌이 되어 한쪽을 고칠 때 다른 쪽을 잊기 쉽다.
+export type Monkey = ReturnType<typeof createMonkey>;

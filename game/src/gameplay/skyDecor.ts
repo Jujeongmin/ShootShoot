@@ -66,7 +66,7 @@ const BIRD_FLAP_ANGLE = 0.5;
 // 배치가 판마다 바뀌면 육안 확인이 무의미해진다.
 const SKY_SEED = 20260729;
 
-function randomBetween(random, min, max) {
+function randomBetween(random: () => number, min: number, max: number) {
   return min + random() * (max - min);
 }
 
@@ -74,7 +74,7 @@ function randomBetween(random, min, max) {
 // 낱개 구로 안 보인다. 지오메트리는 단위 구 하나를 공유하고 반지름은
 // 메시 스케일로 표현한다 — 퍼프마다 지오메트리를 새로 만들면 겹치는
 // 이 함수 호출 수만큼(구름 14개 x 퍼프 4~6개) GPU 리소스가 낭비된다.
-function buildCloud(random, material, puffGeometry) {
+function buildCloud(random: () => number, material: THREE.Material, puffGeometry: THREE.BufferGeometry) {
   const cloud = new THREE.Group();
   const puffCount = Math.round(randomBetween(random, CLOUD_PUFF_MIN, CLOUD_PUFF_MAX));
   // 구름을 뒤로 밀면 그만큼 작아 보인다. 화면에서 차지하는 크기를 유지하려고
@@ -96,7 +96,7 @@ function buildCloud(random, material, puffGeometry) {
 
 // 지금 섬과 같은 모양(윗면 + 아래로 뻗은 용골)이되 훨씬 크게 잡는다. 같은
 // 크기로 두면 그 거리에서 점으로 사라진다.
-function buildDistantIsland(random, topMaterial, keelMaterial) {
+function buildDistantIsland(random: () => number, topMaterial: THREE.Material, keelMaterial: THREE.Material) {
   const island = new THREE.Group();
   const width = randomBetween(random, DISTANT_ISLAND_WIDTH_MIN, DISTANT_ISLAND_WIDTH_MAX);
   const depth = width * randomBetween(random, 0.5, 0.9);
@@ -117,7 +117,7 @@ function buildDistantIsland(random, topMaterial, keelMaterial) {
 // 삼각형 한 장이 날개 하나다. 뿌리를 원점에 두어야 rotation.z 로 접었다 펼 수
 // 있으므로 정점을 그렇게 잡는다. 좌우 두 모양뿐이므로 새마다 다시 만들지
 // 않고 새 5마리가 지오메트리 2개를 공유한다.
-function buildWingGeometry(mirrored) {
+function buildWingGeometry(mirrored: boolean) {
   const tipX = mirrored ? -BIRD_WING_SPAN : BIRD_WING_SPAN;
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
@@ -130,16 +130,18 @@ function buildWingGeometry(mirrored) {
   return geometry;
 }
 
-function buildBird(material, wingGeometryLeft, wingGeometryRight) {
+function buildBird(material: THREE.Material, wingGeometryLeft: THREE.BufferGeometry, wingGeometryRight: THREE.BufferGeometry) {
   const group = new THREE.Group();
   const left = new THREE.Mesh(wingGeometryLeft, material);
   const right = new THREE.Mesh(wingGeometryRight, material);
   group.add(left);
   group.add(right);
-  return { group, left, right };
+  // offsetX/offsetY/flapPhase는 createSkyDecor의 대형 배치 루프가 곧바로 채운다.
+  // 그 전까지는 아무 데도 읽히지 않는 자리표시 값이다.
+  return { group, left, right, offsetX: 0, offsetY: 0, flapPhase: 0 };
 }
 
-export function createSkyDecor(scene) {
+export function createSkyDecor(scene: THREE.Scene) {
   const random = createSeededRandom(SKY_SEED);
   const root = new THREE.Group();
   scene.add(root);
@@ -155,7 +157,7 @@ export function createSkyDecor(scene) {
   const wingGeometryLeft = buildWingGeometry(false);
   const wingGeometryRight = buildWingGeometry(true);
 
-  const clouds = [];
+  const clouds: THREE.Group[] = [];
   for (let i = 0; i < CLOUD_COUNT; i += 1) {
     const cloud = buildCloud(random, cloudMaterial, puffGeometry);
     cloud.position.set(
@@ -190,7 +192,7 @@ export function createSkyDecor(scene) {
   // 훨씬 커져서 무작위로 흩어진 다섯 마리로 보인다.
   const flockAltitude = randomBetween(random, BIRD_Y_MIN, BIRD_Y_MAX);
 
-  const birds = [];
+  const birds: ReturnType<typeof buildBird>[] = [];
   for (let i = 0; i < BIRD_COUNT; i += 1) {
     const bird = buildBird(birdMaterial, wingGeometryLeft, wingGeometryRight);
     // 가운데를 0 으로 두고 양옆으로 벌어진다. 화면 세로축(y)은 lateral 에
@@ -212,7 +214,7 @@ export function createSkyDecor(scene) {
   let flapPhase = 0;
 
   return {
-    update(dt) {
+    update(dt: number) {
       for (const cloud of clouds) {
         cloud.position.x = driftWrapped(
           cloud.position.x,
@@ -238,7 +240,7 @@ export function createSkyDecor(scene) {
       // 해제하지 않도록 걸러내고, 아래에서 한 번씩만 해제한다.
       root.traverse((child) => {
         if (
-          child.isMesh &&
+          child instanceof THREE.Mesh &&
           child.geometry !== puffGeometry &&
           child.geometry !== wingGeometryLeft &&
           child.geometry !== wingGeometryRight
