@@ -1,6 +1,6 @@
 import type { PopupTone } from './scorePopupTone';
 
-// game.js 의 round 는 1 에서 시작하고 startGame 이 beginRound(1) 로 되돌린다.
+// game.ts 의 round 는 1 에서 시작하고 startGame 이 beginRound(1) 로 되돌린다.
 // render 는 플레이 중에만 불리므로, 메뉴에서 보일 값은 이 초기값이다.
 const INITIAL_ROUND = '1';
 

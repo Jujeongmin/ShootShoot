@@ -109,7 +109,7 @@ export function createGame(container: HTMLElement) {
   let targetManager: TargetManager | null = null;
   let weaponViewmodel: WeaponViewmodel | null = null;
   let obstacles: Obstacles | null = null;
-  let phase = 'menu';
+  let phase: 'menu' | 'playing' | 'gameover' = 'menu';
   let scoreState = createScoreState();
   // 이미 골드로 바꾼 점수. 라운드 정산은 score 와 이 값의 차이만 지급한다.
   let settledScore = 0;
@@ -166,7 +166,7 @@ export function createGame(container: HTMLElement) {
   }
 
   // 최고점수만 남기고 전부 지운다. 스토어들은 호출할 때마다 localStorage 를 다시
-  // 읽지만 장착 무기 모델은 game.js 가 이미 로드해 들고 있다. 새로고침 한 줄이
+  // 읽지만 장착 무기 모델은 game.ts 가 이미 로드해 들고 있다. 새로고침 한 줄이
   // 무기 재장착·HUD 갱신을 손으로 배선하는 것보다 확실하다.
   function wipeAndRestart() {
     clearGameData(window.localStorage, dataKeysToClear(CONFIG));

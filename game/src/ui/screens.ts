@@ -4,8 +4,9 @@ const BAZOOKA_MAX_ROUNDS = 5;
 // game/thumb.html 로 뽑는다. 아직 없어도 카드는 뜨고 그림 자리만 비운다.
 const BAZOOKA_IMAGE = '/images/weapons/bazooka.png';
 
-// showMenu(state, handlers)의 계약. game.js가 game.ts가 되는 Task 5 전까지는
-// 호출부가 아직 없으므로, 여기서 쓰는 필드만 좁게 적어 둔다.
+// showMenu(state, handlers)의 계약. 호출부는 game.ts의 buildMenuState()이고 타입도
+// 이미 붙어 있지만, game.ts가 이 파일을 가져오는 쪽이라 거꾸로 가져오면 순환 참조가
+// 생긴다. 그래서 여기서 쓰는 필드만 좁게 다시 적어 둔다.
 interface MenuState {
   gold: number;
   damageLevel: number;
