@@ -213,16 +213,28 @@
   object-fit: contain;
 }
 
-/* 라운드 표시. 프레임 없이 3D 장면 위에 바로 놓이므로 외곽선 그림자로 띄운다. */
+/* 라운드 표시. 프레임 없이 3D 장면 위에 바로 놓이므로 외곽선 그림자로 띄운다.
+   양옆 막대는 라벨을 계기 눈금처럼 보이게 한다. flex라 글자 폭이 바뀌어도
+   막대가 따라 움직인다. */
 .k-round-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   font-family: var(--k-font);
   font-size: 14px;
   font-weight: bold;
   letter-spacing: 2px;
   color: var(--k-grey);
-  text-align: center;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
   margin-bottom: 2px;
+}
+.k-round-label::before,
+.k-round-label::after {
+  content: '';
+  width: 14px;
+  height: 2px;
+  background: var(--k-shadow);
 }
 
 .k-round {
@@ -234,6 +246,38 @@
     0 3px 0 var(--k-deep),
     0 0 3px rgba(0, 0, 0, 0.9),
     0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+/* 라운드 숫자와 헤드샷 점수 팝업이 같이 쓴다. 의사 요소 둘로 [ 와 ] 를 그린다 —
+   세 변만 그리고 안쪽 변을 지우는 방식이라 요소를 안 늘린다.
+
+   치수가 em인 이유: 44px 라운드 숫자와 26px 팝업이 같은 클래스를 쓴다. px로 박으면
+   둘 중 하나에서 브래킷 비율이 어긋난다. 테두리 두께만 2px 고정인데, 선은 굵기로
+   읽혀야 해서 작은 쪽에서 얇아지면 흐려 보인다.
+
+   position: relative 는 의사 요소의 기준을 만든다. 이 규칙보다 뒤에 오는 규칙이
+   position 을 덮어써도(팝업은 absolute 다) 기준은 여전히 생기므로 문제없다. */
+.k-bracket {
+  position: relative;
+  display: inline-block;
+  padding: 0 0.32em;
+}
+.k-bracket::before,
+.k-bracket::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.2em;
+  border: 2px solid var(--k-face);
+}
+.k-bracket::before {
+  left: 0;
+  border-right: none;
+}
+.k-bracket::after {
+  right: 0;
+  border-left: none;
 }
 
 /* 아이콘 버튼은 크기가 고정이라 9-slice가 필요 없다. 원형 스프라이트는 9-slice로

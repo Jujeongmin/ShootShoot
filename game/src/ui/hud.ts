@@ -8,7 +8,7 @@ export function createHud(container: HTMLElement) {
   const el = document.createElement('div');
   el.style.cssText = `
     position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-    pointer-events: none; z-index: 21;
+    pointer-events: none; z-index: 21; text-align: center;
   `;
   container.appendChild(el);
 
@@ -19,7 +19,7 @@ export function createHud(container: HTMLElement) {
   el.appendChild(roundLabel);
 
   const roundValue = document.createElement('div');
-  roundValue.className = 'k-num k-round';
+  roundValue.className = 'k-num k-round k-bracket';
   roundValue.textContent = INITIAL_ROUND;
   el.appendChild(roundValue);
 
