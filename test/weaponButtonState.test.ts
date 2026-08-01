@@ -1,18 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { weaponButtonState } from '../game/src/ui/weaponButtonState';
 
-interface FakeWeapon {
-  id: string;
-  name: string;
-  image: string;
-  damage: number;
-  price: number;
-  owned: boolean;
-  equipped: boolean;
-}
+// weaponButtonState가 실제로 받는 매개변수 타입을 그대로 뽑아 쓴다. 이러면
+// weaponButtonState.ts의 OwnedWeapon 필드가 바뀔 때 이 테스트도 같이 깨진다.
+type FakeWeapon = Parameters<typeof weaponButtonState>[0];
 
 function weapon(overrides: Partial<FakeWeapon>): FakeWeapon {
-  return { id: 'basic', name: '기본총', image: '/images/basic.png', damage: 1, price: 100, owned: false, equipped: false, ...overrides };
+  return { price: 100, owned: false, equipped: false, ...overrides };
 }
 
 describe('weaponButtonState', () => {

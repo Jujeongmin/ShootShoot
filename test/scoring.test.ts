@@ -7,6 +7,7 @@ import {
   createHighScoreStore,
 } from '../game/src/gameplay/scoring';
 import { CONFIG } from '../game/src/config';
+import { createMemoryStorage } from './helpers/memoryStorage';
 
 describe('calculateShotScore', () => {
   it('awards base hit score for a single body hit with no streak', () => {
@@ -112,28 +113,6 @@ describe('settlementGold', () => {
 });
 
 describe('createHighScoreStore', () => {
-  // 실제 Storage 인터페이스 전체(length, clear, key, removeItem 포함)를 갖춰야
-  // createHighScoreStore(storage: Storage, ...)에 그대로 넘길 수 있다.
-  function createMemoryStorage(): Storage {
-    const map = new Map<string, string>();
-    return {
-      getItem: (key: string) => (map.has(key) ? (map.get(key) as string) : null),
-      setItem: (key: string, value: string) => {
-        map.set(key, value);
-      },
-      removeItem: (key: string) => {
-        map.delete(key);
-      },
-      clear: () => {
-        map.clear();
-      },
-      key: (index: number) => Array.from(map.keys())[index] ?? null,
-      get length() {
-        return map.size;
-      },
-    };
-  }
-
   it('returns 0 when nothing stored', () => {
     const store = createHighScoreStore(createMemoryStorage(), 'test.key');
     expect(store.get()).toBe(0);

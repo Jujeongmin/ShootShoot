@@ -1,28 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateOfflineGold, createLastSeenStore } from '../game/src/gameplay/offlineReward';
 import { CONFIG } from '../game/src/config';
-
-// 실제 Storage 인터페이스 전체(length, clear, key, removeItem 포함)를 갖춰야
-// createLastSeenStore(storage: Storage, ...)에 그대로 넘길 수 있다.
-function createMemoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    getItem: (key: string) => (map.has(key) ? (map.get(key) as string) : null),
-    setItem: (key: string, value: string) => {
-      map.set(key, value);
-    },
-    removeItem: (key: string) => {
-      map.delete(key);
-    },
-    clear: () => {
-      map.clear();
-    },
-    key: (index: number) => Array.from(map.keys())[index] ?? null,
-    get length() {
-      return map.size;
-    },
-  };
-}
+import { createMemoryStorage } from './helpers/memoryStorage';
 
 describe('calculateOfflineGold', () => {
   it('returns 0 for zero or negative elapsed time', () => {

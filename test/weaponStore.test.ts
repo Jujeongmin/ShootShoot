@@ -1,27 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createWeaponStore } from '../game/src/gameplay/weaponStore';
-
-// 실제 Storage 인터페이스 전체(length, clear, key, removeItem 포함)를 갖춰야
-// createWeaponStore(storage: Storage, ...)에 그대로 넘길 수 있다.
-function createMemoryStorage(initial?: Record<string, string>): Storage {
-  const map = new Map<string, string>(initial ? Object.entries(initial) : []);
-  return {
-    getItem: (key: string) => (map.has(key) ? (map.get(key) as string) : null),
-    setItem: (key: string, value: string) => {
-      map.set(key, value);
-    },
-    removeItem: (key: string) => {
-      map.delete(key);
-    },
-    clear: () => {
-      map.clear();
-    },
-    key: (index: number) => Array.from(map.keys())[index] ?? null,
-    get length() {
-      return map.size;
-    },
-  };
-}
+import { createMemoryStorage } from './helpers/memoryStorage';
 
 describe('createWeaponStore', () => {
   it('defaults to owning and equipping only the basic weapon', () => {
