@@ -11,9 +11,9 @@ interface ReticleStyle {
   centerShape: 'dot' | 'diamond';
 }
 
-// heavy 무기(config.ts)는 아직 조준선이 없다 — Record 로 두면 컴파일러가 모든
-// 무기 id에 스타일이 있다고 믿어 DEFAULT_STYLE 로의 폴백이 죽은 코드처럼 보인다.
-// Partial 로 열어 두어 heavy 같은 미등록 id 는 undefined 로 잡히고 ?? 폴백이 산다.
+// Partial 인 이유 — config.ts 의 무기 목록과 여기가 따로 관리된다. 새 무기를
+// 넣고 스타일을 안 넣으면 undefined 가 나오고 ?? 폴백이 산다. Record 로 두면
+// 컴파일러가 모든 id에 스타일이 있다고 믿어서 그 폴백이 죽은 코드가 된다.
 const RETICLE_STYLES: Partial<Record<string, ReticleStyle>> = {
   basic: {
     ringVisible: false,
@@ -34,6 +34,19 @@ const RETICLE_STYLES: Partial<Record<string, ReticleStyle>> = {
     crosshairColor: '#000',
     centerColor: '#f00',
     centerShape: 'dot',
+  },
+  // 별 4개 중화기. 상점 순서가 저격소총 다음, 레이건 앞이라 조준선도 그 사이를
+  // 메운다 — 저격소총의 검은 링보다 두껍고, 레이건의 초록 육각보다 재래식이다.
+  // 색은 HUD 노랑(--k-face)을 쓴다. 검정·초록·청록은 이미 다른 무기가 갖고 있고,
+  // 노랑은 라운드 숫자와 브래킷이 쓰는 색이라 '이 게임의 조준 색'으로 읽힌다.
+  heavy: {
+    ringVisible: true,
+    ringShape: 'circle',
+    // 6px. 저격소총이 4px 이라 한 단계 두껍게 해서 중량감을 준다.
+    ringBorder: `6px solid ${TOKENS.deep}`,
+    crosshairColor: TOKENS.face,
+    centerColor: TOKENS.danger,
+    centerShape: 'diamond',
   },
   raygun: {
     ringVisible: true,
