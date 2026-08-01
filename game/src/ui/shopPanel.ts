@@ -4,7 +4,7 @@ import type { Weapon } from '../config';
 
 const MAX_DAMAGE_PIPS = 5;
 
-// game.js의 buildShopState()가 CONFIG.weapons에서 이 다섯 필드만 골라
+// game.ts의 buildShopState()가 CONFIG.weapons에서 이 다섯 필드만 골라
 // owned/equipped를 붙여 보낸다 — 전체 Weapon(모델 경로, scale 등)은 상점
 // 카드에 필요 없다.
 type ShopWeapon = Pick<Weapon, 'id' | 'name' | 'image' | 'damage' | 'price'> & {
@@ -50,7 +50,7 @@ export function createShopPanel(container: HTMLElement) {
   }
 
   // 골드가 모자랄 때만 가격 옆에 광고 버튼이 붙는다. 나머지 상태는 버튼 하나다.
-  // 광고가 얼마를 주는지는 버튼에 적는다 — 금액은 game.js 가 state 로 넘긴다.
+  // 광고가 얼마를 주는지는 버튼에 적는다 — 금액은 game.ts 가 state 로 넘긴다.
   function insufficientRow(weapon: ShopWeapon, adGoldAmount: number, handlers: ShopHandlers) {
     const row = document.createElement('div');
     row.style.cssText = 'display: flex; align-items: stretch; gap: 8px; margin-top: 12px;';
@@ -126,7 +126,7 @@ export function createShopPanel(container: HTMLElement) {
     img.alt = weapon.name;
     img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
     // 무기 그림이 아직 없을 수 있다. 깨진 이미지 아이콘 대신 자리만 비운다.
-    // screens.js 의 artwork() 와 같은 처리다.
+    // screens.ts 의 artwork() 와 같은 처리다.
     img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
     frame.appendChild(img);
     card.appendChild(frame);

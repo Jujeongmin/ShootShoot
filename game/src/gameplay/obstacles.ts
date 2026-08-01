@@ -126,7 +126,7 @@ const WALKWAY_PANELS = 3;
 // 발판에서 떨어지지도 않는다.
 const WALKWAY_SLOT_OFFSET_X = 2.37;
 const WALKWAY_SWAY_AMPLITUDE = 1.8;
-// 레인 원숭이와 같은 값(laneLayout.js의 SWAY_FREQUENCY_PER_SPEED). 통로 위와
+// 레인 원숭이와 같은 값(laneLayout.ts의 SWAY_FREQUENCY_PER_SPEED). 통로 위와
 // 아래가 같은 박자로 움직여야 한 판으로 읽힌다.
 const WALKWAY_SWAY_FREQUENCY_PER_SPEED = 1.8;
 // 기존 구조물보다 앞에 세워 앞 겹으로 읽히게 한다. 눈대중 값이다.

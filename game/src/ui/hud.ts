@@ -1,7 +1,9 @@
 import type { PopupTone } from './scorePopupTone';
 
-// game.ts 의 round 는 1 에서 시작하고 startGame 이 beginRound(1) 로 되돌린다.
-// render 는 플레이 중에만 불리므로, 메뉴에서 보일 값은 이 초기값이다.
+// game.ts 의 startGame 은 이제 라운드 번호를 인자로 받아 beginRound(round) 로
+// 넘긴다(항상 1은 아니다). render 도 플레이 중이 아니어도 불릴 수 있다 —
+// returnToMenu 는 round 를 되돌리지도, 다시 그리지도 않으므로 메뉴에는 마지막으로
+// 플레이한 라운드 값이 그대로 남는다. 이 초기값은 페이지를 처음 열었을 때만 보인다.
 const INITIAL_ROUND = '1';
 
 export function createHud(container: HTMLElement) {

@@ -16,7 +16,7 @@ describe('scorePopupTone', () => {
     ).toBe('combo');
   });
 
-  // 회귀 방어. game.js는 효과음을 고를 때 penetrationCount를 part보다 먼저 본다.
+  // 회귀 방어. game.ts는 효과음을 고를 때 penetrationCount를 part보다 먼저 본다.
   // 화면만 head로 뜨면 소리는 콤보인데 그림은 헤드샷인 불일치가 난다.
   it('lets a combo outrank a headshot, matching the sfx ordering', () => {
     expect(scorePopupTone({ hits: [{ part: 'head' }], penetrationCount: 3 })).toBe('combo');

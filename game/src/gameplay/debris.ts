@@ -18,7 +18,7 @@ const MIN_IMPACT_DISTANCE = 0.5;
 const IMPACT_LIFT = 0.45;
 // 회전 속도를 얼마나 세게 줄지. 실측이 아니라 눈대중으로 고른 값이며, 예를 들어 한 단
 // 위에서 맞은 상자(dy ≈ 0.6, speed ≈ 10)는 약 14 rad/s로 돌아 착지 전까지 두 바퀴 넘게
-// 구른다 — 착지 순간 자세 보정(obstacles.js의 advanceCollapse)이 얼마나 큰 자세
+// 구른다 — 착지 순간 자세 보정(obstacles.ts의 advanceCollapse)이 얼마나 큰 자세
 // 어긋남까지 감당해야 하는지가 이 값에 달려 있다.
 const SPIN_GAIN = 2.4;
 

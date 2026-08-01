@@ -5,7 +5,7 @@ interface ToneInput {
   penetrationCount: number;
 }
 
-// 순서가 game.js의 효과음 분기와 같아야 한다. 관통이 헤드샷을 이긴다 —
+// 순서가 game.ts의 효과음 분기와 같아야 한다. 관통이 헤드샷을 이긴다 —
 // 통로를 무너뜨려 둘을 죽이면 소리가 sfx.combo()로 나므로 화면도 관통으로
 // 보여야 한다. 뒤집으면 소리와 그림이 어긋난다.
 export function scorePopupTone(outcome: ToneInput): PopupTone {

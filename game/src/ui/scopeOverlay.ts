@@ -11,7 +11,10 @@ interface ReticleStyle {
   centerShape: 'dot' | 'diamond';
 }
 
-const RETICLE_STYLES: Record<string, ReticleStyle> = {
+// heavy 무기(config.ts)는 아직 조준선이 없다 — Record 로 두면 컴파일러가 모든
+// 무기 id에 스타일이 있다고 믿어 DEFAULT_STYLE 로의 폴백이 죽은 코드처럼 보인다.
+// Partial 로 열어 두어 heavy 같은 미등록 id 는 undefined 로 잡히고 ?? 폴백이 산다.
+const RETICLE_STYLES: Partial<Record<string, ReticleStyle>> = {
   basic: {
     ringVisible: false,
     crosshairColor: '#fff',
@@ -42,7 +45,15 @@ const RETICLE_STYLES: Record<string, ReticleStyle> = {
   },
 };
 
-const DEFAULT_STYLE = RETICLE_STYLES.basic;
+// RETICLE_STYLES.basic 을 그대로 가리키면 타입은 여전히 undefined 를 허용해서
+// 아무 가드도 없는 인덱싱이 남는다. basic 이 사라져도(무기 id 개명 등) 안전하게
+// 이 하드코딩된 값으로 떨어지도록 ?? 로 명시적 기본값을 둔다.
+const DEFAULT_STYLE: ReticleStyle = RETICLE_STYLES.basic ?? {
+  ringVisible: false,
+  crosshairColor: '#fff',
+  centerColor: '#f00',
+  centerShape: 'dot',
+};
 const HEXAGON_CLIP_PATH = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
 
 const BAZOOKA_ID = 'bazooka';

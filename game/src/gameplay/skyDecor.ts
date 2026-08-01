@@ -4,7 +4,7 @@ import { driftWrapped, flightProgress, createSeededRandom } from './skyMotion';
 // 섬이 z = -80 이다. 구름을 항상 그보다 뒤에 두면 조준해서 화각이 좁아져도
 // 표적을 가리지 않는다. 앵커가 -400 이고 구름 내부의 구는 반지름(최대 43)과
 // 지역 오프셋(최대 ~13)만큼 앞으로 나오므로 가장 앞선 표면이 -344 근처다.
-// world.js 의 fog far 가 900 이라 뒤쪽 끝(-560)도 형태가 남는다.
+// world.ts 의 fog far 가 900 이라 뒤쪽 끝(-560)도 형태가 남는다.
 const CLOUD_Z_NEAR = -400;
 const CLOUD_Z_FAR = -560;
 const CLOUD_COUNT = 14;

@@ -5,7 +5,7 @@ import { computeLaneLayout } from '../game/src/gameplay/laneLayout';
 // laneLayout.ts의 슬롯 필드가 바뀌면 여기도 같이 바뀐다.
 type LaneSlot = ReturnType<typeof computeLaneLayout>[number];
 
-// 원숭이의 실제 x 좌표 재현: patrolMotion.js의 offsetX와 동일한 공식
+// 원숭이의 실제 x 좌표 재현: patrolMotion.ts의 offsetX와 동일한 공식
 function xAt(slot: LaneSlot, t: number) {
   return slot.x + Math.sin(slot.swayFrequency * t + slot.swayPhase) * slot.swayAmplitude;
 }

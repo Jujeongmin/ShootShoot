@@ -103,9 +103,15 @@ export function createGame(container: HTMLElement) {
   const lastKillEffect = createLastKillEffect();
   const projectiles = createBazookaProjectiles(engine.scene);
 
-  // 이 셋은 아래 start() 의 Promise.all 이 끝나야 채워진다. 그때까지 도는 것은
-  // tick 루프뿐이고 거기서는 if 로 막는다. 나머지 호출부는 전부 메뉴를 거쳐야
-  // 닿는데 메뉴는 로딩이 끝난 뒤에만 뜨므로, 그 자리에서는 null 이 아니다.
+  // 이 셋은 아래 start() 의 Promise.all 이 끝나야 채워진다. 그 전에 실행될 수 있는
+  // 진입점은 네 개뿐이다 — tick 루프, 조준 down/up, 'p' 키다(모두 start() 호출 전에
+  // 등록된다). tick 루프는 이 값들을 쓰는 자리마다 if 로 막고(예: 778행은 그 자체로
+  // if 가 없지만 phase === 'playing' 블록 안이라 안전하다), 나머지 셋은
+  // handleShot/openSettingsFromPlay 맨 앞의 `if (phase !== 'playing') return`으로
+  // 막힌다. phase 는 startGame 에서만 'playing' 이 되고, startGame 은 메뉴·라운드
+  // 선택 화면의 버튼에서만 불리는데 그 화면들은 Promise.all 이 끝난 뒤
+  // refreshMenu()/openRoundSelect() 로만 뜬다. 그래서 로딩이 끝나기 전에는 어떤
+  // 경로로도 여기 non-null 단언이 null 을 만나지 않는다.
   let targetManager: TargetManager | null = null;
   let weaponViewmodel: WeaponViewmodel | null = null;
   let obstacles: Obstacles | null = null;
