@@ -6,6 +6,7 @@ import { createTargetManager } from './targetManager';
 import { resolveShot, computeHitDamage, resolveKillOutcome, partitionShotPath } from './shooting';
 import { createScoreState, applyShot, calculateShotScore, settlementGold, createHighScoreStore } from './scoring';
 import { createReloadState } from './reloadState';
+import { createScenery } from './scenery';
 import { createSkyDecor } from './skyDecor';
 import { createTutorialState } from './tutorialState';
 import { createTutorialStore } from './tutorialStore';
@@ -75,6 +76,7 @@ export function createGame(container: HTMLElement) {
   const input = createInputController(engine.domElement);
   createWorld(engine.scene);
   const skyDecor = createSkyDecor(engine.scene);
+  const scenery = createScenery(engine.scene);
   const effects = createEffects(engine.scene);
   const hud = createHud(container);
   const tutorialPrompt = createTutorialPrompt(container);
@@ -748,6 +750,7 @@ export function createGame(container: HTMLElement) {
       // 슬로모가 걸리면 하늘도 같이 느려져야 한다. 배경만 제 속도로 흐르면
       // 마지막 처치 연출이 깨져 보인다.
       skyDecor.update(scaledDt);
+      scenery.update(scaledDt);
 
       if (targetManager) {
         targetManager.update(scaledDt);
