@@ -10,10 +10,7 @@
     "noImplicitOverride": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "noEmit": true,
-
-    "allowJs": true,
-    "checkJs": false
+    "noEmit": true
   },
   "include": ["game/src", "test"]
 }
