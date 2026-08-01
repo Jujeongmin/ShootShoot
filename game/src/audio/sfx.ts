@@ -1,8 +1,12 @@
 // webkitAudioContext는 구형 Safari를 위한 접두사 이름이라 lib.dom.d.ts에 없다.
 // window에 없는 프로퍼티이므로 단언 없이는 접근할 수 없다.
-const AudioContextCtor =
-  window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-const audioCtx: AudioContext | null = typeof window !== 'undefined' ? new AudioContextCtor() : null;
+// window 접근은 반드시 typeof window !== 'undefined' 가드 통과 후에만 평가되어야 한다
+// (그렇지 않으면 window가 없는 환경(vitest의 node 환경 등)에서 import 시점에 터진다).
+const audioCtx: AudioContext | null =
+  typeof window !== 'undefined'
+    ? new (window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+    : null;
 
 interface ToneParams {
   frequency: number;

@@ -130,21 +130,8 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     phase: swayPhase,
   });
 
-  const state: {
-    phase: 'idle' | 'hit';
-    phaseOffset: number;
-    elapsed: number;
-    hitElapsed: number;
-    gaitPhase: number;
-    stride: number;
-    dead: boolean;
-    hp: number;
-    maxHp: number;
-    isFlashing: boolean;
-    flashElapsed: number;
-    lastHitPart?: string;
-  } = {
-    phase: 'idle',
+  const state = {
+    phase: 'idle' as 'idle' | 'hit',
     phaseOffset: Math.random() * Math.PI * 2,
     elapsed: 0,
     hitElapsed: 0,
@@ -155,6 +142,9 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     maxHp: hp,
     isFlashing: false,
     flashElapsed: 0,
+    // lastHitPart는 startDeath에서만 채워진다. skyDecor.ts의 buildBird와 같은
+    // 자리표시자 패턴: 초기값은 비워두고 실제 값은 나중에 채운다.
+    lastHitPart: undefined as string | undefined,
   };
 
   function updateIdle(dt: number) {
