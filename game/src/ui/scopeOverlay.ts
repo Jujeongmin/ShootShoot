@@ -50,6 +50,16 @@ const BAZOOKA_COLOR = TOKENS.danger;
 const BAZOOKA_CORE_COLOR = '#c43a28';
 const BRACKET_THICKNESS = 4;
 
+// 십자 팔의 길이. 상자 가장자리에서 안쪽으로 이만큼 온다. 중앙까지는 50%이므로
+// 팔 끝과 조준점 사이에 12%가 남는다 — 조준점을 안 가리는 이유다.
+const ARM_LENGTH = '38%';
+const TICK_LENGTH = 10;
+const TICK_THICKNESS = 2;
+
+// 밝은 하늘 위에서 흰 조준선(basic)이 사라진다. box-shadow 는 레이아웃을 안 바꾸므로
+// 조준선 치수가 그대로다 — 판정에 쓰이는 크기를 건드리면 안 된다.
+const RETICLE_OUTLINE = '0 0 0 1px rgba(0, 0, 0, 0.55)';
+
 function centerShapeStyle(style: ReticleStyle) {
   if (style.centerShape === 'diamond') {
     return `width:8px; height:8px; margin:-4px 0 0 -4px; background:${style.centerColor}; transform: rotate(45deg);`;
@@ -58,18 +68,27 @@ function centerShapeStyle(style: ReticleStyle) {
 }
 
 function crosshairHtml(style: ReticleStyle) {
+  const bar = `position:absolute; background:${style.crosshairColor}; box-shadow:${RETICLE_OUTLINE};`;
+  const t = TICK_THICKNESS;
+  const half = TICK_LENGTH / 2;
+  // 눈금은 팔의 안쪽 끝에 붙는다. 바깥쪽 끝은 70vmin 상자의 가장자리라 화면 구석이고
+  // 거기 달면 안 보인다. 안쪽에 달면 조준점을 네 개의 T자가 감싸는 거리계가 된다.
   return `
-    <div style="position:absolute; top:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
-    <div style="position:absolute; bottom:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
-    <div style="position:absolute; left:0; top:calc(50% - 1px); height:2px; width:38%; background:${style.crosshairColor};"></div>
-    <div style="position:absolute; right:0; top:calc(50% - 1px); height:2px; width:38%; background:${style.crosshairColor};"></div>
-    <div style="position:absolute; top:50%; left:50%; ${centerShapeStyle(style)}"></div>
+    <div style="${bar} top:0; left:calc(50% - 1px); width:2px; height:${ARM_LENGTH};"></div>
+    <div style="${bar} bottom:0; left:calc(50% - 1px); width:2px; height:${ARM_LENGTH};"></div>
+    <div style="${bar} left:0; top:calc(50% - 1px); height:2px; width:${ARM_LENGTH};"></div>
+    <div style="${bar} right:0; top:calc(50% - 1px); height:2px; width:${ARM_LENGTH};"></div>
+    <div style="${bar} top:calc(${ARM_LENGTH} - ${t}px); left:calc(50% - ${half}px); width:${TICK_LENGTH}px; height:${t}px;"></div>
+    <div style="${bar} bottom:calc(${ARM_LENGTH} - ${t}px); left:calc(50% - ${half}px); width:${TICK_LENGTH}px; height:${t}px;"></div>
+    <div style="${bar} left:calc(${ARM_LENGTH} - ${t}px); top:calc(50% - ${half}px); height:${TICK_LENGTH}px; width:${t}px;"></div>
+    <div style="${bar} right:calc(${ARM_LENGTH} - ${t}px); top:calc(50% - ${half}px); height:${TICK_LENGTH}px; width:${t}px;"></div>
+    <div style="position:absolute; top:50%; left:50%; box-shadow:${RETICLE_OUTLINE}; ${centerShapeStyle(style)}"></div>
   `;
 }
 
 // 판정에 쓰이는 정사각형(반경 radiusPx)을 그대로 그린다. 네 모서리 브래킷이
 // 사각형의 경계이고, 그 안에 들어온 원숭이가 죽는다.
-function bazookaReticleHtml(radiusPx: number) {
+export function bazookaReticleHtml(radiusPx: number) {
   const r = radiusPx;
   const arm = r * 0.42;
   const tickLength = r * 0.22;
@@ -77,7 +96,7 @@ function bazookaReticleHtml(radiusPx: number) {
   const outer = r * 0.16;
   const inner = r * 0.08;
   const t = BRACKET_THICKNESS;
-  const bar = `position:absolute; background:${BAZOOKA_COLOR};`;
+  const bar = `position:absolute; background:${BAZOOKA_COLOR}; box-shadow:${RETICLE_OUTLINE};`;
 
   const corners = [
     ['top:0; left:0;', `width:${arm}px; height:${t}px;`, `width:${t}px; height:${arm}px;`],
@@ -100,7 +119,7 @@ function bazookaReticleHtml(radiusPx: number) {
     .join('');
 
   const core = `
-    <div style="position:absolute; left:${r - outer}px; top:${r - outer}px; width:${outer * 2}px; height:${outer * 2}px; border-radius:50%; background:${BAZOOKA_COLOR};"></div>
+    <div style="position:absolute; left:${r - outer}px; top:${r - outer}px; width:${outer * 2}px; height:${outer * 2}px; border-radius:50%; background:${BAZOOKA_COLOR}; box-shadow:${RETICLE_OUTLINE};"></div>
     <div style="position:absolute; left:${r - inner}px; top:${r - inner}px; width:${inner * 2}px; height:${inner * 2}px; border-radius:50%; background:${BAZOOKA_CORE_COLOR};"></div>
   `;
 
