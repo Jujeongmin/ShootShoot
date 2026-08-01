@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createTutorialState } from '../game/src/gameplay/tutorialState';
 
-function advanceToDone(tutorial) {
+function advanceToDone(tutorial: ReturnType<typeof createTutorialState>) {
   tutorial.handle('aimStarted');
   tutorial.handle('shotFired');
   tutorial.handle('reloadFinished');

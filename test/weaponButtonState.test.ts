@@ -1,7 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { weaponButtonState } from '../game/src/ui/weaponButtonState';
 
-function weapon(overrides) {
+interface FakeWeapon {
+  id: string;
+  name: string;
+  image: string;
+  damage: number;
+  price: number;
+  owned: boolean;
+  equipped: boolean;
+}
+
+function weapon(overrides: Partial<FakeWeapon>): FakeWeapon {
   return { id: 'basic', name: '기본총', image: '/images/basic.png', damage: 1, price: 100, owned: false, equipped: false, ...overrides };
 }
 

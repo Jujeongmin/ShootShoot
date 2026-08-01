@@ -2,8 +2,17 @@ import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { createBazookaProjectiles } from '../game/src/gameplay/bazookaProjectile';
 
+// THREE.Scene 전체(isScene, fog 등 80여 개 필드)를 흉내 낼 필요는 없다 —
+// createBazookaProjectiles가 실제로 쓰는 건 add/remove 뿐이다. 그래서 그 둘만
+// 갖춘 가짜를 만들고, 테스트에서 scene.add.mock 처럼 목(mock)으로도 계속 쓸 수
+// 있도록 fakeScene() 자체는 캐스팅하지 않은 채로 두고, 실제 함수에 넘기는
+// 지점에서만 asScene()으로 타입을 맞춘다.
 function fakeScene() {
   return { add: vi.fn(), remove: vi.fn() };
+}
+
+function asScene(scene: ReturnType<typeof fakeScene>): THREE.Scene {
+  return scene as unknown as THREE.Scene;
 }
 
 const FROM = new THREE.Vector3(0, 0, 0);
@@ -11,20 +20,20 @@ const TO = new THREE.Vector3(0, 0, -80);
 
 describe('createBazookaProjectiles', () => {
   it('has nothing pending before anything is spawned', () => {
-    const projectiles = createBazookaProjectiles(fakeScene());
+    const projectiles = createBazookaProjectiles(asScene(fakeScene()));
     expect(projectiles.hasPending()).toBe(false);
   });
 
   it('adds a mesh to the scene on spawn and reports it as pending', () => {
     const scene = fakeScene();
-    const projectiles = createBazookaProjectiles(scene);
+    const projectiles = createBazookaProjectiles(asScene(scene));
     projectiles.spawn(FROM, TO, 0.3, () => {});
     expect(scene.add).toHaveBeenCalledTimes(1);
     expect(projectiles.hasPending()).toBe(true);
   });
 
   it('does not call onImpact before the flight time has elapsed', () => {
-    const projectiles = createBazookaProjectiles(fakeScene());
+    const projectiles = createBazookaProjectiles(asScene(fakeScene()));
     const onImpact = vi.fn();
     projectiles.spawn(FROM, TO, 0.3, onImpact);
     projectiles.update(0.1);
@@ -35,7 +44,7 @@ describe('createBazookaProjectiles', () => {
 
   it('calls onImpact with the impact point once the flight time elapses', () => {
     const scene = fakeScene();
-    const projectiles = createBazookaProjectiles(scene);
+    const projectiles = createBazookaProjectiles(asScene(scene));
     const onImpact = vi.fn();
     projectiles.spawn(FROM, TO, 0.3, onImpact);
     projectiles.update(0.3);
@@ -46,7 +55,7 @@ describe('createBazookaProjectiles', () => {
   });
 
   it('calls onImpact exactly once even if update keeps being called', () => {
-    const projectiles = createBazookaProjectiles(fakeScene());
+    const projectiles = createBazookaProjectiles(asScene(fakeScene()));
     const onImpact = vi.fn();
     projectiles.spawn(FROM, TO, 0.3, onImpact);
     projectiles.update(0.5);
@@ -57,7 +66,7 @@ describe('createBazookaProjectiles', () => {
 
   it('moves the mesh partway along the path while in flight', () => {
     const scene = fakeScene();
-    const projectiles = createBazookaProjectiles(scene);
+    const projectiles = createBazookaProjectiles(asScene(scene));
     projectiles.spawn(FROM, TO, 0.4, () => {});
     projectiles.update(0.2);
     const mesh = scene.add.mock.calls[0][0];
@@ -65,7 +74,7 @@ describe('createBazookaProjectiles', () => {
   });
 
   it('tracks several projectiles independently', () => {
-    const projectiles = createBazookaProjectiles(fakeScene());
+    const projectiles = createBazookaProjectiles(asScene(fakeScene()));
     const first = vi.fn();
     const second = vi.fn();
     projectiles.spawn(FROM, TO, 0.2, first);
@@ -83,7 +92,7 @@ describe('createBazookaProjectiles', () => {
 
   it('discards pending projectiles on clear without firing their callbacks', () => {
     const scene = fakeScene();
-    const projectiles = createBazookaProjectiles(scene);
+    const projectiles = createBazookaProjectiles(asScene(scene));
     const onImpact = vi.fn();
     projectiles.spawn(FROM, TO, 0.3, onImpact);
     projectiles.clear();
@@ -101,7 +110,7 @@ describe('createBazookaProjectiles', () => {
     // clear()를 호출하면, 아직 처리하지 않은 낮은 인덱스 포탄이 배열에서 이미
     // 사라진 뒤라 다음 반복이 undefined를 읽는다. 가드가 없으면 "Cannot read
     // properties of undefined"로 던지고 렌더 루프가 영구히 멈춘다.
-    const projectiles = createBazookaProjectiles(fakeScene());
+    const projectiles = createBazookaProjectiles(asScene(fakeScene()));
     const first = vi.fn();
     projectiles.spawn(FROM, TO, 0.2, first);
     projectiles.spawn(FROM, TO, 0.2, () => {
@@ -113,7 +122,7 @@ describe('createBazookaProjectiles', () => {
   });
 
   it('lets a callback spawn another projectile without disturbing the update pass', () => {
-    const projectiles = createBazookaProjectiles(fakeScene());
+    const projectiles = createBazookaProjectiles(asScene(fakeScene()));
     const second = vi.fn();
     projectiles.spawn(FROM, TO, 0.2, () => {
       projectiles.spawn(FROM, TO, 0.2, second);

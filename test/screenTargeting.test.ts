@@ -17,7 +17,7 @@ function makeCamera() {
   return camera;
 }
 
-function fakeMonkey(x, y, z, { dying = false } = {}) {
+function fakeMonkey(x: number, y: number, z: number, { dying = false }: { dying?: boolean } = {}) {
   // screenTargeting은 이제 getCenterWorldPosition()만 사용한다. 기존 테스트들은
   // (x, y, z)를 "테스트 대상 지점"으로 다뤄왔으므로, 그 지점을 그대로 중심 좌표로
   // 노출해 기대값을 바꾸지 않고도 계속 통과하게 한다.

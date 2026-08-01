@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createDebrisBody, impactImpulse } from '../game/src/gameplay/debris';
 
-function fallingBody(y, velocity = { x: 0, y: 0, z: 0 }, spin = { x: 0, y: 0, z: 0 }) {
+function fallingBody(
+  y: number,
+  velocity: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 },
+  spin: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 },
+) {
   return createDebrisBody({
     position: { x: 0, y, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },

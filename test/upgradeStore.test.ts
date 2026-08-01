@@ -2,11 +2,25 @@ import { describe, it, expect } from 'vitest';
 import { createUpgradeStore, computeUpgradeCost } from '../game/src/gameplay/upgradeStore';
 import { CONFIG } from '../game/src/config';
 
-function createMemoryStorage(initial) {
-  const map = new Map(initial ? Object.entries(initial) : []);
+// 실제 Storage 인터페이스 전체(length, clear, key, removeItem 포함)를 갖춰야
+// createUpgradeStore(storage: Storage, ...)에 그대로 넘길 수 있다.
+function createMemoryStorage(initial?: Record<string, string>): Storage {
+  const map = new Map<string, string>(initial ? Object.entries(initial) : []);
   return {
-    getItem: (k) => (map.has(k) ? map.get(k) : null),
-    setItem: (k, v) => map.set(k, v),
+    getItem: (key: string) => (map.has(key) ? (map.get(key) as string) : null),
+    setItem: (key: string, value: string) => {
+      map.set(key, value);
+    },
+    removeItem: (key: string) => {
+      map.delete(key);
+    },
+    clear: () => {
+      map.clear();
+    },
+    key: (index: number) => Array.from(map.keys())[index] ?? null,
+    get length() {
+      return map.size;
+    },
   };
 }
 

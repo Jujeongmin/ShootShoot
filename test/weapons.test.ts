@@ -53,10 +53,12 @@ describe('CONFIG.weapons', () => {
   it('fills the four-star slot with 중화기', () => {
     const heavy = CONFIG.weapons.find((weapon) => weapon.id === 'heavy');
     expect(heavy).toBeDefined();
-    expect(heavy.name).toBe('중화기');
-    expect(heavy.damage).toBe(4);
-    expect(heavy.price).toBe(4000);
-    expect(heavy.model).toBe('/models/Rifle.fbx');
-    expect(heavy.format).toBe('fbx');
+    // 바로 위 toBeDefined()가 런타임 보장이지 컴파일러가 좁혀주는 게 아니므로,
+    // undefined가 아님을 단언해야 이어지는 필드 접근이 통과한다.
+    expect(heavy!.name).toBe('중화기');
+    expect(heavy!.damage).toBe(4);
+    expect(heavy!.price).toBe(4000);
+    expect(heavy!.model).toBe('/models/Rifle.fbx');
+    expect(heavy!.format).toBe('fbx');
   });
 });

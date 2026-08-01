@@ -41,7 +41,9 @@ describe('computeHitDamage', () => {
 
 describe('resolveKillOutcome', () => {
   it('stays a miss when the shot missed', () => {
-    const outcome = resolveKillOutcome({ isMiss: true, penetrationCount: 0, hits: [] }, []);
+    // resolveKillOutcome은 isMiss만 읽으므로, 반환값 기대치(toEqual)와 달리
+    // 입력에는 그 필드만 준다.
+    const outcome = resolveKillOutcome({ isMiss: true }, []);
     expect(outcome).toEqual({ isMiss: true, penetrationCount: 0, hits: [] });
   });
 

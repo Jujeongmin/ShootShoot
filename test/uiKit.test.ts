@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { iconUrl, resolveIconSrc, TOKENS } from '../game/src/ui/kit';
+import type { Tone } from '../game/src/ui/kit';
 
 describe('resolveIconSrc', () => {
   it('passes an explicit path through untouched', () => {
@@ -18,7 +19,9 @@ describe('iconUrl', () => {
   });
 
   it('rejects an unknown tone instead of building a 404 path', () => {
-    expect(() => iconUrl('cart', 'yellow')).toThrow(/tone/);
+    // 'yellow'는 Tone('white' | 'black')에 없는 값을 일부러 넣어 런타임 검증을
+    // 확인하는 테스트다. 타입을 늘려서 통과시키지 않고, 여기서만 단언한다.
+    expect(() => iconUrl('cart', 'yellow' as unknown as Tone)).toThrow(/tone/);
   });
 
   it('rejects an empty icon name', () => {

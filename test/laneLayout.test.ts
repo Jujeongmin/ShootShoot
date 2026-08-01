@@ -1,13 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { computeLaneLayout } from '../game/src/gameplay/laneLayout';
 
+// computeLaneLayout이 만드는 슬롯 하나의 모양. 반환 타입에서 그대로 뽑아 쓰므로
+// laneLayout.ts의 슬롯 필드가 바뀌면 여기도 같이 바뀐다.
+type LaneSlot = ReturnType<typeof computeLaneLayout>[number];
+
 // 원숭이의 실제 x 좌표 재현: patrolMotion.js의 offsetX와 동일한 공식
-function xAt(slot, t) {
+function xAt(slot: LaneSlot, t: number) {
   return slot.x + Math.sin(slot.swayFrequency * t + slot.swayPhase) * slot.swayAmplitude;
 }
 
 // 카메라(x=0) 기준 시선 각도 비율
-function rayRatio(slot, t) {
+function rayRatio(slot: LaneSlot, t: number) {
   return xAt(slot, t) / Math.abs(slot.z);
 }
 
@@ -19,7 +23,7 @@ describe('computeLaneLayout', () => {
   });
 
   it('partitions monkeys into lanes of 2-3 (unique base angles = lane count)', () => {
-    function laneCount(n) {
+    function laneCount(n: number) {
       const slots = computeLaneLayout(n, 0.5, 1.0);
       const angles = new Set(slots.map((s) => (s.x / Math.abs(s.z)).toFixed(6)));
       return angles.size;
@@ -46,7 +50,7 @@ describe('computeLaneLayout', () => {
     const [a, b, c] = slots;
     const w = a.swayFrequency;
     // 쌍 (φ1, φ2)의 정렬 시각: w*t = (π - φ1 - φ2)/2 + kπ
-    function alignTime(p, q) {
+    function alignTime(p: LaneSlot, q: LaneSlot) {
       return (Math.PI - p.swayPhase - q.swayPhase) / 2 / w;
     }
     expect(rayRatio(a, alignTime(a, b))).toBeCloseTo(rayRatio(b, alignTime(a, b)), 10);
