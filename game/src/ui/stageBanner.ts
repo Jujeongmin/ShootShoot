@@ -1,7 +1,7 @@
 import { TOKENS } from './kit';
 
-export function createStageBanner(container) {
-  function show(stageNumber) {
+export function createStageBanner(container: HTMLElement) {
+  function show(stageNumber: number) {
     const el = document.createElement('div');
     el.textContent = `STAGE ${stageNumber}`;
     el.style.cssText = `

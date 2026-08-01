@@ -4,7 +4,35 @@ const BAZOOKA_MAX_ROUNDS = 5;
 // game/thumb.html 로 뽑는다. 아직 없어도 카드는 뜨고 그림 자리만 비운다.
 const BAZOOKA_IMAGE = '/images/weapons/bazooka.png';
 
-export function createScreens(container) {
+// showMenu(state, handlers)의 계약. game.js가 game.ts가 되는 Task 5 전까지는
+// 호출부가 아직 없으므로, 여기서 쓰는 필드만 좁게 적어 둔다.
+interface MenuState {
+  gold: number;
+  damageLevel: number;
+  damageCost: number;
+  canAffordDamage: boolean;
+  offlineLevel: number;
+  offlineCost: number;
+  canAffordOffline: boolean;
+  bazookaRounds: number;
+  reachedRound: number;
+}
+
+interface MenuHandlers {
+  onSettings: () => void;
+  onContinue: () => void;
+  onRoundSelect: () => void;
+  onNewGame: () => void;
+  onStart: () => void;
+  onShop: () => void;
+  onWatchAdBazooka: () => void;
+  onLevelUpDamage: () => void;
+  onWatchAdDamage: () => void;
+  onLevelUpOffline: () => void;
+  onWatchAdOffline: () => void;
+}
+
+export function createScreens(container: HTMLElement) {
   const overlay = scrim();
   overlay.style.zIndex = '20';
   container.appendChild(overlay);
@@ -22,7 +50,7 @@ export function createScreens(container) {
   }
 
   // 상단 바: 좌측 로고, 우측 골드 배지 + 아이콘 버튼 3개.
-  function topBar(gold, handlers) {
+  function topBar(gold: number, handlers: MenuHandlers) {
     const bar = document.createElement('div');
     bar.style.cssText = `
       position: absolute; top: 16px; left: 20px; right: 20px;
@@ -50,7 +78,13 @@ export function createScreens(container) {
   // 패널 프레임이 없어 글자가 3D 장면 위에 바로 놓이므로 k-on-dark 로 색을 뒤집는다.
   // actionNode 는 없어도 된다 — 상점 카드는 그림 자체가 버튼이라 아래에 붙는
   // 사각 버튼이 없다.
-  function menuCard(anchorCss, width, headingText, bodyNodes, actionNode = null) {
+  function menuCard(
+    anchorCss: string,
+    width: number,
+    headingText: string,
+    bodyNodes: HTMLElement[],
+    actionNode: HTMLElement | null = null,
+  ) {
     const card = document.createElement('div');
     card.className = 'k-on-dark';
     card.style.cssText = `${anchorCss} width: ${width}px; text-align: center;`;
@@ -66,7 +100,7 @@ export function createScreens(container) {
   // 무기 그림은 tools/crop-weapon-art.mjs 로 투명 여백을 잘라 둔 상태라
   // contain 이 그림 자체에 맞는다. 여백이 다시 붙은 그림을 넣으면 작아진다.
   // 그림이 아직 없을 수 있다. 깨진 이미지 아이콘 대신 자리만 비운다.
-  function artwork(src, alt, height) {
+  function artwork(src: string, alt: string, height: number) {
     const frame = document.createElement('div');
     frame.style.cssText = `
       display: flex; align-items: center; justify-content: center;
@@ -81,7 +115,7 @@ export function createScreens(container) {
     return frame;
   }
 
-  function levelLine(level) {
+  function levelLine(level: number) {
     const line = document.createElement('div');
     line.className = 'k-meta';
     line.appendChild(document.createTextNode('Lv.'));
@@ -89,7 +123,7 @@ export function createScreens(container) {
     return line;
   }
 
-  function roundsLine(rounds) {
+  function roundsLine(rounds: number) {
     const line = document.createElement('div');
     line.className = 'k-meta';
     line.appendChild(num(`${rounds}/${BAZOOKA_MAX_ROUNDS}`));
@@ -97,7 +131,15 @@ export function createScreens(container) {
   }
 
   // 좌하단 / 우하단
-  function upgradeCard(anchorCss, headingText, level, cost, canAfford, onUpgrade, onWatchAd) {
+  function upgradeCard(
+    anchorCss: string,
+    headingText: string,
+    level: number,
+    cost: number,
+    canAfford: boolean,
+    onUpgrade: () => void,
+    onWatchAd: () => void,
+  ) {
     const action = canAfford
       ? button(`🪙 ${cost.toLocaleString()} 강화`, onUpgrade, 'primary')
       : button('📺 무료강화', onWatchAd, 'ghost');
@@ -105,7 +147,7 @@ export function createScreens(container) {
   }
 
   // 좌측 중앙. 제목과 그림뿐이고, 그림을 누르면 상점이 열린다.
-  function shopCard(onShop) {
+  function shopCard(onShop: () => void) {
     const anchor = 'position: absolute; left: 24px; top: 50%; transform: translateY(-50%);';
     // 패널이 없어 어두운 장면 위에 놓인다. 검정 아이콘은 여기서 안 보인다.
     const art = artButton('cart', '상점 열기', onShop, 104, { tone: 'white' });
@@ -114,7 +156,7 @@ export function createScreens(container) {
   }
 
   // 우측 중앙. 그림 폭에 맞춰 카드를 넓힌다 — 260px 폭에서 총 자체가 약 53px 높이가 된다.
-  function bazookaCard(rounds, onWatchAd) {
+  function bazookaCard(rounds: number, onWatchAd: () => void) {
     const anchor = 'position: absolute; right: 24px; top: 50%; transform: translateY(-50%);';
     const art = artwork(BAZOOKA_IMAGE, '바주카포', 76);
     const action = rounds > 0
@@ -123,7 +165,7 @@ export function createScreens(container) {
     return menuCard(anchor, 260, '바주카포', [art, roundsLine(rounds)], action);
   }
 
-  function showMenu(state, handlers) {
+  function showMenu(state: MenuState, handlers: MenuHandlers) {
     const {
       gold, damageLevel, damageCost, canAffordDamage,
       offlineLevel, offlineCost, canAffordOffline, bazookaRounds, reachedRound,
@@ -180,7 +222,10 @@ export function createScreens(container) {
     show();
   }
 
-  function showGameOver({ score, highScore, isNewHighScore }, onReturnToMenu) {
+  function showGameOver(
+    { score, highScore, isNewHighScore }: { score: number; highScore: number; isNewHighScore: boolean },
+    onReturnToMenu: () => void,
+  ) {
     clear();
 
     const card = panel();
@@ -216,7 +261,7 @@ export function createScreens(container) {
     show();
   }
 
-  function showLoading(text) {
+  function showLoading(text: string) {
     clear();
     const el = document.createElement('div');
     el.textContent = text;

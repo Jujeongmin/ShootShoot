@@ -1,14 +1,20 @@
 import { scrim, panel, button, title, TOKENS } from './kit';
 
+interface ConfirmContent {
+  heading: string;
+  message: string;
+  confirmLabel: string;
+}
+
 // 되돌릴 수 없는 동작 앞에 세우는 얇은 모달. 무엇을 확인하는지는 부르는 쪽이
 // 문구로 넘긴다 — 이 모듈은 새 게임을 모른다.
-export function createConfirmPopup(container) {
+export function createConfirmPopup(container: HTMLElement) {
   const overlay = scrim();
   // 메뉴(20)와 설정·상점(25) 위에 떠야 한다.
   overlay.style.zIndex = '30';
   container.appendChild(overlay);
 
-  function show({ heading, message, confirmLabel }, onConfirm, onCancel) {
+  function show({ heading, message, confirmLabel }: ConfirmContent, onConfirm: () => void, onCancel: () => void) {
     overlay.innerHTML = '';
 
     const box = panel();

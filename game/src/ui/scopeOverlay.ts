@@ -1,6 +1,17 @@
 import { TOKENS } from './kit';
 
-const RETICLE_STYLES = {
+// 무기별 조준선 스타일. sniper/raygun만 링을 두르므로 ringShape/ringBorder는
+// 선택 필드다.
+interface ReticleStyle {
+  ringVisible: boolean;
+  ringShape?: 'circle' | 'hexagon';
+  ringBorder?: string;
+  crosshairColor: string;
+  centerColor: string;
+  centerShape: 'dot' | 'diamond';
+}
+
+const RETICLE_STYLES: Record<string, ReticleStyle> = {
   basic: {
     ringVisible: false,
     crosshairColor: '#fff',
@@ -39,14 +50,14 @@ const BAZOOKA_COLOR = TOKENS.danger;
 const BAZOOKA_CORE_COLOR = '#c43a28';
 const BRACKET_THICKNESS = 4;
 
-function centerShapeStyle(style) {
+function centerShapeStyle(style: ReticleStyle) {
   if (style.centerShape === 'diamond') {
     return `width:8px; height:8px; margin:-4px 0 0 -4px; background:${style.centerColor}; transform: rotate(45deg);`;
   }
   return `width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:${style.centerColor};`;
 }
 
-function crosshairHtml(style) {
+function crosshairHtml(style: ReticleStyle) {
   return `
     <div style="position:absolute; top:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
     <div style="position:absolute; bottom:0; left:calc(50% - 1px); width:2px; height:38%; background:${style.crosshairColor};"></div>
@@ -58,7 +69,7 @@ function crosshairHtml(style) {
 
 // 판정에 쓰이는 정사각형(반경 radiusPx)을 그대로 그린다. 네 모서리 브래킷이
 // 사각형의 경계이고, 그 안에 들어온 원숭이가 죽는다.
-function bazookaReticleHtml(radiusPx) {
+function bazookaReticleHtml(radiusPx: number) {
   const r = radiusPx;
   const arm = r * 0.42;
   const tickLength = r * 0.22;
@@ -96,7 +107,7 @@ function bazookaReticleHtml(radiusPx) {
   return corners + ticks + core;
 }
 
-export function createScopeOverlay(container) {
+export function createScopeOverlay(container: HTMLElement) {
   const ring = document.createElement('div');
   ring.style.cssText = `
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -112,9 +123,9 @@ export function createScopeOverlay(container) {
   `;
   container.appendChild(reticle);
 
-  let currentKey = null;
+  let currentKey: string | null = null;
 
-  function applyBazooka(radiusPx) {
+  function applyBazooka(radiusPx: number) {
     ring.style.border = 'none';
     ring.style.clipPath = 'none';
     reticle.style.width = `${radiusPx * 2}px`;
@@ -122,7 +133,7 @@ export function createScopeOverlay(container) {
     reticle.innerHTML = bazookaReticleHtml(radiusPx);
   }
 
-  function applyStandard(style) {
+  function applyStandard(style: ReticleStyle) {
     ring.style.border = style.ringBorder ?? 'none';
     ring.style.borderRadius = style.ringShape === 'hexagon' ? '0' : '50%';
     ring.style.clipPath = style.ringShape === 'hexagon' ? HEXAGON_CLIP_PATH : 'none';
@@ -131,7 +142,7 @@ export function createScopeOverlay(container) {
     reticle.innerHTML = crosshairHtml(style);
   }
 
-  function show(weaponId, blastRadiusPx = 0) {
+  function show(weaponId: string, blastRadiusPx: number = 0) {
     const isBazooka = weaponId === BAZOOKA_ID;
     // 창 크기가 바뀌면 반경도 바뀌므로 캐시 키에 포함한다.
     const key = isBazooka ? `${weaponId}:${blastRadiusPx}` : weaponId;

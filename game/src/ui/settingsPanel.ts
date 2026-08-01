@@ -1,6 +1,6 @@
 import { scrim, panel, button, iconButton, title, num, TOKENS } from './kit';
 
-export function createSettingsPanel(container) {
+export function createSettingsPanel(container: HTMLElement) {
   const overlay = scrim();
   overlay.style.zIndex = '25';
   container.appendChild(overlay);
@@ -9,7 +9,13 @@ export function createSettingsPanel(container) {
   // '메뉴로' 가 있으면 말이 안 된다.
   // onReplayTutorial 은 메뉴에서도 넘어온다. 조작 설명이라 '메뉴로'와 달리
   // 어디서 열었든 다시 볼 수 있어야 한다.
-  function show(sensitivity, onChange, onClose, onExit, onReplayTutorial) {
+  function show(
+    sensitivity: number,
+    onChange: (value: number) => void,
+    onClose: () => void,
+    onExit?: () => void,
+    onReplayTutorial?: () => void,
+  ) {
     overlay.innerHTML = '';
 
     const box = panel();

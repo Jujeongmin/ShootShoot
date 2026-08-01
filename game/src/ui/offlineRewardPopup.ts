@@ -1,11 +1,11 @@
 import { scrim, panel, button, title, num, TOKENS } from './kit';
 
-export function createOfflineRewardPopup(container) {
+export function createOfflineRewardPopup(container: HTMLElement) {
   const overlay = scrim();
   overlay.style.zIndex = '25';
   container.appendChild(overlay);
 
-  function show(goldAmount, onClaim) {
+  function show(goldAmount: number, onClaim: () => void) {
     overlay.innerHTML = '';
 
     const box = panel();

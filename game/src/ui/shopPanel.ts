@@ -1,18 +1,41 @@
 import { scrim, panel, button, iconButton, badge, divider, title, TOKENS } from './kit';
 import { weaponButtonState } from './weaponButtonState';
+import type { Weapon } from '../config';
 
 const MAX_DAMAGE_PIPS = 5;
 
-export function createShopPanel(container) {
+// game.js의 buildShopState()가 CONFIG.weapons에서 이 다섯 필드만 골라
+// owned/equipped를 붙여 보낸다 — 전체 Weapon(모델 경로, scale 등)은 상점
+// 카드에 필요 없다.
+type ShopWeapon = Pick<Weapon, 'id' | 'name' | 'image' | 'damage' | 'price'> & {
+  owned: boolean;
+  equipped: boolean;
+};
+
+interface ShopState {
+  gold: number;
+  adGoldAmount: number;
+  weapons: ShopWeapon[];
+  error: string | null;
+}
+
+interface ShopHandlers {
+  onWatchAdGold: () => void;
+  onEquip: (id: string) => void;
+  onBuy: (id: string) => void;
+  onClose: () => void;
+}
+
+export function createShopPanel(container: HTMLElement) {
   const overlay = scrim();
   overlay.style.zIndex = '25';
   container.appendChild(overlay);
 
   let index = 0;
-  let current = null;
+  let current: { state: ShopState; handlers: ShopHandlers } | null = null;
 
   // 데미지를 별 5개로 표시한다. 채운 별과 빈 별 스프라이트가 따로 있다.
-  function damagePips(damage) {
+  function damagePips(damage: number) {
     const row = document.createElement('div');
     row.style.cssText = 'display: flex; justify-content: center; gap: 3px; margin-top: 6px;';
     const filled = Math.min(damage, MAX_DAMAGE_PIPS);
@@ -28,7 +51,7 @@ export function createShopPanel(container) {
 
   // 골드가 모자랄 때만 가격 옆에 광고 버튼이 붙는다. 나머지 상태는 버튼 하나다.
   // 광고가 얼마를 주는지는 버튼에 적는다 — 금액은 game.js 가 state 로 넘긴다.
-  function insufficientRow(weapon, adGoldAmount, handlers) {
+  function insufficientRow(weapon: ShopWeapon, adGoldAmount: number, handlers: ShopHandlers) {
     const row = document.createElement('div');
     row.style.cssText = 'display: flex; align-items: stretch; gap: 8px; margin-top: 12px;';
 
@@ -43,7 +66,7 @@ export function createShopPanel(container) {
     return row;
   }
 
-  function actionButton(weapon, gold, adGoldAmount, handlers) {
+  function actionButton(weapon: ShopWeapon, gold: number, adGoldAmount: number, handlers: ShopHandlers) {
     const state = weaponButtonState(weapon, gold);
     if (state === 'insufficient') {
       return insufficientRow(weapon, adGoldAmount, handlers);
@@ -62,8 +85,10 @@ export function createShopPanel(container) {
   }
 
   function render() {
-    const { gold, adGoldAmount, weapons, error } = current.state;
-    const handlers = current.handlers;
+    // render()는 항상 show()가 current를 채운 뒤에만 불린다(초기 호출도, prev/next의
+    // 재귀 호출도). 그 순서를 타입에는 담을 수 없어 단언으로 남긴다.
+    const { state, handlers } = current!;
+    const { gold, adGoldAmount, weapons, error } = state;
     const weapon = weapons[index];
     overlay.innerHTML = '';
 
@@ -146,7 +171,7 @@ export function createShopPanel(container) {
     box.appendChild(closeBtn);
   }
 
-  function show(state, handlers) {
+  function show(state: ShopState, handlers: ShopHandlers) {
     current = { state, handlers };
     if (index >= state.weapons.length) index = 0;
     render();

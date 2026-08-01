@@ -1,16 +1,17 @@
 import { scrim, panel, button, iconButton, title, TOKENS } from './kit';
+import type { ButtonVariant } from './kit';
 
 const COLUMNS = 5;
 
 // 깬 라운드를 다시 고를 수 있게 한다. 라운드에 상한이 없어서 도달 라운드까지만
 // 그린다 — 잠긴 칸을 몇 개 보여줄지 정할 기준이 없다.
-export function createRoundSelect(container) {
+export function createRoundSelect(container: HTMLElement) {
   const overlay = scrim();
   // 설정·상점과 같은 층이다.
   overlay.style.zIndex = '25';
   container.appendChild(overlay);
 
-  function show(reachedRound, onPick, onClose) {
+  function show(reachedRound: number, onPick: (round: number) => void, onClose: () => void) {
     overlay.innerHTML = '';
 
     const box = panel();
@@ -35,7 +36,7 @@ export function createRoundSelect(container) {
     `;
     for (let round = 1; round <= reachedRound; round += 1) {
       // 지금 이어할 라운드만 채운 색으로 눈에 띄게 둔다.
-      const variant = round === reachedRound ? 'primary' : 'ghost';
+      const variant: ButtonVariant = round === reachedRound ? 'primary' : 'ghost';
       grid.appendChild(button(String(round), () => onPick(round), variant));
     }
     box.appendChild(grid);
