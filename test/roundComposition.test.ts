@@ -4,8 +4,12 @@ import { createSeededRandom } from '../game/src/gameplay/skyMotion';
 
 // obstacles.ts 의 실제 슬롯 수: 타워 2 + 통로 2.
 const SLOTS = 4;
-// 그 4개 중 진짜 타워(진폭 0) 슬롯은 2개뿐이다. 나머지 2개는 통로라 움직인다.
-const STATIC_SLOTS = 2;
+// 그 4개 중 앞 2개(타워, 진폭 0)만 정적이다. 뒤 2개(통로)는 움직인다.
+// 개수가 아니라 슬롯별 flag 로 표현한다 -- 정적 슬롯이 배열 앞쪽에 몰려 있다는
+// 보장은 없다. 지금은 obstacles.ts 가 타워를 통로보다 먼저 push 해서 우연히
+// 그렇게 되어 있을 뿐이다.
+const STATIC_SLOTS = [true, true, false, false];
+const NO_STATIC_SLOTS: boolean[] = [];
 
 describe('composeRound', () => {
   it('gives the same composition for the same round every time', () => {
@@ -82,7 +86,7 @@ describe('composeRound', () => {
   // monkeyAllocation.test.ts 가 지키던 경계들이다. 지금 게임에서는 안 나오지만
   // 태스크 3~5 가 이 배분 위에 얹히므로 계약으로 남긴다.
   it('handles the degenerate inputs', () => {
-    expect(composeRound(1, 7, 0, 0)).toMatchObject({ structureCount: 0, laneCount: 7 });
+    expect(composeRound(1, 7, 0, NO_STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 7 });
     expect(composeRound(1, 1, 4, STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 1 });
     expect(composeRound(1, 0, 4, STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 0 });
   });
@@ -126,7 +130,7 @@ describe('composeRound', () => {
     const weight = { steady: 0, pause: -1, dash: 2, bob: 2 } as const;
     for (let round = 6; round <= 60; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      const easyCount = composeRound(round, count, 0, 0).monkeys.filter(
+      const easyCount = composeRound(round, count, 0, NO_STATIC_SLOTS).monkeys.filter(
         (monkey) => weight[monkey.behavior] < 0
       ).length;
       expect(easyCount, `round ${round}`).toBeLessThanOrEqual(Math.floor(count / 3));
@@ -135,14 +139,100 @@ describe('composeRound', () => {
 
   // 리뷰 회귀 방어. 진폭이 0인 슬롯은 patrolMotion이 그 위에서 어떤 behavior를
   // 받아도 제자리에 세운다. 구성기가 거기 어려운 것을 배정하면 예산만 쓰고
-  // 화면에는 안 보였다 -- 앞쪽 정적 슬롯만큼은 뽑지 않고 steady로 고정해야 한다.
+  // 화면에는 안 보였다 -- flag 가 선 슬롯만큼은 뽑지 않고 steady로 고정해야 한다.
+  // 개수가 아니라 flag 배열로 확인한다 -- 정적 슬롯이 앞쪽에 몰려 있다는 가정을
+  // 테스트 쪽에서도 강제하지 않기 위해서다.
   it('freezes static structure slots on steady without spending budget or easy share', () => {
     for (let round = 10; round <= 40; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
       const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
-      const staticCount = Math.min(STATIC_SLOTS, composition.structureCount);
-      for (let i = 0; i < staticCount; i += 1) {
+      for (let i = 0; i < composition.structureCount; i += 1) {
+        if (!STATIC_SLOTS[i]) continue;
         expect(composition.monkeys[i].behavior, `round ${round} slot ${i}`).toBe('steady');
+      }
+    }
+  });
+
+  // 태스크 5. 개체 차이는 6라운드부터 열린다.
+  it('keeps every monkey identical until variance unlocks at round 6', () => {
+    for (let round = 1; round <= 5; round += 1) {
+      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), SLOTS, STATIC_SLOTS).monkeys) {
+        expect(monkey.speedScale).toBe(1);
+        expect(monkey.sizeScale).toBe(1);
+      }
+    }
+  });
+
+  it('mixes fast and slow monkeys once variance unlocks', () => {
+    const seen = new Set<number>();
+    for (let round = 6; round <= 40; round += 1) {
+      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), SLOTS, STATIC_SLOTS).monkeys) {
+        seen.add(monkey.speedScale);
+      }
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  // 빠른 개체는 작아야 한다. 크기가 난이도 신호라 플레이어가 우선순위를 고를 수 있다.
+  it('makes the fast ones smaller and the slow ones bigger', () => {
+    for (let round = 6; round <= 40; round += 1) {
+      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), SLOTS, STATIC_SLOTS).monkeys) {
+        if (monkey.speedScale > 1) expect(monkey.sizeScale).toBeLessThan(1);
+        if (monkey.speedScale < 1) expect(monkey.sizeScale).toBeGreaterThan(1);
+        if (monkey.speedScale === 1) expect(monkey.sizeScale).toBe(1);
+      }
+    }
+  });
+
+  // 정적 슬롯(진짜 타워)은 behavior 뿐 아니라 개체 편차 추첨도 건너뛴다 --
+  // 못 움직이는 원숭이에게 speedScale 을 줘봐야 무의미하고, 거기서 난수를
+  // 하나 뽑으면 뒤따르는 다른 원숭이들 몫이 밀린다.
+  it('gives static structure slots no variance and burns no random draw for it', () => {
+    for (let round = 6; round <= 40; round += 1) {
+      const count = Math.min(3 + round - 1, 10);
+      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      for (let i = 0; i < composition.structureCount; i += 1) {
+        if (!STATIC_SLOTS[i]) continue;
+        expect(composition.monkeys[i], `round ${round} slot ${i}`).toEqual({
+          behavior: 'steady',
+          speedScale: 1,
+          sizeScale: 1,
+        });
+      }
+    }
+  });
+
+  it('always leaves at least one monkey in the lanes however it emphasises structures', () => {
+    for (let round = 1; round <= 60; round += 1) {
+      const count = Math.min(3 + (round - 1), 10);
+      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      expect(composition.laneCount, `round ${round}`).toBeGreaterThanOrEqual(1);
+      expect(composition.structureCount + composition.laneCount).toBe(count);
+    }
+  });
+
+  // 구조물 편중(15라운드+)이 구조물을 통째로 비우면 안 된다 -- 무너뜨릴 게
+  // 없으면 그 전체가 게임의 한 축인 붕괴 메커닉이 사라진다. 슬롯이 있고
+  // 원숭이가 둘 이상이면(ceiling > 0) 최소 한 마리는 구조물 위에 있어야 한다.
+  it('never empties the structures once emphasis unlocks, when slots are actually available', () => {
+    for (let round = 15; round <= 60; round += 1) {
+      const count = Math.min(3 + (round - 1), 10);
+      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      const ceiling = Math.min(SLOTS, Math.max(0, count - 1));
+      if (ceiling > 0) {
+        expect(composition.structureCount, `round ${round}`).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  // 구조물 편중의 다른 한쪽 경계: 아무리 슬롯을 몰아줘도 레인은 절대 비지 않는다.
+  it('never empties the lanes once emphasis unlocks, across a wide range of slot counts', () => {
+    for (let round = 15; round <= 60; round += 1) {
+      for (const slotCount of [0, 1, 2, 4, 8]) {
+        const count = Math.min(3 + (round - 1), 10);
+        const slots = Array.from({ length: slotCount }, () => false);
+        const composition = composeRound(round, count, slotCount, slots);
+        expect(composition.laneCount, `round ${round} slots ${slotCount}`).toBeGreaterThanOrEqual(1);
       }
     }
   });

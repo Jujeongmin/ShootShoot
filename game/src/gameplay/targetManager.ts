@@ -41,12 +41,14 @@ export function createTargetManager(
 
     // 타워 슬롯은 진폭이 0이라 어떤 behavior 를 줘도 제자리에 선다. 구성기가
     // 그 자리에 어려운 움직임을 배정하면 난이도 예산만 쓰고 화면에는 안 나타난다.
-    const staticSlotCount = towerSlots.filter((slot) => slot.sway.amplitude === 0).length;
+    // 슬롯별 flag 로 넘긴다 -- 개수로는 타워가 배열 앞쪽에 있다는 순서에 기대게
+    // 되는데, 그건 obstacles.ts 가 타워를 통로보다 먼저 push 하는 우연일 뿐이다.
+    const staticStructureSlots = towerSlots.map((slot) => slot.sway.amplitude === 0);
     const composition = composeRound(
       roundNumber,
       params.monkeyCount,
       towerSlots.length,
-      staticSlotCount
+      staticStructureSlots
     );
     const structureCount = composition.structureCount;
     const laneMonkeyCount = composition.laneCount;
@@ -54,22 +56,25 @@ export function createTargetManager(
     // 슬롯 순서가 우선순위다. 원숭이가 모자라면 뒤쪽 슬롯이 빈 채로 남는다.
     for (let i = 0; i < structureCount; i++) {
       const slot = towerSlots[i];
+      const plan = composition.monkeys[i];
       const monkey = createMonkey({
         id: `monkey-${nextId++}`,
         position: { x: slot.x, y: slot.y - MONKEY_DROP, z: slot.z },
-        scale: params.monkeyScale,
-        speed: params.monkeySpeed,
+        scale: params.monkeyScale * plan.sizeScale,
+        speed: params.monkeySpeed * plan.speedScale,
         template: monkeyModel.template,
         clip: monkeyModel.clip,
         // 순찰 폭과 위상은 슬롯이 정한다. 제자리에 서는 타워는 진폭 0,
-        // 통로는 발판 길이 안에서 오갈 만큼의 진폭을 싣고 온다.
+        // 통로는 발판 길이 안에서 오갈 만큼의 진폭을 싣고 온다. 주기는 그
+        // 개체의 속도를 따라야 한다 -- 안 그러면 빠른 개체가 빠르게 걷되
+        // 순찰 주기는 그대로라 발이 미끄러진다.
         sway: {
           amplitude: slot.sway.amplitude,
-          frequency: slot.sway.frequencyPerSpeed * params.monkeySpeed,
+          frequency: slot.sway.frequencyPerSpeed * params.monkeySpeed * plan.speedScale,
           phase: slot.sway.phase,
         },
         hp: params.monkeyHp,
-        behavior: composition.monkeys[i].behavior,
+        behavior: plan.behavior,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);
@@ -85,16 +90,21 @@ export function createTargetManager(
     );
     for (let i = 0; i < laneMonkeyCount; i++) {
       const slot = layout[i];
+      const plan = composition.monkeys[structureCount + i];
       const monkey = createMonkey({
         id: `monkey-${nextId++}`,
         position: { x: slot.x, y: slot.y - MONKEY_DROP, z: slot.z },
-        scale: params.monkeyScale,
-        speed: params.monkeySpeed,
+        scale: params.monkeyScale * plan.sizeScale,
+        speed: params.monkeySpeed * plan.speedScale,
         template: monkeyModel.template,
         clip: monkeyModel.clip,
-        sway: { amplitude: slot.swayAmplitude, frequency: slot.swayFrequency, phase: slot.swayPhase },
+        sway: {
+          amplitude: slot.swayAmplitude,
+          frequency: slot.swayFrequency * plan.speedScale,
+          phase: slot.swayPhase,
+        },
         hp: params.monkeyHp,
-        behavior: composition.monkeys[structureCount + i].behavior,
+        behavior: plan.behavior,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);

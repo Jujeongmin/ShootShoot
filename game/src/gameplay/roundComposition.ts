@@ -45,15 +45,38 @@ export function roundSeed(roundNumber: number): number {
 // 판 전체가 구조물 위에만 서 있게 되고, 통로 하나 무너뜨리면 판이 끝난다.
 // 그래서 레인에 최소 한 마리는 남긴다.
 //
-// 라운드에 따라 이 비율을 흔드는 것은 태스크 5가 한다. 해금 라운드가 15라
-// 여기서 미리 흔들면 안 된다.
-function splitBetweenStructuresAndLanes(monkeyCount: number, structureSlotCount: number) {
-  const structureCount = Math.min(structureSlotCount, Math.max(0, monkeyCount - 1));
+// 15라운드부터는 구조물을 덜 쓰는 판도 섞는다. 항상 슬롯을 꽉 채우면 어느 판이나
+// 구조물부터 부수는 같은 순서로 풀린다.
+function splitBetweenStructuresAndLanes(
+  monkeyCount: number,
+  structureSlotCount: number,
+  roundNumber: number,
+  random: () => number
+) {
+  const ceiling = Math.min(structureSlotCount, Math.max(0, monkeyCount - 1));
+  if (roundNumber < STRUCTURE_EMPHASIS_UNLOCK_ROUND) {
+    return { structureCount: ceiling, laneCount: monkeyCount - ceiling };
+  }
+  // 0 은 안 쓴다 -- 구조물이 통째로 비면 무너뜨리는 재미가 사라진다. ceiling 이 0일
+  // 때(슬롯이 없거나 원숭이가 하나뿐일 때)만 예외로 0을 낸다.
+  const structureCount = ceiling === 0 ? 0 : 1 + Math.floor(random() * ceiling);
   return { structureCount, laneCount: monkeyCount - structureCount };
 }
 
 // 전부 한 번에 열면 1라운드가 아수라장이 되고 튜토리얼이 그 위에 얹혀 있다.
 const FORMATION_UNLOCK_ROUND = 4;
+
+// 개체 차이와 구조물 편중이 풀리는 라운드.
+const VARIANCE_UNLOCK_ROUND = 6;
+const STRUCTURE_EMPHASIS_UNLOCK_ROUND = 15;
+
+// 빠른 놈은 작고 느린 놈은 크다. 크기가 난이도 신호라 플레이어가 뭘 먼저 쏠지
+// 고를 수 있다. 체력은 안 건드린다 -- 개체마다 다르면 점수·정산과 얽힌다.
+const VARIANTS = [
+  { speedScale: 0.7, sizeScale: 1.15 },
+  { speedScale: 1.0, sizeScale: 1.0 },
+  { speedScale: 1.4, sizeScale: 0.85 },
+];
 
 // FormationId 와 이 배열이 어긋나면 새 대형을 넣고도 뽑히지 않는다. 한 곳에 둔다.
 export const FORMATIONS: FormationId[] = ['columns', 'wedge', 'wide', 'staggered'];
@@ -93,14 +116,19 @@ export function composeRound(
   roundNumber: number,
   monkeyCount: number,
   structureSlotCount: number,
-  staticSlotCount: number
+  staticStructureSlots: readonly boolean[]
 ): RoundComposition {
+  const random = createSeededRandom(roundSeed(roundNumber));
+
+  // 난수를 뽑는 순서가 결과를 정한다. 구조물 편중부터 뽑고, 그다음 대형,
+  // 그다음 behavior/개체차이 순으로 고정해야 라운드마다 같은 자리에서 같은
+  // 값이 나온다.
   const { structureCount, laneCount } = splitBetweenStructuresAndLanes(
     monkeyCount,
-    structureSlotCount
+    structureSlotCount,
+    roundNumber,
+    random
   );
-
-  const random = createSeededRandom(roundSeed(roundNumber));
 
   const formation =
     roundNumber < FORMATION_UNLOCK_ROUND
@@ -112,14 +140,19 @@ export function composeRound(
   const easyLimit = Math.floor(monkeyCount * EASY_BEHAVIOR_SHARE);
   let easyTaken = 0;
 
-  // 진폭이 0인 슬롯(진짜 타워)은 patrolMotion이 곡선과 상관없이 제자리에 세운다.
-  // 어떤 behavior를 줘도 화면에는 안 보이므로, 앞쪽 정적 슬롯만큼은 뽑지 않고
-  // steady로 고정해 예산과 쉬운 자리 몫을 그 자리에 낭비하지 않는다.
-  const staticCount = Math.min(staticSlotCount, structureCount);
-
   const monkeys: MonkeyPlan[] = [];
   for (let i = 0; i < monkeyCount; i += 1) {
-    if (i < staticCount) {
+    // 진폭이 0인 슬롯(진짜 타워)은 patrolMotion이 곡선과 상관없이 제자리에 세운다.
+    // 어떤 behavior/개체차이를 줘도 화면에는 안 보이므로 뽑지 않고 고정한다 --
+    // 예산·쉬운 자리 몫·개체 편차 추첨 모두 그 자리에 낭비하지 않는다.
+    //
+    // 개수(staticSlotCount) 대신 슬롯별 flag 배열을 받는 이유: 정적 슬롯이
+    // 항상 배열 앞쪽에 몰려 있다는 보장이 없다. 지금은 obstacles.ts 가 타워를
+    // 먼저 push 해서 우연히 그렇게 되지만, 그 순서가 바뀌면 개수 비교로는
+    // 엉뚱한 자리를 얼려버리고도 조용히 넘어간다. flag 배열은 순서에 기대지
+    // 않는다.
+    const isStatic = i < structureCount && staticStructureSlots[i];
+    if (isStatic) {
       monkeys.push({ behavior: 'steady', speedScale: 1, sizeScale: 1 });
       continue;
     }
@@ -134,7 +167,12 @@ export function composeRound(
     const behavior = affordable[Math.floor(random() * affordable.length)];
     budget -= BEHAVIOR_WEIGHT[behavior];
     if (BEHAVIOR_WEIGHT[behavior] < 0) easyTaken += 1;
-    monkeys.push({ behavior, speedScale: 1, sizeScale: 1 });
+
+    const variant =
+      roundNumber < VARIANCE_UNLOCK_ROUND
+        ? { speedScale: 1, sizeScale: 1 }
+        : VARIANTS[Math.floor(random() * VARIANTS.length)];
+    monkeys.push({ behavior, speedScale: variant.speedScale, sizeScale: variant.sizeScale });
   }
 
   return { structureCount, laneCount, formation, monkeys };
