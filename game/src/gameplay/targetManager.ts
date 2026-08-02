@@ -61,6 +61,7 @@ export function createTargetManager(
           phase: slot.sway.phase,
         },
         hp: params.monkeyHp,
+        behavior: composition.monkeys[i].behavior,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);
@@ -85,6 +86,7 @@ export function createTargetManager(
         clip: monkeyModel.clip,
         sway: { amplitude: slot.swayAmplitude, frequency: slot.swayFrequency, phase: slot.swayPhase },
         hp: params.monkeyHp,
+        behavior: composition.monkeys[structureCount + i].behavior,
       });
       scene.add(monkey.group);
       monkeys.push(monkey);

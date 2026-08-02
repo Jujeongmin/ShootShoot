@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { createPatrol } from '../game/src/gameplay/patrolMotion';
+import type { BehaviorId } from '../game/src/gameplay/roundComposition';
 
 const AMPLITUDE = 3;
 // frequency 1, phase 0 이면 elapsed 가 곧 각도다. 아래 시각들의 의미:
 //   0        cos = 1   최고속, 오른쪽으로 간다
 //   PI/2     cos = 0   순찰 오른쪽 끝, 멈춘다
 //   PI       cos = -1  최고속, 왼쪽으로 간다
-const patrol = () => createPatrol({ amplitude: AMPLITUDE, frequency: 1, phase: 0 });
+const patrol = () => createPatrol({ amplitude: AMPLITUDE, frequency: 1, phase: 0, behavior: 'steady' });
 
 describe('createPatrol', () => {
   it('keeps the existing sway curve exactly', () => {
@@ -56,7 +57,7 @@ describe('createPatrol', () => {
   });
 
   it('holds a zero-amplitude monkey still but still lets it taunt', () => {
-    const still = createPatrol({ amplitude: 0, frequency: 1, phase: 0 });
+    const still = createPatrol({ amplitude: 0, frequency: 1, phase: 0, behavior: 'steady' });
     for (const t of [0, 0.5, Math.PI / 2, Math.PI, 4.2]) {
       const s = still.sample(t, 0.016);
       expect(s.offsetX).toBe(0);
@@ -91,15 +92,83 @@ describe('createPatrol', () => {
   it('reports zero stride for a zero-amplitude monkey, never the raw speed', () => {
     // amplitude 0인 원숭이는 speedNorm이 뭐든 실제로는 안 움직이므로,
     // 다리 스윙이 stride에 곱해질 때 항상 0이어야 한다(굳은 자세 방지).
-    const still = createPatrol({ amplitude: 0, frequency: 1, phase: 0 });
+    const still = createPatrol({ amplitude: 0, frequency: 1, phase: 0, behavior: 'steady' });
     for (const t of [0, 0.5, Math.PI / 2, Math.PI, 4.2]) {
       expect(still.sample(t, 0.016).stride).toBe(0);
     }
   });
 
   it('respects the phase offset', () => {
-    const shifted = createPatrol({ amplitude: AMPLITUDE, frequency: 1, phase: Math.PI / 2 });
+    const shifted = createPatrol({
+      amplitude: AMPLITUDE,
+      frequency: 1,
+      phase: Math.PI / 2,
+      behavior: 'steady',
+    });
     expect(shifted.sample(0, 0.016).offsetX).toBeCloseTo(AMPLITUDE, 10);
     expect(shifted.sample(0, 0.016).facing).toBeCloseTo(0, 10);
+  });
+});
+
+const BEHAVIORS: BehaviorId[] = ['steady', 'pause', 'dash', 'bob'];
+
+describe('behaviors', () => {
+  // 회귀 방어. steady 는 거듭제곱 1 이라 sign(s) x |s|^1 = s 로 예전 식과 같아야 한다.
+  it('leaves steady on the original sine', () => {
+    const patrol = createPatrol({ amplitude: 3, frequency: 1.5, phase: 0.4, behavior: 'steady' });
+    for (const elapsed of [0, 0.3, 1.1, 2.7, 5.5]) {
+      const angle = elapsed * 1.5 + 0.4;
+      const sample = patrol.sample(elapsed, 0.016);
+      expect(sample.offsetX).toBeCloseTo(Math.sin(angle) * 3, 10);
+      expect(sample.offsetY).toBe(0);
+    }
+  });
+
+  it('keeps every behaviour inside its amplitude', () => {
+    for (const behavior of BEHAVIORS) {
+      const patrol = createPatrol({ amplitude: 3, frequency: 1.5, phase: 0, behavior });
+      for (let elapsed = 0; elapsed < 12; elapsed += 0.05) {
+        const sample = patrol.sample(elapsed, 0.05);
+        expect(Math.abs(sample.offsetX), behavior).toBeLessThanOrEqual(3.0001);
+      }
+    }
+  });
+
+  // 타워 위 원숭이는 진폭이 0이라 제자리에 선다. 곡선을 갈아 끼워도 이 분기를
+  // 타야 한다 -- 안 그러면 타워 원숭이가 공중에서 흔들린다.
+  it('freezes every behaviour when the amplitude is zero', () => {
+    for (const behavior of BEHAVIORS) {
+      const patrol = createPatrol({ amplitude: 0, frequency: 1.5, phase: 0, behavior });
+      for (let elapsed = 0; elapsed < 6; elapsed += 0.25) {
+        const sample = patrol.sample(elapsed, 0.25);
+        expect(sample.offsetX, behavior).toBe(0);
+        expect(sample.offsetY, behavior).toBe(0);
+        expect(sample.facing, behavior).toBe(0);
+        expect(sample.gaitDelta, behavior).toBe(0);
+        expect(sample.stride, behavior).toBe(0);
+      }
+    }
+  });
+
+  // p < 1 이면 속도가 중앙에서 발산한다. 자르지 않으면 다리가 미친 듯이 돈다.
+  it('never lets stride or gait blow up, even where pause is fastest', () => {
+    const patrol = createPatrol({ amplitude: 3, frequency: 1.5, phase: 0, behavior: 'pause' });
+    for (let elapsed = 0; elapsed < 12; elapsed += 0.01) {
+      const sample = patrol.sample(elapsed, 0.01);
+      expect(Number.isFinite(sample.gaitDelta)).toBe(true);
+      expect(sample.stride).toBeGreaterThanOrEqual(0);
+      expect(sample.stride).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('only bob moves vertically', () => {
+    for (const behavior of BEHAVIORS) {
+      const patrol = createPatrol({ amplitude: 3, frequency: 1.5, phase: 0, behavior });
+      let sawVertical = false;
+      for (let elapsed = 0; elapsed < 12; elapsed += 0.05) {
+        if (Math.abs(patrol.sample(elapsed, 0.05).offsetY) > 1e-9) sawVertical = true;
+      }
+      expect(sawVertical, behavior).toBe(behavior === 'bob');
+    }
   });
 });

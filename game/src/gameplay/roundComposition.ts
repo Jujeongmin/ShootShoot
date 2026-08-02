@@ -58,6 +58,30 @@ const FORMATION_UNLOCK_ROUND = 4;
 // FormationId 와 이 배열이 어긋나면 새 대형을 넣고도 뽑히지 않는다. 한 곳에 둔다.
 export const FORMATIONS: FormationId[] = ['columns', 'wedge', 'wide', 'staggered'];
 
+// 해금 라운드. 어려운 것일수록 늦게 연다.
+const BEHAVIOR_UNLOCK_ROUND: Record<BehaviorId, number> = {
+  steady: 1,
+  pause: 6,
+  dash: 10,
+  bob: 15,
+};
+
+// 난이도 가중치. pause 는 양 끝에 오래 머물러 오히려 맞히기 쉽다.
+const BEHAVIOR_WEIGHT: Record<BehaviorId, number> = {
+  steady: 0,
+  pause: -1,
+  dash: 2,
+  bob: 2,
+};
+
+const BEHAVIORS: BehaviorId[] = ['steady', 'pause', 'dash', 'bob'];
+
+// 한 판에 어려운 것이 몰리지 않게 가중치 합에 상한을 건다. 안 걸면 dash 와 bob 만
+// 열 마리인 판이 나온다. 4라운드에 0 에서 시작해 두 라운드마다 1씩 오른다.
+function difficultyBudget(roundNumber: number) {
+  return Math.max(0, Math.floor((roundNumber - 4) / 2));
+}
+
 export function composeRound(
   roundNumber: number,
   monkeyCount: number,
@@ -75,9 +99,16 @@ export function composeRound(
       ? 'columns'
       : FORMATIONS[Math.floor(random() * FORMATIONS.length)];
 
+  const unlocked = BEHAVIORS.filter((id) => roundNumber >= BEHAVIOR_UNLOCK_ROUND[id]);
+  let budget = difficultyBudget(roundNumber);
+
   const monkeys: MonkeyPlan[] = [];
   for (let i = 0; i < monkeyCount; i += 1) {
-    monkeys.push({ behavior: 'steady', speedScale: 1, sizeScale: 1 });
+    // 예산 안에 드는 것만 후보다. steady 는 가중치 0 이라 항상 남는다.
+    const affordable = unlocked.filter((id) => BEHAVIOR_WEIGHT[id] <= budget);
+    const behavior = affordable[Math.floor(random() * affordable.length)];
+    budget -= BEHAVIOR_WEIGHT[behavior];
+    monkeys.push({ behavior, speedScale: 1, sizeScale: 1 });
   }
 
   return { structureCount, laneCount, formation, monkeys };

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { cloneMonkeyModel } from './monkeyModel';
 import { createPatrol } from './patrolMotion';
 import type { HitUserData } from './hitUserData';
+import type { BehaviorId } from './roundComposition';
 
 const HIT_ANIMATION_DURATION = 0.6;
 const BOB_HEIGHT = 0.06;
@@ -76,6 +77,7 @@ interface CreateMonkeyParams {
   clip?: THREE.AnimationClip;
   sway?: Sway;
   hp?: number;
+  behavior?: BehaviorId;
 }
 
 // material.color는 기본 Material에 없고 실제로 쓰는 서브타입(MeshPhongMaterial 등)에만
@@ -84,7 +86,7 @@ function hasColor(material: THREE.Material): material is THREE.Material & { colo
   return 'color' in material;
 }
 
-export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip, sway = {}, hp = 1 }: CreateMonkeyParams) {
+export function createMonkey({ id, position, scale = 1, speed = 0.5, template, clip, sway = {}, hp = 1, behavior = 'steady' }: CreateMonkeyParams) {
   const group = new THREE.Group();
   group.position.set(position.x, position.y, position.z);
   group.scale.setScalar(scale);
@@ -128,6 +130,7 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     amplitude: swayAmplitude,
     frequency: swayFrequency,
     phase: swayPhase,
+    behavior,
   });
 
   const state = {
@@ -153,10 +156,12 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     // 위로만 흔들리게 한다. 대칭으로 흔들면 절반의 시간 동안 발이 지면을 파고들어
     // 땅에 서 있는 게 아니라 떠 있는 것처럼 보인다.
     const bobPhase = Math.sin(state.elapsed * 3 + state.phaseOffset) * 0.5 + 0.5;
-    group.position.y = position.y + bobPhase * BOB_HEIGHT;
 
     const motion = patrol.sample(state.elapsed, dt);
     group.position.x = position.x + motion.offsetX;
+    // 원래 있던 걷기 상하 흔들림 위에 behavior 의 세로 움직임을 더한다. bob 말고는
+    // offsetY 가 0 이라 예전과 같은 높이가 나온다.
+    group.position.y = position.y + bobPhase * BOB_HEIGHT + motion.offsetY;
 
     // 도발은 순찰 끝에서 플레이어를 보는 순간에만 나온다. taunt가 그때 1이라
     // 별도의 타이머 없이 진행 방향 위에 얹기만 하면 된다. phaseOffset을 더해야

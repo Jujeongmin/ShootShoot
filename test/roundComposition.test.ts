@@ -84,4 +84,35 @@ describe('composeRound', () => {
     expect(composeRound(1, 1, 4)).toMatchObject({ structureCount: 0, laneCount: 1 });
     expect(composeRound(1, 0, 4)).toMatchObject({ structureCount: 0, laneCount: 0 });
   });
+
+  it('holds every behaviour but steady until it unlocks', () => {
+    const unlock = { pause: 6, dash: 10, bob: 15 } as const;
+    for (let round = 1; round <= 40; round += 1) {
+      const count = Math.min(3 + (round - 1), 10);
+      for (const monkey of composeRound(round, count, SLOTS).monkeys) {
+        if (monkey.behavior === 'steady') continue;
+        expect(round, `${monkey.behavior} at round ${round}`)
+          .toBeGreaterThanOrEqual(unlock[monkey.behavior]);
+      }
+    }
+  });
+
+  it('never stacks more hard behaviours than the round can afford', () => {
+    const weight = { steady: 0, pause: -1, dash: 2, bob: 2 } as const;
+    for (let round = 1; round <= 60; round += 1) {
+      const count = Math.min(3 + (round - 1), 10);
+      const spent = composeRound(round, count, SLOTS).monkeys
+        .reduce((sum, monkey) => sum + weight[monkey.behavior], 0);
+      const budget = Math.max(0, Math.floor((round - 4) / 2));
+      expect(spent, `round ${round}`).toBeLessThanOrEqual(budget);
+    }
+  });
+
+  it('still gives the first three rounds nothing but steady', () => {
+    for (const [round, count] of [[1, 3], [2, 4], [3, 5]] as const) {
+      for (const monkey of composeRound(round, count, SLOTS).monkeys) {
+        expect(monkey.behavior).toBe('steady');
+      }
+    }
+  });
 });
