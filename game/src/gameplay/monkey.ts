@@ -163,9 +163,11 @@ export function createMonkey({ id, position, scale = 1, speed = 0.5, template, c
     // offsetY 가 0 이라 예전과 같은 높이가 나온다.
     group.position.y = position.y + bobPhase * BOB_HEIGHT + motion.offsetY;
 
-    // 도발은 순찰 끝에서 플레이어를 보는 순간에만 나온다. taunt가 그때 1이라
-    // 별도의 타이머 없이 진행 방향 위에 얹기만 하면 된다. phaseOffset을 더해야
-    // swayPhase가 같은 원숭이끼리(타워 두 마리 등) 도발이 완전히 겹치지 않는다.
+    // 도발은 곡선이 멈추는 순간, 즉 플레이어를 보는 순간에만 나온다. taunt가
+    // 그때 1이라 별도의 타이머 없이 진행 방향 위에 얹기만 하면 된다. steady 등은
+    // 양 끝에서만 멈추지만 dash는 가운데서도 한 번 멈추므로 그 자리에서도
+    // 도발한다. phaseOffset을 더해야 swayPhase가 같은 원숭이끼리(타워 두 마리
+    // 등) 도발이 완전히 겹치지 않는다.
     const wobble = Math.sin(state.elapsed * TAUNT_FREQUENCY + state.phaseOffset) * TAUNT_SWING * motion.taunt;
     group.rotation.y = motion.facing + wobble;
 

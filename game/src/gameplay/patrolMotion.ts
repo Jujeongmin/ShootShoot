@@ -7,7 +7,9 @@
 import type { BehaviorId } from './roundComposition';
 
 // 이 비율 아래로 느려지면 옆모습에서 정면으로 섞기 시작한다. sin 운동이라
-// 양 끝에서 속도가 0이 되고, 그 순간이 플레이어를 보는 순간이 된다.
+// 곡선이 멈추는 지점에서 속도가 0이 되고, 그 순간이 플레이어를 보는 순간이 된다.
+// steady/pause/bob 은 양 끝뿐이지만 dash 는 가운데도 한 번 멈췄다 가므로
+// 그 순간에도 정면을 보고 도발한다.
 const FACE_THRESHOLD = 0.25;
 
 // 모델은 rotation.y = 0에서 +Z(플레이어)를 본다. +Z를 Y축으로 θ 돌리면
@@ -32,25 +34,38 @@ interface PatrolParams {
 
 // 곡선을 sign(sin a) x |sin a|^p 하나로 통일한다. p = 1 이면 그냥 sin 이라
 // steady 가 예전 식과 완전히 같다. p < 1 은 양 끝에 머물고, p > 1 은 가운데서 끌다
-// 양 끝으로 빠르게 간다.
+// 양 끝으로 빠르게 간다. dash 는 2.2에서는 최고 속도가 steady보다 3%밖에 안 빨라
+// 티가 안 났다 -- 3.0은 약 15% 더 빠르고 가운데 머무는 것도 뚜렷하다. 그래도 안
+// 읽히면 이 값을 더 올린다.
 const BEHAVIOR_POWER: Record<BehaviorId, number> = {
   steady: 1,
   pause: 0.55,
-  dash: 2.2,
+  dash: 3.0,
   bob: 1,
 };
 
 // bob 의 세로 흔들림. 좌우 주기와 정수배가 되면 두 축이 맞물려 한 방향으로
 // 기울어진 직선처럼 보이므로 무리수에 가까운 비율을 쓴다.
 const BOB_RATIO = 2.3;
-const BOB_AMPLITUDE = 0.5;
+// 위로만 흔든다. 대칭으로 흔들면 절반의 시간 동안 발이 지면을 파고든다 --
+// monkey.ts 의 걷기 흔들림이 같은 이유로 이미 위로만 간다. 통로 원숭이는
+// 단단한 발판 위에 서 있어서 아래로 내려가면 판을 뚫고 나간다.
+const BOB_AMPLITUDE = 0.35;
 
 // p < 1 이면 속도가 sin = 0 에서 발산한다. 0 으로 나누지 않도록 크기를 바닥에서
-// 막고, 그래도 남는 큰 값은 아래에서 1 로 자른다.
+// 막고, 그래도 남는 큰 값은 아래에서 1 로 자른다. 위치(value)에는 안 쓴다 --
+// 여기 섞으면 교차점에서 pause 가 0 대신 진폭의 2.24%로 튀어버린다.
 const MAGNITUDE_FLOOR = 1e-3;
 
 export function createPatrol({ amplitude, frequency, phase, behavior }: PatrolParams) {
   const power = BEHAVIOR_POWER[behavior];
+
+  // value 와 (걸음용) 이전 값이 같은 공식을 쓰도록 한 곳에 모은다. power가 1이면
+  // 그냥 sin이라 steady/bob의 offsetX가 예전 식과 완전히 같다.
+  const shapeAt = (angle: number) => {
+    const sine = Math.sin(angle);
+    return power === 1 ? sine : Math.sign(sine) * Math.pow(Math.abs(sine), power);
+  };
 
   return {
     sample(elapsed: number, dt: number): PatrolSample {
@@ -59,10 +74,11 @@ export function createPatrol({ amplitude, frequency, phase, behavior }: PatrolPa
       const cosine = Math.cos(angle);
 
       // 정규화 위치와 그 속도. power 가 1 이면 각각 sin, cos 라 예전과 같다.
-      const magnitude = Math.max(Math.abs(sine), MAGNITUDE_FLOOR);
-      const value = power === 1 ? sine : Math.sign(sine) * Math.pow(magnitude, power);
+      const value = shapeAt(angle);
       const rawSpeed =
-        power === 1 ? Math.abs(cosine) : power * Math.pow(magnitude, power - 1) * Math.abs(cosine);
+        power === 1
+          ? Math.abs(cosine)
+          : power * Math.pow(Math.max(Math.abs(sine), MAGNITUDE_FLOOR), power - 1) * Math.abs(cosine);
       const speedNorm = Math.min(rawSpeed, 1);
 
       const taunt = Math.max(0, 1 - speedNorm / FACE_THRESHOLD);
@@ -83,11 +99,22 @@ export function createPatrol({ amplitude, frequency, phase, behavior }: PatrolPa
       const stride = Math.min(speedNorm / FACE_THRESHOLD, 1);
       const direction = cosine >= 0 ? 1 : -1;
 
+      // 걸음은 실제로 나아간 거리를 따라야 발이 안 미끄러진다. steady/bob(둘 다
+      // power 1)은 예전처럼 해석적으로 두어 수치가 그대로고, 나머지는 속도를
+      // 자르는 바람에 거리와 어긋나므로 이번 프레임에 실제로 움직인 만큼을 쓴다.
+      const gaitDelta =
+        power === 1
+          ? speedNorm * amplitude * frequency * dt
+          : Math.abs(value - shapeAt(angle - frequency * dt)) * amplitude;
+
       return {
         offsetX: value * amplitude,
-        offsetY: behavior === 'bob' ? Math.sin(angle * BOB_RATIO + phase) * BOB_AMPLITUDE : 0,
+        offsetY:
+          behavior === 'bob'
+            ? ((Math.sin(angle * BOB_RATIO + phase) + 1) / 2) * BOB_AMPLITUDE
+            : 0,
         facing: direction * RIGHT_FACING * stride,
-        gaitDelta: speedNorm * amplitude * frequency * dt,
+        gaitDelta,
         stride,
         taunt,
       };

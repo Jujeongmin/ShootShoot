@@ -76,16 +76,24 @@ const BEHAVIOR_WEIGHT: Record<BehaviorId, number> = {
 
 const BEHAVIORS: BehaviorId[] = ['steady', 'pause', 'dash', 'bob'];
 
-// 한 판에 어려운 것이 몰리지 않게 가중치 합에 상한을 건다. 안 걸면 dash 와 bob 만
-// 열 마리인 판이 나온다. 4라운드에 0 에서 시작해 두 라운드마다 1씩 오른다.
-function difficultyBudget(roundNumber: number) {
-  return Math.max(0, Math.floor((roundNumber - 4) / 2));
+// pause 는 가중치가 음수라 예산을 돌려주고, 그래서 언제나 후보에 남는다. 균등하게
+// 뽑으면 해금되는 순간 판을 뒤덮어서 6라운드가 5라운드보다 쉬워진다 — 실측으로
+// 8마리 중 6마리가 pause 였다. 쉬운 것에도 상한을 둔다.
+const EASY_BEHAVIOR_SHARE = 1 / 3;
+
+// 한 판에 어려운 것이 몰리지 않게 가중치 합에 상한을 건다. 원숭이 수가 10에서
+// 멈추므로 예산만 계속 오르면 어느 시점부터 상한이 무의미해진다. 실측으로
+// 44라운드부터 전원 dash/bob 이 가능해졌다. 몬키 수로 묶어 절반만 어려운 것을
+// 쓸 수 있게 한다. 4라운드에 0 에서 시작해 두 라운드마다 1씩 오른다.
+function difficultyBudget(roundNumber: number, monkeyCount: number) {
+  return Math.max(0, Math.min(Math.floor((roundNumber - 4) / 2), monkeyCount));
 }
 
 export function composeRound(
   roundNumber: number,
   monkeyCount: number,
-  structureSlotCount: number
+  structureSlotCount: number,
+  staticSlotCount: number
 ): RoundComposition {
   const { structureCount, laneCount } = splitBetweenStructuresAndLanes(
     monkeyCount,
@@ -100,14 +108,32 @@ export function composeRound(
       : FORMATIONS[Math.floor(random() * FORMATIONS.length)];
 
   const unlocked = BEHAVIORS.filter((id) => roundNumber >= BEHAVIOR_UNLOCK_ROUND[id]);
-  let budget = difficultyBudget(roundNumber);
+  let budget = difficultyBudget(roundNumber, monkeyCount);
+  const easyLimit = Math.floor(monkeyCount * EASY_BEHAVIOR_SHARE);
+  let easyTaken = 0;
+
+  // 진폭이 0인 슬롯(진짜 타워)은 patrolMotion이 곡선과 상관없이 제자리에 세운다.
+  // 어떤 behavior를 줘도 화면에는 안 보이므로, 앞쪽 정적 슬롯만큼은 뽑지 않고
+  // steady로 고정해 예산과 쉬운 자리 몫을 그 자리에 낭비하지 않는다.
+  const staticCount = Math.min(staticSlotCount, structureCount);
 
   const monkeys: MonkeyPlan[] = [];
   for (let i = 0; i < monkeyCount; i += 1) {
-    // 예산 안에 드는 것만 후보다. steady 는 가중치 0 이라 항상 남는다.
-    const affordable = unlocked.filter((id) => BEHAVIOR_WEIGHT[id] <= budget);
+    if (i < staticCount) {
+      monkeys.push({ behavior: 'steady', speedScale: 1, sizeScale: 1 });
+      continue;
+    }
+
+    // 예산 안에 들고, 쉬운 것이면 몫이 남은 것만 후보다. steady 는 가중치 0 이라
+    // 항상 남는다.
+    const affordable = unlocked.filter((id) => {
+      if (BEHAVIOR_WEIGHT[id] > budget) return false;
+      if (BEHAVIOR_WEIGHT[id] < 0 && easyTaken >= easyLimit) return false;
+      return true;
+    });
     const behavior = affordable[Math.floor(random() * affordable.length)];
     budget -= BEHAVIOR_WEIGHT[behavior];
+    if (BEHAVIOR_WEIGHT[behavior] < 0) easyTaken += 1;
     monkeys.push({ behavior, speedScale: 1, sizeScale: 1 });
   }
 

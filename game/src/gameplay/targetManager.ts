@@ -39,7 +39,15 @@ export function createTargetManager(
     clear();
     const params = getRoundParams(roundNumber, config);
 
-    const composition = composeRound(roundNumber, params.monkeyCount, towerSlots.length);
+    // 타워 슬롯은 진폭이 0이라 어떤 behavior 를 줘도 제자리에 선다. 구성기가
+    // 그 자리에 어려운 움직임을 배정하면 난이도 예산만 쓰고 화면에는 안 나타난다.
+    const staticSlotCount = towerSlots.filter((slot) => slot.sway.amplitude === 0).length;
+    const composition = composeRound(
+      roundNumber,
+      params.monkeyCount,
+      towerSlots.length,
+      staticSlotCount
+    );
     const structureCount = composition.structureCount;
     const laneMonkeyCount = composition.laneCount;
 
