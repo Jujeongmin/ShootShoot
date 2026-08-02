@@ -50,12 +50,17 @@ describe('CONFIG.weapons', () => {
     expect(CONFIG.weapons[0].price).toBe(0);
   });
 
-  it('fills the four-star slot with 중화기', () => {
+  it('fills the four-star slot with the heavy weapon', () => {
     const heavy = CONFIG.weapons.find((weapon) => weapon.id === 'heavy');
     expect(heavy).toBeDefined();
     // 바로 위 toBeDefined()가 런타임 보장이지 컴파일러가 좁혀주는 게 아니므로,
     // undefined가 아님을 단언해야 이어지는 필드 접근이 통과한다.
-    expect(heavy!.name).toBe('중화기');
+    //
+    // name 의 값을 못 박지 않는다. 표시 이름은 화면에 나가는 문자열이라 번역 대상이고,
+    // 실제로 한 번 번역돼서 이 단언이 깨졌다. 이 테스트가 지키려는 것은 별 4개 자리가
+    // 비지 않는다는 것이지 그 무기를 뭐라고 부르는지가 아니다. 자리는 위 find 의 id 가
+    // 잡고, 여기서는 이름이 비어 있지만 않은지 본다.
+    expect(heavy!.name.length).toBeGreaterThan(0);
     expect(heavy!.damage).toBe(4);
     expect(heavy!.price).toBe(4000);
     expect(heavy!.model).toBe('/models/Rifle.fbx');

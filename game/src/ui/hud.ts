@@ -17,7 +17,12 @@ export function createHud(container: HTMLElement) {
   // 감싸는 프레임 없이 라벨과 숫자만 놓는다. 배경이 3D 장면이라 외곽선 그림자로 띄운다.
   const roundLabel = document.createElement('div');
   roundLabel.className = 'k-round-label';
-  roundLabel.textContent = 'ROUND';
+  // 글자를 span으로 감싸는 이유는 theme.css 의 .k-round-label > span 주석에 있다 —
+  // 요약하면 flex 항목의 바깥 폭에서 글꼴이 만든 죽은 폭을 빼야 좌우 막대가 대칭이 된다.
+  // 익명 텍스트 노드에는 스타일을 못 걸어서 요소가 하나 필요하다.
+  const roundLabelText = document.createElement('span');
+  roundLabelText.textContent = 'ROUND';
+  roundLabel.appendChild(roundLabelText);
   el.appendChild(roundLabel);
 
   const roundValue = document.createElement('div');

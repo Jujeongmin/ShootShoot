@@ -216,10 +216,19 @@
 /* 라운드 표시. 프레임 없이 3D 장면 위에 바로 놓이므로 외곽선 그림자로 띄운다.
    양옆 막대는 라벨을 계기 눈금처럼 보이게 한다. flex라 글자 폭이 바뀌어도
    막대가 따라 움직인다. */
+/* width: fit-content + margin auto 가 핵심이다. 그냥 flex 로 두면 라벨이 부모 폭을
+   정하면서 동시에 그 폭을 도로 채우는 되먹임이 생겨, 아래 span 보정을 넣어도 편차가
+   보정량을 따라 움직이고 값으로 못 맞춘다. fit-content 면 폭이 내용에 고정되고
+   auto 마진이 가운데로 민다 — 폭과 대칭이 분리된다.
+
+   inline-flex 로도 폭은 잡히지만 쓰면 안 된다. 아래 .k-round 가 .k-bracket 때문에
+   inline-block 이라, 라벨까지 인라인이 되면 둘이 같은 줄에 나란히 붙는다. 실제로
+   해 보고 되돌렸다. */
 .k-round-label {
   display: flex;
+  width: fit-content;
+  margin-inline: auto;
   align-items: center;
-  justify-content: center;
   gap: 7px;
   font-family: var(--k-font);
   font-size: 14px;
@@ -236,10 +245,26 @@
   height: 2px;
   background: var(--k-shadow);
 }
-/* letter-spacing이 마지막 글자 뒤에도 붙어서 오른쪽 막대만 2px 밀려난다.
-   그만큼 당겨서 좌우 간격을 맞춘다. */
-.k-round-label::after {
-  margin-left: -2px;
+/* 글자 뒤에 죽은 폭이 붙어서 오른쪽 막대만 밀려난다. 원인이 둘이다 —
+   letter-spacing 이 마지막 글자 뒤에도 붙고, Kenney 폰트가 글리프 여백을 전부
+   오른쪽에 몰아 뒀다(TTF 실측: unitsPerEm 1024 에 lsb 0, rsb 212).
+   라벨이 한글이던 시절에는 Kenney 에 한글 글리프가 없어 폴백으로 그려져서
+   두 번째 항이 없었다. 영어로 바꾸면서 드러났다.
+
+   **막대에 음수 margin 을 거는 방식은 쓰지 말 것.** 실제로 해 보고 되돌렸다.
+   이 라벨이 부모 폭을 정하는데 자신은 display:flex 라 그 폭을 도로 채운다.
+   그래서 막대 margin 을 건드리면 라벨 폭이 바뀌고, 폭이 바뀌면 justify-content
+   가 다시 배분해서 편차가 마진 변화량의 두 배로 움직인다. 값으로 못 맞춘다.
+
+   대신 글자 항목의 바깥 폭에서 죽은 폭을 뺀다. 그러면 flex 행이
+   [막대][gap][잉크][gap][막대] 로 좌우 대칭이 되고, 대칭이 전체 폭과 무관해져서
+   되먹임이 사라진다. 익명 텍스트 노드에는 스타일을 못 걸어서 hud.ts 가 span 을 씌운다.
+
+   0.1em 은 브라우저에서 좌우 간격을 재 가며 맞춘 값이다(14px 에서 1.4px). 글꼴의
+   rsb 만 따지면 0.207em 이 나오지만 그대로 넣으면 과보정된다 — 잉크 끝과 advance
+   끝 사이가 마지막 글리프에서 그만큼 넓지 않기 때문이다. 계산값이 아니라 실측값이다. */
+.k-round-label > span {
+  margin-right: -0.1em;
 }
 
 .k-round {
