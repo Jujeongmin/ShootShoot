@@ -38,32 +38,21 @@ function seedFor(roundNumber: number) {
   return createSeededRandom(hashRound(roundNumber));
 }
 
-// 튜토리얼이 1~3라운드 위에 그대로 서 있다 (요구사항: 이 세 판은 오늘과
-// 한 치도 달라지면 안 된다). 그래서 구조물 배분에 씨앗을 섞는 건 그 뒤
-// 라운드부터로 한정한다 — 셋 이하에서는 항상 옛 규칙(꽉 채우고 레인에
-// 하나만 남기기) 그대로 나간다.
-const EXACT_MATCH_THROUGH_ROUND = 3;
+// 테스트가 이웃 라운드의 씨앗이 실제로 갈라지는지 직접 확인한다. 구성 결과로
+// 확인하면 태스크 3에서 대형이 붙기 전까지는 확인할 방법이 없다.
+export function roundSeed(roundNumber: number): number {
+  return hashRound(roundNumber);
+}
 
 // 구조물 슬롯이 그 라운드의 원숭이 수보다 많을 수 있다. 타워 둘에 통로 둘이면
 // 슬롯이 넷인데 1라운드 원숭이는 셋이다. 슬롯을 먼저 다 채우면 레인이 비어서
 // 판 전체가 구조물 위에만 서 있게 되고, 통로 하나 무너뜨리면 판이 끝난다.
 // 그래서 레인에 최소 한 마리는 남긴다.
 //
-// 몬키 수가 슬롯보다 훨씬 많아지는 라운드(8라운드부터 몬키 수가 상한 10에서
-// 멈춘다)에서는 이 몫이 라운드 번호와 무관하게 늘 같은 값으로 굳어버린다 —
-// 이웃 라운드끼리 판이 겹치는 원인 중 하나다. 그래서 4라운드부터는 씨앗이
-// "구조물에 몇 마리까지 세울지"를 0~최댓값 사이에서 고른다.
-function splitBetweenStructuresAndLanes(
-  roundNumber: number,
-  monkeyCount: number,
-  structureSlotCount: number,
-  random: () => number
-) {
-  const maxStructureCount = Math.min(structureSlotCount, Math.max(0, monkeyCount - 1));
-  if (roundNumber <= EXACT_MATCH_THROUGH_ROUND) {
-    return { structureCount: maxStructureCount, laneCount: monkeyCount - maxStructureCount };
-  }
-  const structureCount = Math.floor(random() * (maxStructureCount + 1));
+// 라운드에 따라 이 비율을 흔드는 것은 태스크 5가 한다. 해금 라운드가 15라
+// 여기서 미리 흔들면 안 된다.
+function splitBetweenStructuresAndLanes(monkeyCount: number, structureSlotCount: number) {
+  const structureCount = Math.min(structureSlotCount, Math.max(0, monkeyCount - 1));
   return { structureCount, laneCount: monkeyCount - structureCount };
 }
 
@@ -72,13 +61,13 @@ export function composeRound(
   monkeyCount: number,
   structureSlotCount: number
 ): RoundComposition {
-  const random = seedFor(roundNumber);
+  // 아직 안 쓰지만 태스크 3부터 이 난수열을 쓴다. 여기서 만들어 두면 이후
+  // 태스크가 씨앗 규칙을 다시 정하지 않는다.
+  seedFor(roundNumber);
 
   const { structureCount, laneCount } = splitBetweenStructuresAndLanes(
-    roundNumber,
     monkeyCount,
-    structureSlotCount,
-    random
+    structureSlotCount
   );
 
   const monkeys: MonkeyPlan[] = [];
