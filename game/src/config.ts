@@ -61,6 +61,11 @@ export const CONFIG = {
     // 상점에서 골드가 모자랄 때 광고 한 번으로 주는 금액. 예전에는 메뉴의
     // 광고 보상 팝업이 30을 줬는데, 그 팝업이 사라지면서 이 값만 남았다.
     goldAmount: 500,
+    // Verse8 Ads SDK(@verse8/ads)의 rewarded 광고 placement. 상점 골드·강화·바주카
+    // 네 호출부가 모두 같은 placement를 쓴다. 골드 지급량은 CONFIG.adReward.goldAmount로
+    // 정하고 SDK 결과의 reward.amount는 UX 힌트로만 본다(문서의 server-side verification
+    // 규칙 — 이 게임 골드는 클라이언트 로컬 저장소라 서버 검증은 하지 않는다).
+    placementId: 'shootshoot-rewarded',
   },
   aim: {
     normalFov: 60,
