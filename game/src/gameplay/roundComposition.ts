@@ -55,7 +55,8 @@ function splitBetweenStructuresAndLanes(monkeyCount: number, structureSlotCount:
 // 전부 한 번에 열면 1라운드가 아수라장이 되고 튜토리얼이 그 위에 얹혀 있다.
 const FORMATION_UNLOCK_ROUND = 4;
 
-const FORMATIONS: FormationId[] = ['columns', 'wedge', 'wide', 'staggered'];
+// FormationId 와 이 배열이 어긋나면 새 대형을 넣고도 뽑히지 않는다. 한 곳에 둔다.
+export const FORMATIONS: FormationId[] = ['columns', 'wedge', 'wide', 'staggered'];
 
 export function composeRound(
   roundNumber: number,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeLaneLayout } from '../game/src/gameplay/laneLayout';
-import type { FormationId } from '../game/src/gameplay/roundComposition';
+import { FORMATIONS } from '../game/src/gameplay/roundComposition';
 
 // computeLaneLayout이 만드는 슬롯 하나의 모양. 반환 타입에서 그대로 뽑아 쓰므로
 // laneLayout.ts의 슬롯 필드가 바뀌면 여기도 같이 바뀐다.
@@ -84,7 +84,6 @@ describe('computeLaneLayout', () => {
 
 // world.ts 의 섬 폭이 26이다. 절반을 넘으면 원숭이가 섬 밖 허공에 선다.
 const ISLAND_HALF_WIDTH = 13;
-const FORMATIONS: FormationId[] = ['columns', 'wedge', 'wide', 'staggered'];
 
 describe('formations', () => {
   it('leaves columns byte-identical to what it was', () => {
@@ -130,6 +129,17 @@ describe('formations', () => {
       for (let count = 1; count <= 10; count += 1) {
         expect(computeLaneLayout(count, 0.25, 1, formation)).toHaveLength(count);
       }
+    }
+  });
+
+  // 회귀 방어. 분수 중심으로 잡으면 레인이 둘일 때 두 레인이 같은 값을 받아
+  // 쐐기가 사라진다. 4라운드가 원숭이 6마리 = 레인 둘이라 바로 그 경우다.
+  it('actually staggers depth in a wedge, even with only two lanes', () => {
+    for (const count of [4, 5, 6]) {
+      const slots = computeLaneLayout(count, 0.25, 1, 'wedge');
+      const depths = new Set(slots.map((slot) => slot.z));
+      const columnDepths = new Set(computeLaneLayout(count, 0.25, 1, 'columns').map((s) => s.z));
+      expect(depths.size, `wedge with ${count}`).toBeGreaterThan(columnDepths.size);
     }
   });
 });

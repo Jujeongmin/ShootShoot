@@ -42,12 +42,20 @@ function formationShape(formation: FormationId) {
     case 'wide':
       return { perLane: 2, angleScale: WIDE_ANGLE_SCALE, depthPush: () => 0 };
     case 'wedge':
-      // 가운데가 앞, 바깥 레인이 뒤로 물러난다.
+      // 가운데 레인이 앞, 바깥으로 갈수록 뒤로 물러난다.
+      //
+      // 기준을 (laneCount-1)/2 같은 분수 중심으로 잡으면 안 된다. 레인이 둘일 때
+      // 두 레인의 거리가 0.5 로 같아져서 똑같이 밀리고, 쐐기가 아니라 전체가 뒤로
+      // 간 columns 가 된다. 원숭이 4~6마리가 레인 둘이고 4라운드가 정확히 6마리라,
+      // 대형이 처음 열리는 라운드가 그 경우에 걸린다.
+      //
+      // 실제 레인 하나를 기준으로 삼으면 그 레인의 밀기가 0 이라 맨 앞이 되고,
+      // 나머지가 거리만큼 물러난다. 레인이 둘이면 0 과 1 로 갈라진다.
       return {
         perLane: 3,
         angleScale: 1,
         depthPush: (laneIndex: number, laneCount: number) =>
-          Math.abs(laneIndex - (laneCount - 1) / 2) * DEPTH_STEP_RATIO,
+          Math.abs(laneIndex - Math.floor((laneCount - 1) / 2)) * DEPTH_STEP_RATIO,
       };
     case 'staggered':
       // 이웃한 레인이 반 칸씩 엇갈린다.
