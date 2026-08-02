@@ -61,10 +61,6 @@ export function composeRound(
   monkeyCount: number,
   structureSlotCount: number
 ): RoundComposition {
-  // 아직 안 쓰지만 태스크 3부터 이 난수열을 쓴다. 여기서 만들어 두면 이후
-  // 태스크가 씨앗 규칙을 다시 정하지 않는다.
-  seedFor(roundNumber);
-
   const { structureCount, laneCount } = splitBetweenStructuresAndLanes(
     monkeyCount,
     structureSlotCount

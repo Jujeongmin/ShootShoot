@@ -121,11 +121,16 @@ describe('roundSettlementGold', () => {
     expect(roundSettlementGold(19, 1, config)).toBe(1);
   });
 
-  // 회귀 방어. 부동소수로 계산하면 여기서 어긋난다 - 정확한 유리수 계산과 대조한다.
+  // 참조값을 BigInt 로 따로 계산한다. 앞서 이 자리를 부동소수로 두었더니 구현과
+  // 똑같은 연산을 똑같은 순서로 반복해서, 구현과 공유하는 오류는 잡을 수 없었다.
+  // 정수 나눗셈은 BigInt 가 정확하므로 바닥 함수도 필요 없다.
   it('matches exact rational arithmetic across many rounds and scores', () => {
+    const hundredthsPerRound = BigInt(Math.round(config.goldRoundMultiplierPerRound * 100));
+    const denominator = BigInt(config.scorePerGold) * 100n;
     for (let round = 1; round <= 120; round += 1) {
       for (let score = 1; score <= 2000; score += 37) {
-        const exact = Math.floor((score * (100 + (round - 1) * 15)) / 1000);
+        const numerator = BigInt(score) * (100n + BigInt(round - 1) * hundredthsPerRound);
+        const exact = Number(numerator / denominator);
         expect(roundSettlementGold(score, round, config), `score ${score}, round ${round}`).toBe(exact);
       }
     }

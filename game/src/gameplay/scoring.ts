@@ -54,9 +54,6 @@ export function applyShot(scoreState: ScoreState, shotOutcome: ShotOutcome, conf
 
 // 라운드를 클리어할 때 미정산 점수를 골드로 바꾼다. 나머지는 버린다 —
 // 이월을 만들면 상태가 하나 더 늘고 체감 차이가 없다.
-//
-// 나누기와 배율을 한 번에 곱하고 버림은 한 번만 한다. 나눈 뒤 버리고 곱하면
-// 라운드마다 최대 1골드씩 새고 낮은 라운드일수록 그 비율이 크다.
 export function roundSettlementGold(
   pendingScore: number,
   roundNumber: number,

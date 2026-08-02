@@ -72,4 +72,12 @@ describe('composeRound', () => {
       expect(composeRound(round, 10, SLOTS)).toEqual(baseline);
     }
   });
+
+  // monkeyAllocation.test.ts 가 지키던 경계들이다. 지금 게임에서는 안 나오지만
+  // 태스크 3~5 가 이 배분 위에 얹히므로 계약으로 남긴다.
+  it('handles the degenerate inputs', () => {
+    expect(composeRound(1, 7, 0)).toMatchObject({ structureCount: 0, laneCount: 7 });
+    expect(composeRound(1, 1, 4)).toMatchObject({ structureCount: 0, laneCount: 1 });
+    expect(composeRound(1, 0, 4)).toMatchObject({ structureCount: 0, laneCount: 0 });
+  });
 });
