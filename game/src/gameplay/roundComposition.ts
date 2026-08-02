@@ -1,4 +1,3 @@
-import { createSeededRandom } from './skyMotion';
 
 export type BehaviorId = 'steady' | 'pause' | 'dash' | 'bob';
 export type FormationId = 'columns' | 'wedge' | 'wide' | 'staggered';
@@ -34,10 +33,6 @@ function hashRound(roundNumber: number): number {
   return (x ^ (x >>> 16)) >>> 0;
 }
 
-function seedFor(roundNumber: number) {
-  return createSeededRandom(hashRound(roundNumber));
-}
-
 // 테스트가 이웃 라운드의 씨앗이 실제로 갈라지는지 직접 확인한다. 구성 결과로
 // 확인하면 태스크 3에서 대형이 붙기 전까지는 확인할 방법이 없다.
 export function roundSeed(roundNumber: number): number {
@@ -56,8 +51,12 @@ function splitBetweenStructuresAndLanes(monkeyCount: number, structureSlotCount:
   return { structureCount, laneCount: monkeyCount - structureCount };
 }
 
+// 라운드 번호를 아직 안 쓴다. 지금 구성기가 정하는 것은 배분뿐이고 배분은 라운드에
+// 안 의존한다 — 구조물 편중은 태스크 5, 대형은 태스크 3 이 붙인다. 그래도 매개변수를
+// 지우지 않는 이유는 호출부(targetManager)가 이미 넘기고 있고 다음 태스크가 바로
+// 쓰기 때문이다. noUnusedParameters 가 켜져 있어 밑줄을 붙여 둔다.
 export function composeRound(
-  roundNumber: number,
+  _roundNumber: number,
   monkeyCount: number,
   structureSlotCount: number
 ): RoundComposition {
