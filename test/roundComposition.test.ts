@@ -10,15 +10,29 @@ describe('composeRound', () => {
     expect(composeRound(12, 10, SLOTS)).toEqual(composeRound(12, 10, SLOTS));
   });
 
-  // 회귀 방어. LCG는 이웃 씨앗에서 첫 출력이 거의 같다(1664525 / 2^32 ≈ 0.0004).
-  // 라운드 번호를 그대로, 또는 큰 홀수를 한 번만 곱해서 넣으면 12라운드와 13라운드가
-  // 사실상 같은 난수열을 밟는다. 선형이 아닌 혼합을 거쳐야 갈라진다.
+  // 회귀 방어. 이웃 라운드의 난수열이 실제로 갈라지는지 본다.
+  //
+  // "모든 쌍이 0.01 이상 떨어진다"로 판정하면 안 된다. 실측하면 그 조건은 나쁜
+  // 해시를 통과시키고 좋은 해시를 떨어뜨린다 — 라운드에 큰 홀수를 한 번만 곱한
+  // 버전은 평균 간격이 0.043 인데도 0.01 미만인 쌍이 하나도 없고, 제대로 섞은
+  // 쪽은 독립 균등분포라 2t - t^2 ≈ 2% 의 쌍이 우연히 가까이 붙는다.
+  //
+  // 그래서 분포로 본다. 독립인 두 균등분포의 기대 간격은 1/3 이다.
+  // 실측: 라운드 번호 그대로 0.0004, 단일 곱셈 0.043, 지금 혼합 0.351.
   it('sends adjacent rounds down genuinely different random streams', () => {
-    for (let round = 1; round <= 200; round += 1) {
+    const gaps: number[] = [];
+    for (let round = 1; round <= 500; round += 1) {
       const a = createSeededRandom(roundSeed(round))();
       const b = createSeededRandom(roundSeed(round + 1))();
-      expect(Math.abs(a - b), `rounds ${round} and ${round + 1}`).toBeGreaterThan(0.01);
+      gaps.push(Math.abs(a - b));
     }
+    const mean = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+    const closeFraction = gaps.filter((gap) => gap < 0.01).length / gaps.length;
+
+    // 선형 해시는 0.05 를 못 넘는다. 제대로 섞이면 1/3 근처다.
+    expect(mean).toBeGreaterThan(0.25);
+    // 라운드 번호를 그대로 넣으면 이 값이 1.0 이 된다.
+    expect(closeFraction).toBeLessThan(0.06);
   });
 
   it('hands one monkey to the lanes even when the structures could take them all', () => {
