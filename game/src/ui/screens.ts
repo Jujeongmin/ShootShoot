@@ -53,6 +53,7 @@ export function createScreens(container: HTMLElement) {
   // 상단 바: 좌측 로고, 우측 골드 배지 + 아이콘 버튼 3개.
   function topBar(gold: number, handlers: MenuHandlers) {
     const bar = document.createElement('div');
+    bar.className = 'menu-topbar';
     bar.style.cssText = `
       position: absolute; top: 16px; left: 20px; right: 20px;
       display: flex; align-items: center; justify-content: space-between;
@@ -87,7 +88,7 @@ export function createScreens(container: HTMLElement) {
     actionNode: HTMLElement | null = null,
   ) {
     const card = document.createElement('div');
-    card.className = 'k-on-dark';
+    card.className = 'k-on-dark menu-card';
     card.style.cssText = `${anchorCss} width: ${width}px; text-align: center;`;
     card.appendChild(title(headingText));
     for (const node of bodyNodes) card.appendChild(node);
@@ -179,6 +180,7 @@ export function createScreens(container: HTMLElement) {
     // 카드와 달리 패널 틀이 없어 글자가 어두운 3D 장면 위에 바로 놓인다. ghost 버튼의
     // 기본색은 회색 패널을 전제한 --k-ink 라 여기서는 안 보인다. k-on-dark 가 색을 뒤집는다.
     centre.className = 'k-on-dark';
+    centre.classList.add('menu-centre');
     centre.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 14px;';
     // 아직 아무것도 못 깬 플레이어에게 '이어하기'는 뜻이 없다. 그때는 예전처럼
     // 큰 버튼 하나만 둔다.
@@ -230,6 +232,7 @@ export function createScreens(container: HTMLElement) {
     clear();
 
     const card = panel();
+    card.classList.add('responsive-panel');
     card.style.cssText = 'width: 340px; text-align: center;';
 
     card.appendChild(title('Score'));

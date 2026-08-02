@@ -15,6 +15,7 @@ export function createRoundSelect(container: HTMLElement) {
     overlay.innerHTML = '';
 
     const box = panel();
+    box.classList.add('responsive-panel');
     box.style.cssText = 'position: relative; text-align: center; width: 420px; max-width: 90vw;';
 
     const closeBtn = iconButton('cross', 'Close', onClose, 36);

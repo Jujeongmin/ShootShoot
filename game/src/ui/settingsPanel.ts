@@ -19,6 +19,7 @@ export function createSettingsPanel(container: HTMLElement) {
     overlay.innerHTML = '';
 
     const box = panel();
+    box.classList.add('responsive-panel');
     box.style.cssText = 'position: relative; text-align: center; min-width: 300px;';
 
     const closeBtn = iconButton('cross', 'Close', onClose, 36);
