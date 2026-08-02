@@ -13,7 +13,7 @@ const NO_STATIC_SLOTS: boolean[] = [];
 
 describe('composeRound', () => {
   it('gives the same composition for the same round every time', () => {
-    expect(composeRound(12, 10, SLOTS, STATIC_SLOTS)).toEqual(composeRound(12, 10, SLOTS, STATIC_SLOTS));
+    expect(composeRound(12, 10, STATIC_SLOTS)).toEqual(composeRound(12, 10, STATIC_SLOTS));
   });
 
   // 회귀 방어. 이웃 라운드의 난수열이 실제로 갈라지는지 본다.
@@ -43,7 +43,7 @@ describe('composeRound', () => {
 
   it('hands one monkey to the lanes even when the structures could take them all', () => {
     // 1라운드는 원숭이 셋에 슬롯 넷이다. 슬롯을 다 채우면 레인이 빈다.
-    const composition = composeRound(1, 3, SLOTS, STATIC_SLOTS);
+    const composition = composeRound(1, 3, STATIC_SLOTS);
     expect(composition.structureCount).toBe(2);
     expect(composition.laneCount).toBe(1);
   });
@@ -51,7 +51,7 @@ describe('composeRound', () => {
   it('never plans more monkeys than the round has', () => {
     for (let round = 1; round <= 40; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      const composition = composeRound(round, count, STATIC_SLOTS);
       expect(composition.structureCount + composition.laneCount).toBe(count);
       expect(composition.monkeys).toHaveLength(count);
       expect(composition.structureCount).toBeLessThanOrEqual(SLOTS);
@@ -61,7 +61,7 @@ describe('composeRound', () => {
 
   it('leaves the first three rounds exactly as they were', () => {
     for (const [round, count] of [[1, 3], [2, 4], [3, 5]] as const) {
-      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      const composition = composeRound(round, count, STATIC_SLOTS);
       expect(composition.formation).toBe('columns');
       for (const monkey of composition.monkeys) {
         expect(monkey).toEqual({ behavior: 'steady', speedScale: 1, sizeScale: 1 });
@@ -71,14 +71,14 @@ describe('composeRound', () => {
 
   it('holds the columns formation until round 4', () => {
     for (let round = 1; round <= 3; round += 1) {
-      expect(composeRound(round, 3 + round - 1, SLOTS, STATIC_SLOTS).formation).toBe('columns');
+      expect(composeRound(round, 3 + round - 1, STATIC_SLOTS).formation).toBe('columns');
     }
   });
 
   it('uses more than one formation once they unlock', () => {
     const seen = new Set<string>();
     for (let round = 4; round <= 40; round += 1) {
-      seen.add(composeRound(round, Math.min(3 + round - 1, 10), SLOTS, STATIC_SLOTS).formation);
+      seen.add(composeRound(round, Math.min(3 + round - 1, 10), STATIC_SLOTS).formation);
     }
     expect(seen.size).toBeGreaterThan(1);
   });
@@ -86,16 +86,16 @@ describe('composeRound', () => {
   // monkeyAllocation.test.ts 가 지키던 경계들이다. 지금 게임에서는 안 나오지만
   // 태스크 3~5 가 이 배분 위에 얹히므로 계약으로 남긴다.
   it('handles the degenerate inputs', () => {
-    expect(composeRound(1, 7, 0, NO_STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 7 });
-    expect(composeRound(1, 1, 4, STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 1 });
-    expect(composeRound(1, 0, 4, STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 0 });
+    expect(composeRound(1, 7, NO_STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 7 });
+    expect(composeRound(1, 1, STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 1 });
+    expect(composeRound(1, 0, STATIC_SLOTS)).toMatchObject({ structureCount: 0, laneCount: 0 });
   });
 
   it('holds every behaviour but steady until it unlocks', () => {
     const unlock = { pause: 6, dash: 10, bob: 15 } as const;
     for (let round = 1; round <= 40; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      for (const monkey of composeRound(round, count, SLOTS, STATIC_SLOTS).monkeys) {
+      for (const monkey of composeRound(round, count, STATIC_SLOTS).monkeys) {
         if (monkey.behavior === 'steady') continue;
         expect(round, `${monkey.behavior} at round ${round}`)
           .toBeGreaterThanOrEqual(unlock[monkey.behavior]);
@@ -107,16 +107,16 @@ describe('composeRound', () => {
     const weight = { steady: 0, pause: -1, dash: 2, bob: 2 } as const;
     for (let round = 1; round <= 60; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      const spent = composeRound(round, count, SLOTS, STATIC_SLOTS).monkeys
+      const spent = composeRound(round, count, STATIC_SLOTS).monkeys
         .reduce((sum, monkey) => sum + weight[monkey.behavior], 0);
-      const budget = Math.max(0, Math.min(Math.floor((round - 4) / 2), count));
+      const budget = Math.max(0, Math.min(Math.floor((round - 4) / 2), count * 2));
       expect(spent, `round ${round}`).toBeLessThanOrEqual(budget);
     }
   });
 
   it('still gives the first three rounds nothing but steady', () => {
     for (const [round, count] of [[1, 3], [2, 4], [3, 5]] as const) {
-      for (const monkey of composeRound(round, count, SLOTS, STATIC_SLOTS).monkeys) {
+      for (const monkey of composeRound(round, count, STATIC_SLOTS).monkeys) {
         expect(monkey.behavior).toBe('steady');
       }
     }
@@ -130,7 +130,7 @@ describe('composeRound', () => {
     const weight = { steady: 0, pause: -1, dash: 2, bob: 2 } as const;
     for (let round = 6; round <= 60; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      const easyCount = composeRound(round, count, 0, NO_STATIC_SLOTS).monkeys.filter(
+      const easyCount = composeRound(round, count, NO_STATIC_SLOTS).monkeys.filter(
         (monkey) => weight[monkey.behavior] < 0
       ).length;
       expect(easyCount, `round ${round}`).toBeLessThanOrEqual(Math.floor(count / 3));
@@ -145,7 +145,7 @@ describe('composeRound', () => {
   it('freezes static structure slots on steady without spending budget or easy share', () => {
     for (let round = 10; round <= 40; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      const composition = composeRound(round, count, STATIC_SLOTS);
       for (let i = 0; i < composition.structureCount; i += 1) {
         if (!STATIC_SLOTS[i]) continue;
         expect(composition.monkeys[i].behavior, `round ${round} slot ${i}`).toBe('steady');
@@ -156,7 +156,7 @@ describe('composeRound', () => {
   // 태스크 5. 개체 차이는 6라운드부터 열린다.
   it('keeps every monkey identical until variance unlocks at round 6', () => {
     for (let round = 1; round <= 5; round += 1) {
-      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), SLOTS, STATIC_SLOTS).monkeys) {
+      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), STATIC_SLOTS).monkeys) {
         expect(monkey.speedScale).toBe(1);
         expect(monkey.sizeScale).toBe(1);
       }
@@ -166,7 +166,7 @@ describe('composeRound', () => {
   it('mixes fast and slow monkeys once variance unlocks', () => {
     const seen = new Set<number>();
     for (let round = 6; round <= 40; round += 1) {
-      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), SLOTS, STATIC_SLOTS).monkeys) {
+      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), STATIC_SLOTS).monkeys) {
         seen.add(monkey.speedScale);
       }
     }
@@ -176,7 +176,7 @@ describe('composeRound', () => {
   // 빠른 개체는 작아야 한다. 크기가 난이도 신호라 플레이어가 우선순위를 고를 수 있다.
   it('makes the fast ones smaller and the slow ones bigger', () => {
     for (let round = 6; round <= 40; round += 1) {
-      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), SLOTS, STATIC_SLOTS).monkeys) {
+      for (const monkey of composeRound(round, Math.min(3 + round - 1, 10), STATIC_SLOTS).monkeys) {
         if (monkey.speedScale > 1) expect(monkey.sizeScale).toBeLessThan(1);
         if (monkey.speedScale < 1) expect(monkey.sizeScale).toBeGreaterThan(1);
         if (monkey.speedScale === 1) expect(monkey.sizeScale).toBe(1);
@@ -190,7 +190,7 @@ describe('composeRound', () => {
   it('gives static structure slots no variance and burns no random draw for it', () => {
     for (let round = 6; round <= 40; round += 1) {
       const count = Math.min(3 + round - 1, 10);
-      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      const composition = composeRound(round, count, STATIC_SLOTS);
       for (let i = 0; i < composition.structureCount; i += 1) {
         if (!STATIC_SLOTS[i]) continue;
         expect(composition.monkeys[i], `round ${round} slot ${i}`).toEqual({
@@ -205,7 +205,7 @@ describe('composeRound', () => {
   it('always leaves at least one monkey in the lanes however it emphasises structures', () => {
     for (let round = 1; round <= 60; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      const composition = composeRound(round, count, STATIC_SLOTS);
       expect(composition.laneCount, `round ${round}`).toBeGreaterThanOrEqual(1);
       expect(composition.structureCount + composition.laneCount).toBe(count);
     }
@@ -217,7 +217,7 @@ describe('composeRound', () => {
   it('never empties the structures once emphasis unlocks, when slots are actually available', () => {
     for (let round = 15; round <= 60; round += 1) {
       const count = Math.min(3 + (round - 1), 10);
-      const composition = composeRound(round, count, SLOTS, STATIC_SLOTS);
+      const composition = composeRound(round, count, STATIC_SLOTS);
       const ceiling = Math.min(SLOTS, Math.max(0, count - 1));
       if (ceiling > 0) {
         expect(composition.structureCount, `round ${round}`).toBeGreaterThanOrEqual(1);
@@ -231,7 +231,7 @@ describe('composeRound', () => {
       for (const slotCount of [0, 1, 2, 4, 8]) {
         const count = Math.min(3 + (round - 1), 10);
         const slots = Array.from({ length: slotCount }, () => false);
-        const composition = composeRound(round, count, slotCount, slots);
+        const composition = composeRound(round, count, slots);
         expect(composition.laneCount, `round ${round} slots ${slotCount}`).toBeGreaterThanOrEqual(1);
       }
     }

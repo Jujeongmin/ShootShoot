@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeLaneLayout } from '../game/src/gameplay/laneLayout';
 import { FORMATIONS } from '../game/src/gameplay/roundComposition';
+import { createPatrol } from '../game/src/gameplay/patrolMotion';
 
 // computeLaneLayout이 만드는 슬롯 하나의 모양. 반환 타입에서 그대로 뽑아 쓰므로
 // laneLayout.ts의 슬롯 필드가 바뀌면 여기도 같이 바뀐다.
@@ -122,6 +123,79 @@ describe('formations', () => {
         }
       }
     }
+  });
+
+  // 리뷰 회귀 방어. 위 테스트는 스폰 시점(t=0) 한 순간만 본다 -- 두 슬롯이 진짜
+  // 겹치는지는 시간에 따라 봐야 안다. 예전에는 sway 주기가 모두 같아서(모든
+  // 슬롯이 laneLayout.ts 의 frequency 하나를 공유) 위상차가 고정이라 정적
+  // 검사로 충분했다. 개체별 speedScale(roundComposition.ts 의 VARIANTS)이
+  // 진폭에만 실리고 주기에는 안 실리는 지금도 그 전제가 유지되는지를 여기서
+  // 직접 확인한다 -- 만약 다시 누군가 주기를 개체마다 다르게 스케일하면, 그
+  // 순간 위상차가 시간이 지나며 흐르기 시작해서 언젠가 두 원숭이가 같은 자리를
+  // 지나친다.
+  //
+  // patrolMotion.createPatrol 이 실제로 쓰는 곡선을 그대로 불러 쓴다 --
+  // steady(behavior)는 sign(sin) x |sin|^1 이라 그냥 sin 이고, 진폭·주기·위상
+  // 이 실제 게임과 동일한 방식(targetManager.ts)으로 조합된다: 주기는
+  // 슬롯이 공유하고, 개체별 배율은 진폭에만 곱한다.
+  it('keeps a real floor between lane monkeys across a full sway period, even with per-monkey amplitude variance', () => {
+    // roundComposition.ts 의 VARIANTS.speedScale 값을 그대로 옮겨 왔다. 거기가
+    // 바뀌면 여기도 같이 바꿔야 한다 -- import 하지 않는 이유는 VARIANTS 가
+    // export 되어 있지 않아서고(구성기 내부 세부사항), 그 경계를 넘기지 않기
+    // 위해서다.
+    const AMPLITUDE_FACTORS = [0.8, 1.0, 1.2];
+    const SAMPLES = 200;
+
+    let worst = Infinity;
+    let worstInfo = '';
+
+    for (const formation of FORMATIONS) {
+      for (let count = 1; count <= 10; count += 1) {
+        const slots = computeLaneLayout(count, 0.25, 1, formation);
+        const period = (2 * Math.PI) / slots[0].swayFrequency;
+
+        for (let i = 0; i < slots.length; i += 1) {
+          for (let j = i + 1; j < slots.length; j += 1) {
+            const a = slots[i];
+            const b = slots[j];
+            const dz = a.z - b.z;
+
+            for (const fa of AMPLITUDE_FACTORS) {
+              for (const fb of AMPLITUDE_FACTORS) {
+                const patrolA = createPatrol({
+                  amplitude: a.swayAmplitude * fa,
+                  frequency: a.swayFrequency,
+                  phase: a.swayPhase,
+                  behavior: 'steady',
+                });
+                const patrolB = createPatrol({
+                  amplitude: b.swayAmplitude * fb,
+                  frequency: b.swayFrequency,
+                  phase: b.swayPhase,
+                  behavior: 'steady',
+                });
+
+                for (let s = 0; s < SAMPLES; s += 1) {
+                  const t = (period * s) / SAMPLES;
+                  const xa = a.x + patrolA.sample(t, 0).offsetX;
+                  const xb = b.x + patrolB.sample(t, 0).offsetX;
+                  const sep = Math.hypot(xa - xb, dz);
+                  if (sep < worst) {
+                    worst = sep;
+                    worstInfo = `${formation} count=${count} slots ${i}/${j} fa=${fa} fb=${fb} t=${t.toFixed(3)}`;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 실측 최솟값은 약 1.2096 (columns 대형, count=10, 슬롯 4/7, 둘 다 배율
+    // 1.2일 때). 그 바로 아래에 문턱을 둔다 -- 문턱을 먼저 정하고 코드를
+    // 거기 맞추는 대신, 실측값 아래에 여유를 살짝만 두는 쪽으로 뒀다.
+    expect(worst, worstInfo).toBeGreaterThan(1.2);
   });
 
   it('gives every formation the same number of slots it was asked for', () => {

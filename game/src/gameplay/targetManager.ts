@@ -44,12 +44,7 @@ export function createTargetManager(
     // 슬롯별 flag 로 넘긴다 -- 개수로는 타워가 배열 앞쪽에 있다는 순서에 기대게
     // 되는데, 그건 obstacles.ts 가 타워를 통로보다 먼저 push 하는 우연일 뿐이다.
     const staticStructureSlots = towerSlots.map((slot) => slot.sway.amplitude === 0);
-    const composition = composeRound(
-      roundNumber,
-      params.monkeyCount,
-      towerSlots.length,
-      staticStructureSlots
-    );
+    const composition = composeRound(roundNumber, params.monkeyCount, staticStructureSlots);
     const structureCount = composition.structureCount;
     const laneMonkeyCount = composition.laneCount;
 
@@ -65,12 +60,14 @@ export function createTargetManager(
         template: monkeyModel.template,
         clip: monkeyModel.clip,
         // 순찰 폭과 위상은 슬롯이 정한다. 제자리에 서는 타워는 진폭 0,
-        // 통로는 발판 길이 안에서 오갈 만큼의 진폭을 싣고 온다. 주기는 그
-        // 개체의 속도를 따라야 한다 -- 안 그러면 빠른 개체가 빠르게 걷되
-        // 순찰 주기는 그대로라 발이 미끄러진다.
+        // 통로는 발판 길이 안에서 오갈 만큼의 진폭을 싣고 온다. 주기는 개체마다
+        // 다르면 안 된다 -- 주기가 갈리면 이웃 슬롯과의 위상차가 시간이 지나며
+        // 흘러서 결국 같은 자리를 지나치며 서로를 뚫고 지나간다. 개체 속도는
+        // 대신 진폭(순찰 폭)으로 나타낸다 -- 폭이 넓을수록 실제 이동 거리가 늘어
+        // 더 빨라 보이고, 걸음은 이동 거리 기반이라(monkey.ts) 미끄러지지 않는다.
         sway: {
-          amplitude: slot.sway.amplitude,
-          frequency: slot.sway.frequencyPerSpeed * params.monkeySpeed * plan.speedScale,
+          amplitude: slot.sway.amplitude * plan.speedScale,
+          frequency: slot.sway.frequencyPerSpeed * params.monkeySpeed,
           phase: slot.sway.phase,
         },
         hp: params.monkeyHp,
@@ -98,9 +95,11 @@ export function createTargetManager(
         speed: params.monkeySpeed * plan.speedScale,
         template: monkeyModel.template,
         clip: monkeyModel.clip,
+        // 위 구조물 자리와 같은 이유로 주기는 공유하고 속도는 진폭에만 싣는다 --
+        // 주기가 개체마다 갈리면 위상차가 흘러 레인 슬롯끼리 서로를 뚫고 지나간다.
         sway: {
-          amplitude: slot.swayAmplitude,
-          frequency: slot.swayFrequency * plan.speedScale,
+          amplitude: slot.swayAmplitude * plan.speedScale,
+          frequency: slot.swayFrequency,
           phase: slot.swayPhase,
         },
         hp: params.monkeyHp,

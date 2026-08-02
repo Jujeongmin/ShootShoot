@@ -1,8 +1,11 @@
 // 원숭이의 좌우 순찰 곡선. THREE에 의존하지 않는 순수 모듈이라
 // 궤적·방향 전환·걸음 진행을 테스트로 못 박을 수 있다.
 //
-// 곡선 자체는 예전에 monkey.ts의 updateIdle이 인라인으로 갖고 있던 것과 같다.
-// laneLayout.ts가 주는 진폭·주기를 그대로 쓰므로 난이도는 안 바뀐다.
+// 곡선은 이제 넷이다(BEHAVIOR_POWER 참고) -- steady(p=1)만 예전 monkey.ts의
+// updateIdle이 인라인으로 갖고 있던 sin 곡선과 그대로 같고, pause/dash/bob은
+// 일부러 다르게 움직이도록 새로 만든 것이다. 진폭도 laneLayout.ts가 낸 값을
+// 그대로 받지 않는다 -- targetManager.ts가 개체별 speedScale을 곱해 넘기므로
+// 여기 amplitude는 이미 그 배율이 반영된 값이다.
 
 import type { BehaviorId } from './roundComposition';
 

@@ -72,10 +72,17 @@ const STRUCTURE_EMPHASIS_UNLOCK_ROUND = 15;
 
 // 빠른 놈은 작고 느린 놈은 크다. 크기가 난이도 신호라 플레이어가 뭘 먼저 쏠지
 // 고를 수 있다. 체력은 안 건드린다 -- 개체마다 다르면 점수·정산과 얽힌다.
+//
+// speedScale은 이제 순찰 주기가 아니라 진폭(폭)에 실린다(targetManager.ts) --
+// 주기를 개체마다 다르게 하면 이웃 슬롯과의 위상차가 흘러서 서로를 뚫고
+// 지나가기 때문이다. wide 대형은 이미 섬 반폭 13에 거의 닿아 있어서(진폭까지
+// 합쳐 12.26, laneLayout.ts 참고) 배율을 크게 못 준다 -- 1.4는 물론 1.25도
+// 실측하면 13.06으로 섬 밖이다(9.072 + 3.192 × 1.25). 1.2까지 낮춰야
+// 12.90으로 안쪽에 남는다.
 const VARIANTS = [
-  { speedScale: 0.7, sizeScale: 1.15 },
+  { speedScale: 0.8, sizeScale: 1.15 },
   { speedScale: 1.0, sizeScale: 1.0 },
-  { speedScale: 1.4, sizeScale: 0.85 },
+  { speedScale: 1.2, sizeScale: 0.85 },
 ];
 
 // FormationId 와 이 배열이 어긋나면 새 대형을 넣고도 뽑히지 않는다. 한 곳에 둔다.
@@ -104,18 +111,20 @@ const BEHAVIORS: BehaviorId[] = ['steady', 'pause', 'dash', 'bob'];
 // 8마리 중 6마리가 pause 였다. 쉬운 것에도 상한을 둔다.
 const EASY_BEHAVIOR_SHARE = 1 / 3;
 
-// 한 판에 어려운 것이 몰리지 않게 가중치 합에 상한을 건다. 원숭이 수가 10에서
-// 멈추므로 예산만 계속 오르면 어느 시점부터 상한이 무의미해진다. 실측으로
-// 44라운드부터 전원 dash/bob 이 가능해졌다. 몬키 수로 묶어 절반만 어려운 것을
-// 쓸 수 있게 한다. 4라운드에 0 에서 시작해 두 라운드마다 1씩 오른다.
+// 한 판에 어려운 것이 몰리지 않게 가중치 합에 상한을 건다. pause 가 예산을
+// 돌려주므로(가중치 -1) 실제로는 절반이 아니라, pause 를 최대 easyLimit 개
+// 뽑아 돌려받는 만큼(최대 세 마리, 10마리 기준) 더 써서 열 마리 중 최대 여섯이
+// dash/bob 일 수 있다. 4라운드에 0 에서 시작해 두 라운드마다 1씩 오른다.
+//
+// 어려운 것의 가중치가 2 라 원숭이 수의 두 배가 실제 상한이다. monkeyCount 로
+// 묶으면 24라운드에서 예산이 멈춰서 그 뒤로 난이도가 제자리걸음이 된다.
 function difficultyBudget(roundNumber: number, monkeyCount: number) {
-  return Math.max(0, Math.min(Math.floor((roundNumber - 4) / 2), monkeyCount));
+  return Math.max(0, Math.min(Math.floor((roundNumber - 4) / 2), monkeyCount * 2));
 }
 
 export function composeRound(
   roundNumber: number,
   monkeyCount: number,
-  structureSlotCount: number,
   staticStructureSlots: readonly boolean[]
 ): RoundComposition {
   const random = createSeededRandom(roundSeed(roundNumber));
@@ -123,9 +132,15 @@ export function composeRound(
   // 난수를 뽑는 순서가 결과를 정한다. 구조물 편중부터 뽑고, 그다음 대형,
   // 그다음 behavior/개체차이 순으로 고정해야 라운드마다 같은 자리에서 같은
   // 값이 나온다.
+  //
+  // 구조물 슬롯 수는 staticStructureSlots.length 에서 그대로 뽑는다 -- 이걸
+  // 별도 인자로 또 받으면 둘이 어긋날 여지가 생기고, 어긋나는 순간 아래
+  // flag 조회(staticStructureSlots[i])가 undefined 를 내놓아 모든 타워
+  // 원숭이가 behavior 를 뽑고 예산이 얼어붙은 슬롯에 낭비된다 -- 정확히
+  // flag 배열을 도입한 이유였던 그 버그다.
   const { structureCount, laneCount } = splitBetweenStructuresAndLanes(
     monkeyCount,
-    structureSlotCount,
+    staticStructureSlots.length,
     roundNumber,
     random
   );
@@ -164,7 +179,19 @@ export function composeRound(
       if (BEHAVIOR_WEIGHT[id] < 0 && easyTaken >= easyLimit) return false;
       return true;
     });
-    const behavior = affordable[Math.floor(random() * affordable.length)];
+    // 예산을 천장으로만 쓰면 높은 라운드에서도 uniform 추첨이라 난이도가 안 오른다.
+    // 남은 원숭이 한 마리당 예산이 넉넉할수록 어려운 쪽을 고를 확률을 올린다.
+    //
+    // pressure 판정이 매번 난수를 하나 소비하고, uniform 추첨은 그 판정이
+    // 실패했을 때만 두 번째 난수를 더 쓴다 -- 마리당 뽑는 난수 개수가 갈린다.
+    // 결과가 라운드 번호만의 순수 함수라는 결정성에는 문제없다(같은 라운드는
+    // 항상 같은 씨앗에서 같은 순서로 뽑으므로). 그저 "원숭이당 난수 하나"라고
+    // 가정하면 안 된다는 뜻이다.
+    const remaining = monkeyCount - i;
+    const pressure = Math.min(budget / (2 * remaining), 1);
+    const hardest = affordable.reduce((a, b) => (BEHAVIOR_WEIGHT[b] > BEHAVIOR_WEIGHT[a] ? b : a));
+    const behavior =
+      random() < pressure ? hardest : affordable[Math.floor(random() * affordable.length)];
     budget -= BEHAVIOR_WEIGHT[behavior];
     if (BEHAVIOR_WEIGHT[behavior] < 0) easyTaken += 1;
 
