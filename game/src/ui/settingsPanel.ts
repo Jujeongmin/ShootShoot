@@ -21,15 +21,15 @@ export function createSettingsPanel(container: HTMLElement) {
     const box = panel();
     box.style.cssText = 'position: relative; text-align: center; min-width: 300px;';
 
-    const closeBtn = iconButton('cross', '닫기', onClose, 36);
+    const closeBtn = iconButton('cross', 'Close', onClose, 36);
     closeBtn.style.cssText += 'position: absolute; top: -14px; right: -14px;';
     box.appendChild(closeBtn);
 
-    box.appendChild(title('설정'));
+    box.appendChild(title('Settings'));
 
     const label = document.createElement('div');
     label.style.cssText = `color: ${TOKENS.inkSoft}; font-size: 15px; margin: 10px 0 6px;`;
-    label.appendChild(document.createTextNode('마우스 민감도 '));
+    label.appendChild(document.createTextNode('Mouse sensitivity '));
     const value = num(`${sensitivity.toFixed(1)}x`);
     label.appendChild(value);
     box.appendChild(label);
@@ -51,12 +51,12 @@ export function createSettingsPanel(container: HTMLElement) {
     const actions = document.createElement('div');
     actions.style.cssText = 'display: flex; justify-content: center; gap: 12px; margin-top: 16px;';
     if (typeof onReplayTutorial === 'function') {
-      actions.appendChild(button('튜토리얼 다시 보기', onReplayTutorial, 'ghost'));
+      actions.appendChild(button('Replay tutorial', onReplayTutorial, 'ghost'));
     }
     if (typeof onExit === 'function') {
-      actions.appendChild(button('메뉴로', onExit, 'ghost'));
+      actions.appendChild(button('Menu', onExit, 'ghost'));
     }
-    actions.appendChild(button('닫기', onClose, 'ghost'));
+    actions.appendChild(button('Close', onClose, 'ghost'));
     box.appendChild(actions);
 
     overlay.appendChild(box);

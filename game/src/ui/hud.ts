@@ -17,7 +17,7 @@ export function createHud(container: HTMLElement) {
   // 감싸는 프레임 없이 라벨과 숫자만 놓는다. 배경이 3D 장면이라 외곽선 그림자로 띄운다.
   const roundLabel = document.createElement('div');
   roundLabel.className = 'k-round-label';
-  roundLabel.textContent = '라운드';
+  roundLabel.textContent = 'ROUND';
   el.appendChild(roundLabel);
 
   const roundValue = document.createElement('div');
@@ -41,7 +41,7 @@ export function createHud(container: HTMLElement) {
 
   const hintText = document.createElement('div');
   hintText.className = 'k-hint-text';
-  hintText.textContent = '메뉴로 나가기';
+  hintText.textContent = 'exit to menu';
   hint.appendChild(hintText);
 
   // score 와 streak 은 더 이상 표시하지 않아서 받지도 않는다. 화면에 남는 건

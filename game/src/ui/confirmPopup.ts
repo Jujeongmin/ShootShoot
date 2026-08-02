@@ -29,7 +29,7 @@ export function createConfirmPopup(container: HTMLElement) {
     const actions = document.createElement('div');
     actions.style.cssText = 'display: flex; justify-content: center; gap: 12px; margin-top: 16px;';
     actions.appendChild(button(confirmLabel, onConfirm, 'primary'));
-    actions.appendChild(button('취소', onCancel, 'ghost'));
+    actions.appendChild(button('Cancel', onCancel, 'ghost'));
     box.appendChild(actions);
 
     overlay.appendChild(box);

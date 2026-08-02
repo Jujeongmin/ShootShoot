@@ -10,7 +10,7 @@ export function createOfflineRewardPopup(container: HTMLElement) {
 
     const box = panel();
     box.style.cssText = 'text-align: center; min-width: 280px;';
-    box.appendChild(title('오프라인 보상'));
+    box.appendChild(title('Offline reward'));
 
     const amount = document.createElement('div');
     amount.style.cssText = `font-size: 40px; color: ${TOKENS.ink}; margin: 8px 0 4px;`;
@@ -19,11 +19,11 @@ export function createOfflineRewardPopup(container: HTMLElement) {
     box.appendChild(amount);
 
     const message = document.createElement('div');
-    message.textContent = '자리를 비운 사이 모은 골드입니다!';
+    message.textContent = 'Gold you earned while away!';
     message.style.cssText = `color: ${TOKENS.inkSoft}; font-size: 14px;`;
     box.appendChild(message);
 
-    const claimBtn = button('받기', () => {
+    const claimBtn = button('Collect', () => {
       overlay.style.display = 'none';
       onClaim();
     }, 'primary');

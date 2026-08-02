@@ -3,10 +3,10 @@
 // 인덱싱이 undefined를 내어 프롬프트가 숨는다. 그래서 여기 키를 그 타입과
 // 맞추지 않고 string으로 넓게 받는다.
 const STEP_TEXT: Record<string, string> = {
-  aim: '마우스를 누른 채로 조준하세요',
-  fire: '손을 떼면 발사됩니다',
-  reload: '장전 중에는 조준할 수 없습니다',
-  clear: '원숭이를 모두 잡으면 다음 라운드로',
+  aim: 'Hold the mouse button to aim',
+  fire: 'Release to fire',
+  reload: 'You cannot aim while reloading',
+  clear: 'Clear every monkey to advance',
 };
 
 export function createTutorialPrompt(container: HTMLElement) {

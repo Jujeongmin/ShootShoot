@@ -74,11 +74,11 @@ export function createShopPanel(container: HTMLElement) {
 
     let el;
     if (state === 'equipped') {
-      el = button('장착 중', () => {}, 'off');
+      el = button('Equipped', () => {}, 'off');
     } else if (state === 'equip') {
-      el = button('장착하기', () => handlers.onEquip(weapon.id), 'ghost');
+      el = button('Equip', () => handlers.onEquip(weapon.id), 'ghost');
     } else {
-      el = button(`🪙 ${weapon.price.toLocaleString()} 구매`, () => handlers.onBuy(weapon.id), 'primary');
+      el = button(`🪙 ${weapon.price.toLocaleString()} Buy`, () => handlers.onBuy(weapon.id), 'primary');
     }
     el.style.cssText += 'width: 100%; margin-top: 12px;';
     return el;
@@ -98,7 +98,7 @@ export function createShopPanel(container: HTMLElement) {
 
     const bar = document.createElement('div');
     bar.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
-    bar.appendChild(title('무기 상점'));
+    bar.appendChild(title('Weapon shop'));
     bar.appendChild(badge(`🪙 ${gold.toLocaleString()}`));
     box.appendChild(bar);
     box.appendChild(divider());
@@ -106,7 +106,7 @@ export function createShopPanel(container: HTMLElement) {
     const row = document.createElement('div');
     row.style.cssText = 'display: flex; align-items: center; gap: 10px;';
 
-    const prev = iconButton('/ui/arrow-w.png', '이전', () => { index -= 1; render(); }, 44, { round: true });
+    const prev = iconButton('/ui/arrow-w.png', 'Prev', () => { index -= 1; render(); }, 44, { round: true });
     prev.disabled = index === 0;
     row.appendChild(prev);
 
@@ -147,7 +147,7 @@ export function createShopPanel(container: HTMLElement) {
 
     row.appendChild(card);
 
-    const next = iconButton('/ui/arrow-e.png', '다음', () => { index += 1; render(); }, 44, { round: true });
+    const next = iconButton('/ui/arrow-e.png', 'Next', () => { index += 1; render(); }, 44, { round: true });
     next.disabled = index === weapons.length - 1;
     row.appendChild(next);
 
@@ -166,7 +166,7 @@ export function createShopPanel(container: HTMLElement) {
     });
     box.appendChild(dots);
 
-    const closeBtn = button('닫기', handlers.onClose, 'ghost');
+    const closeBtn = button('Close', handlers.onClose, 'ghost');
     closeBtn.style.cssText += 'display: block; margin: 14px auto 0;';
     box.appendChild(closeBtn);
   }

@@ -37,7 +37,7 @@ function createHpBar() {
   // null이 가능하므로 한 번 확인하고 넘긴다. draw 안에서 다시 좁혀지지 않도록
   // 확인이 끝난 값을 별도 이름으로 잡아 둔다.
   if (!canvasContext) {
-    throw new Error('2D 캔버스 컨텍스트를 가져오지 못했다.');
+    throw new Error('Could not get a 2D canvas context.');
   }
   const context: CanvasRenderingContext2D = canvasContext;
   const texture = new THREE.CanvasTexture(canvas);

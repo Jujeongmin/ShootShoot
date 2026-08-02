@@ -191,9 +191,9 @@ export function createGame(container: HTMLElement) {
     screens.hide();
     confirmPopup.show(
       {
-        heading: '처음부터',
-        message: '골드, 무기, 업그레이드, 라운드 진행도가 모두 지워집니다. 최고점수와 설정은 남습니다.',
-        confirmLabel: '지우고 새로 시작',
+        heading: 'Start over',
+        message: 'Gold, weapons, upgrades and round progress will all be erased. Your best score and settings stay.',
+        confirmLabel: 'Erase and restart',
       },
       wipeAndRestart,
       cancelNewGame
@@ -315,7 +315,7 @@ export function createGame(container: HTMLElement) {
       // 모델 로드가 실패하면 들고 있던 무기를 그대로 유지한다. swapWeaponViewmodel은
       // 성공했을 때만 기존 뷰모델을 교체하므로, 저장값만 되돌리면 화면과 다시 맞는다.
       weaponStore.equip(previousId);
-      shopError = '무기를 불러오지 못했습니다';
+      shopError = 'Could not load that weapon';
       // 로드가 늦게 실패하면 이미 상점을 닫고 플레이 중일 수 있다. 그때 상점을
       // 다시 띄우면 화면을 덮어써서 조작을 막는다.
       if (shopOpen) refreshShop();
@@ -731,7 +731,7 @@ export function createGame(container: HTMLElement) {
   input.onAimUp(handleShot);
 
   function start() {
-    screens.showLoading('로딩 중...');
+    screens.showLoading('Loading...');
 
     engine.start((dt) => {
       lastKillEffect.update(dt);

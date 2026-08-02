@@ -69,7 +69,7 @@ export function createScreens(container: HTMLElement) {
     const right = document.createElement('div');
     right.style.cssText = 'display: flex; align-items: center; gap: 10px;';
     right.appendChild(badge(`🪙 ${gold.toLocaleString()}`));
-    right.appendChild(iconButton('gear', '설정', handlers.onSettings, 44));
+    right.appendChild(iconButton('gear', 'Settings', handlers.onSettings, 44));
     bar.appendChild(right);
 
     return bar;
@@ -142,8 +142,8 @@ export function createScreens(container: HTMLElement) {
     onWatchAd: () => void,
   ) {
     const action = canAfford
-      ? button(`🪙 ${cost.toLocaleString()} 강화`, onUpgrade, 'primary')
-      : button('📺 무료강화', onWatchAd, 'ghost');
+      ? button(`🪙 ${cost.toLocaleString()} Upgrade`, onUpgrade, 'primary')
+      : button('📺 Free upgrade', onWatchAd, 'ghost');
     return menuCard(anchorCss, 240, headingText, [levelLine(level)], action);
   }
 
@@ -151,19 +151,19 @@ export function createScreens(container: HTMLElement) {
   function shopCard(onShop: () => void) {
     const anchor = 'position: absolute; left: 24px; top: 50%; transform: translateY(-50%);';
     // 패널이 없어 어두운 장면 위에 놓인다. 검정 아이콘은 여기서 안 보인다.
-    const art = artButton('cart', '상점 열기', onShop, 104, { tone: 'white' });
+    const art = artButton('cart', 'Open shop', onShop, 104, { tone: 'white' });
     art.style.margin = '6px 0 2px';
-    return menuCard(anchor, 200, '상점', [art]);
+    return menuCard(anchor, 200, 'Shop', [art]);
   }
 
   // 우측 중앙. 그림 폭에 맞춰 카드를 넓힌다 — 260px 폭에서 총 자체가 약 53px 높이가 된다.
   function bazookaCard(rounds: number, onWatchAd: () => void) {
     const anchor = 'position: absolute; right: 24px; top: 50%; transform: translateY(-50%);';
-    const art = artwork(BAZOOKA_IMAGE, '바주카포', 76);
+    const art = artwork(BAZOOKA_IMAGE, 'Bazooka', 76);
     const action = rounds > 0
-      ? button('보유 중', () => {}, 'off')
-      : button('📺 획득', onWatchAd, 'ghost');
-    return menuCard(anchor, 260, '바주카포', [art, roundsLine(rounds)], action);
+      ? button('Owned', () => {}, 'off')
+      : button('📺 Get', onWatchAd, 'ghost');
+    return menuCard(anchor, 260, 'Bazooka', [art, roundsLine(rounds)], action);
   }
 
   function showMenu(state: MenuState, handlers: MenuHandlers) {
@@ -183,22 +183,22 @@ export function createScreens(container: HTMLElement) {
     // 아직 아무것도 못 깬 플레이어에게 '이어하기'는 뜻이 없다. 그때는 예전처럼
     // 큰 버튼 하나만 둔다.
     if (reachedRound > 1) {
-      const continueBtn = button(`이어하기 (라운드 ${reachedRound})`, handlers.onContinue, 'primary');
+      const continueBtn = button(`Continue (round ${reachedRound})`, handlers.onContinue, 'primary');
       continueBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px;';
       centre.appendChild(continueBtn);
-      const selectBtn = button('라운드 선택', handlers.onRoundSelect, 'ghost');
+      const selectBtn = button('Select round', handlers.onRoundSelect, 'ghost');
       selectBtn.style.cssText += 'width: 320px;';
       centre.appendChild(selectBtn);
-      const newGameBtn = button('처음부터', handlers.onNewGame, 'ghost');
+      const newGameBtn = button('Start over', handlers.onNewGame, 'ghost');
       newGameBtn.style.cssText += 'width: 320px;';
       centre.appendChild(newGameBtn);
     } else {
-      const startBtn = button('탭하여 시작', handlers.onStart, 'primary');
+      const startBtn = button('Tap to start', handlers.onStart, 'primary');
       startBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px;';
       centre.appendChild(startBtn);
     }
     const hint = document.createElement('div');
-    hint.textContent = '클릭하여 조준, 놓아서 발사!';
+    hint.textContent = 'Hold to aim, release to fire!';
     hint.style.cssText = `color: ${TOKENS.grey}; font-size: 15px;`;
     centre.appendChild(hint);
     overlay.appendChild(centre);
@@ -208,14 +208,14 @@ export function createScreens(container: HTMLElement) {
     overlay.appendChild(
       upgradeCard(
         'position: absolute; left: 24px; bottom: 24px;',
-        '공격력', damageLevel, damageCost, canAffordDamage,
+        'Damage', damageLevel, damageCost, canAffordDamage,
         handlers.onLevelUpDamage, handlers.onWatchAdDamage
       )
     );
     overlay.appendChild(
       upgradeCard(
         'position: absolute; right: 24px; bottom: 24px;',
-        '오프라인', offlineLevel, offlineCost, canAffordOffline,
+        'Offline', offlineLevel, offlineCost, canAffordOffline,
         handlers.onLevelUpOffline, handlers.onWatchAdOffline
       )
     );
@@ -232,7 +232,7 @@ export function createScreens(container: HTMLElement) {
     const card = panel();
     card.style.cssText = 'width: 340px; text-align: center;';
 
-    card.appendChild(title('기록'));
+    card.appendChild(title('Score'));
 
     const scoreEl = document.createElement('div');
     scoreEl.style.cssText = `font-size: 46px; color: ${TOKENS.ink}; margin: 6px 0 2px;`;
@@ -250,11 +250,11 @@ export function createScreens(container: HTMLElement) {
       trophy.style.cssText = 'width: 20px; height: 20px;';
       highRow.appendChild(trophy);
     }
-    highRow.appendChild(document.createTextNode(isNewHighScore ? '신기록! ' : '최고점수 '));
+    highRow.appendChild(document.createTextNode(isNewHighScore ? 'New best! ' : 'Best '));
     highRow.appendChild(num(highScore.toLocaleString()));
     card.appendChild(highRow);
 
-    const backBtn = button('메인 메뉴로', onReturnToMenu, 'primary');
+    const backBtn = button('Main menu', onReturnToMenu, 'primary');
     backBtn.style.cssText += 'width: 100%; margin-top: 16px;';
     card.appendChild(backBtn);
 

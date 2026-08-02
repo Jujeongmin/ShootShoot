@@ -17,15 +17,15 @@ export function createRoundSelect(container: HTMLElement) {
     const box = panel();
     box.style.cssText = 'position: relative; text-align: center; width: 420px; max-width: 90vw;';
 
-    const closeBtn = iconButton('cross', '닫기', onClose, 36);
+    const closeBtn = iconButton('cross', 'Close', onClose, 36);
     closeBtn.style.cssText += 'position: absolute; top: -14px; right: -14px;';
     box.appendChild(closeBtn);
 
-    box.appendChild(title('라운드 선택'));
+    box.appendChild(title('Select round'));
 
     const hint = document.createElement('div');
     hint.style.cssText = `color: ${TOKENS.inkSoft}; font-size: 15px; margin: 8px 0 4px;`;
-    hint.textContent = '깬 라운드를 다시 고를 수 있습니다.';
+    hint.textContent = 'Pick any round you have cleared.';
     box.appendChild(hint);
 
     // 라운드가 100개를 넘어도 패널은 화면에 고정돼야 한다. 격자 안에서만 스크롤한다.
