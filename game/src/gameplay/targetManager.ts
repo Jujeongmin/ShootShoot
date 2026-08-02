@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createMonkey, type Monkey } from './monkey';
 import { getRoundParams } from './difficulty';
 import { computeLaneLayout } from './laneLayout';
-import { allocateMonkeys } from './monkeyAllocation';
+import { composeRound } from './roundComposition';
 import type { loadMonkeyModel } from './monkeyModel';
 import type { StructureSlot } from './obstacles';
 
@@ -39,9 +39,9 @@ export function createTargetManager(
     clear();
     const params = getRoundParams(roundNumber, config);
 
-    const split = allocateMonkeys(params.monkeyCount, towerSlots.length);
-    const structureCount = split.structureCount;
-    const laneMonkeyCount = split.laneCount;
+    const composition = composeRound(roundNumber, params.monkeyCount, towerSlots.length);
+    const structureCount = composition.structureCount;
+    const laneMonkeyCount = composition.laneCount;
 
     // 슬롯 순서가 우선순위다. 원숭이가 모자라면 뒤쪽 슬롯이 빈 채로 남는다.
     for (let i = 0; i < structureCount; i++) {
