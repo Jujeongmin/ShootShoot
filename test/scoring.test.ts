@@ -120,6 +120,16 @@ describe('roundSettlementGold', () => {
   it('drops the remainder rather than carrying it', () => {
     expect(roundSettlementGold(19, 1, config)).toBe(1);
   });
+
+  // 회귀 방어. 부동소수로 계산하면 여기서 어긋난다 - 정확한 유리수 계산과 대조한다.
+  it('matches exact rational arithmetic across many rounds and scores', () => {
+    for (let round = 1; round <= 120; round += 1) {
+      for (let score = 1; score <= 2000; score += 37) {
+        const exact = Math.floor((score * (100 + (round - 1) * 15)) / 1000);
+        expect(roundSettlementGold(score, round, config), `score ${score}, round ${round}`).toBe(exact);
+      }
+    }
+  });
 });
 
 describe('createHighScoreStore', () => {

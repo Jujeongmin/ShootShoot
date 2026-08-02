@@ -63,11 +63,15 @@ export function roundSettlementGold(
   config: { scorePerGold: number; goldRoundMultiplierPerRound: number }
 ): number {
   if (pendingScore <= 0) return 0;
-  const multiplier = 1 + (roundNumber - 1) * config.goldRoundMultiplierPerRound;
-  // 나누기를 배율 곱셈보다 먼저 하면(예: (score / spg) * multiplier) 부동소수점
-  // 오차로 200 * 2.05 가 409.99999999999994 로 나와 버림에서 1이 샌다. 곱셈을
-  // 먼저 하면 이 케이스들에서 정확히 떨어진다.
-  return Math.floor((pendingScore * multiplier) / config.scorePerGold);
+  // 배율을 100분율 정수로 다룬다. 0.15 같은 값은 2진 부동소수로 정확히 표현되지
+  // 않아서, 1 + 7 x 0.15 이 2.0499999999999998 이 되고 8라운드 2000점이 410이
+  // 아니라 409로 떨어진다. 곱하고 나누는 순서를 바꾸면 그 케이스는 넘어가지만
+  // 오차 자체는 남는다 - 유리수 정확값과 대조하면 12.8만 케이스 중 292개가 여전히
+  // 어긋났다. 정수로 계산하면 어긋나는 케이스가 0이다.
+  // Math.round(...* 100) 이 config 값을 소수 둘째 자리로 고정한다 - 나중에
+  // goldRoundMultiplierPerRound 를 0.125 같은 값으로 바꾸면 조용히 0.13이 된다.
+  const multiplierHundredths = 100 + (roundNumber - 1) * Math.round(config.goldRoundMultiplierPerRound * 100);
+  return Math.floor((pendingScore * multiplierHundredths) / (config.scorePerGold * 100));
 }
 
 export function createHighScoreStore(storage: Storage, key: string) {
