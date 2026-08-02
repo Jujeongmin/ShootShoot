@@ -63,14 +63,18 @@ describe('composeRound', () => {
     }
   });
 
-  // 이 테스트는 임시다 -- 태스크 3이 대형을 씨앗에서 뽑기 시작하면 라운드마다
-  // 구성이 달라지는 게 맞으므로, 그때 이 테스트를 지운다. 지금 이 자리를
-  // 지켜야 할 계약으로 착각하지 말 것.
-  it('produces the same composition for every round until formations arrive', () => {
-    const baseline = composeRound(1, 10, SLOTS);
-    for (let round = 2; round <= 40; round += 1) {
-      expect(composeRound(round, 10, SLOTS)).toEqual(baseline);
+  it('holds the columns formation until round 4', () => {
+    for (let round = 1; round <= 3; round += 1) {
+      expect(composeRound(round, 3 + round - 1, SLOTS).formation).toBe('columns');
     }
+  });
+
+  it('uses more than one formation once they unlock', () => {
+    const seen = new Set<string>();
+    for (let round = 4; round <= 40; round += 1) {
+      seen.add(composeRound(round, Math.min(3 + round - 1, 10), SLOTS).formation);
+    }
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   // monkeyAllocation.test.ts 가 지키던 경계들이다. 지금 게임에서는 안 나오지만

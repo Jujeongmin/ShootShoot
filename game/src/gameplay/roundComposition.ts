@@ -1,3 +1,4 @@
+import { createSeededRandom } from './skyMotion';
 
 export type BehaviorId = 'steady' | 'pause' | 'dash' | 'bob';
 export type FormationId = 'columns' | 'wedge' | 'wide' | 'staggered';
@@ -51,12 +52,13 @@ function splitBetweenStructuresAndLanes(monkeyCount: number, structureSlotCount:
   return { structureCount, laneCount: monkeyCount - structureCount };
 }
 
-// 라운드 번호를 아직 안 쓴다. 지금 구성기가 정하는 것은 배분뿐이고 배분은 라운드에
-// 안 의존한다 — 구조물 편중은 태스크 5, 대형은 태스크 3 이 붙인다. 그래도 매개변수를
-// 지우지 않는 이유는 호출부(targetManager)가 이미 넘기고 있고 다음 태스크가 바로
-// 쓰기 때문이다. noUnusedParameters 가 켜져 있어 밑줄을 붙여 둔다.
+// 전부 한 번에 열면 1라운드가 아수라장이 되고 튜토리얼이 그 위에 얹혀 있다.
+const FORMATION_UNLOCK_ROUND = 4;
+
+const FORMATIONS: FormationId[] = ['columns', 'wedge', 'wide', 'staggered'];
+
 export function composeRound(
-  _roundNumber: number,
+  roundNumber: number,
   monkeyCount: number,
   structureSlotCount: number
 ): RoundComposition {
@@ -65,10 +67,17 @@ export function composeRound(
     structureSlotCount
   );
 
+  const random = createSeededRandom(roundSeed(roundNumber));
+
+  const formation =
+    roundNumber < FORMATION_UNLOCK_ROUND
+      ? 'columns'
+      : FORMATIONS[Math.floor(random() * FORMATIONS.length)];
+
   const monkeys: MonkeyPlan[] = [];
   for (let i = 0; i < monkeyCount; i += 1) {
     monkeys.push({ behavior: 'steady', speedScale: 1, sizeScale: 1 });
   }
 
-  return { structureCount, laneCount, formation: 'columns', monkeys };
+  return { structureCount, laneCount, formation, monkeys };
 }

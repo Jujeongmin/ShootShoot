@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeLaneLayout } from '../game/src/gameplay/laneLayout';
+import type { FormationId } from '../game/src/gameplay/roundComposition';
 
 // computeLaneLayout이 만드는 슬롯 하나의 모양. 반환 타입에서 그대로 뽑아 쓰므로
 // laneLayout.ts의 슬롯 필드가 바뀌면 여기도 같이 바뀐다.
@@ -18,13 +19,13 @@ function rayRatio(slot: LaneSlot, t: number) {
 describe('computeLaneLayout', () => {
   it('returns exactly monkeyCount slots for the whole supported range', () => {
     for (let n = 1; n <= 10; n++) {
-      expect(computeLaneLayout(n, 0.5, 1.0)).toHaveLength(n);
+      expect(computeLaneLayout(n, 0.5, 1.0, 'columns')).toHaveLength(n);
     }
   });
 
   it('partitions monkeys into lanes of 2-3 (unique base angles = lane count)', () => {
     function laneCount(n: number) {
-      const slots = computeLaneLayout(n, 0.5, 1.0);
+      const slots = computeLaneLayout(n, 0.5, 1.0, 'columns');
       const angles = new Set(slots.map((s) => (s.x / Math.abs(s.z)).toFixed(6)));
       return angles.size;
     }
@@ -36,7 +37,7 @@ describe('computeLaneLayout', () => {
   });
 
   it('monkeys in the same 2-lane align exactly (equal ray ratio) at spawn and every half period', () => {
-    const slots = computeLaneLayout(2, 0.5, 1.0);
+    const slots = computeLaneLayout(2, 0.5, 1.0, 'columns');
     const [a, b] = slots;
     const halfPeriod = Math.PI / a.swayFrequency;
     expect(rayRatio(a, 0)).toBeCloseTo(rayRatio(b, 0), 10);
@@ -46,7 +47,7 @@ describe('computeLaneLayout', () => {
   });
 
   it('every pair in a 3-lane has its own periodic alignment moment', () => {
-    const slots = computeLaneLayout(3, 0.5, 1.0);
+    const slots = computeLaneLayout(3, 0.5, 1.0, 'columns');
     const [a, b, c] = slots;
     const w = a.swayFrequency;
     // 쌍 (φ1, φ2)의 정렬 시각: w*t = (π - φ1 - φ2)/2 + kπ
@@ -59,7 +60,7 @@ describe('computeLaneLayout', () => {
   });
 
   it('sway amplitude is proportional to |z| (equal angular amplitude)', () => {
-    const slots = computeLaneLayout(10, 0.5, 1.0);
+    const slots = computeLaneLayout(10, 0.5, 1.0, 'columns');
     const ratios = slots.map((s) => s.swayAmplitude / Math.abs(s.z));
     for (const r of ratios) {
       expect(r).toBeCloseTo(ratios[0], 10);
@@ -67,16 +68,68 @@ describe('computeLaneLayout', () => {
   });
 
   it('scales depth gap with monkeyScale', () => {
-    const big = computeLaneLayout(3, 0.5, 1.0);
-    const small = computeLaneLayout(3, 0.5, 0.5);
+    const big = computeLaneLayout(3, 0.5, 1.0, 'columns');
+    const small = computeLaneLayout(3, 0.5, 0.5, 'columns');
     const gapBig = Math.abs(big[1].z - big[0].z);
     const gapSmall = Math.abs(small[1].z - small[0].z);
     expect(gapSmall).toBeCloseTo(gapBig * 0.5, 10);
   });
 
   it('sway frequency scales with monkeySpeed', () => {
-    const slow = computeLaneLayout(3, 0.5, 1.0);
-    const fast = computeLaneLayout(3, 1.0, 1.0);
+    const slow = computeLaneLayout(3, 0.5, 1.0, 'columns');
+    const fast = computeLaneLayout(3, 1.0, 1.0, 'columns');
     expect(fast[0].swayFrequency).toBeCloseTo(slow[0].swayFrequency * 2, 10);
+  });
+});
+
+// world.ts 의 섬 폭이 26이다. 절반을 넘으면 원숭이가 섬 밖 허공에 선다.
+const ISLAND_HALF_WIDTH = 13;
+const FORMATIONS: FormationId[] = ['columns', 'wedge', 'wide', 'staggered'];
+
+describe('formations', () => {
+  it('leaves columns byte-identical to what it was', () => {
+    // 이 값들은 대형이 생기기 전 computeLaneLayout(7, 0.25, 1) 의 출력이다.
+    const slots = computeLaneLayout(7, 0.25, 1, 'columns');
+    expect(slots).toHaveLength(7);
+    expect(slots[0].x).toBeCloseTo(-0.09 * 78, 10);
+    expect(slots[0].z).toBeCloseTo(-78, 10);
+    expect(slots[1].z).toBeCloseTo(-84, 10);
+    expect(slots[0].swayAmplitude).toBeCloseTo(0.038 * 78, 10);
+    expect(slots[0].swayFrequency).toBeCloseTo(1.8 * 0.25, 10);
+  });
+
+  it('keeps every monkey over the island in every formation', () => {
+    for (const formation of FORMATIONS) {
+      for (let count = 1; count <= 10; count += 1) {
+        for (const slot of computeLaneLayout(count, 0.25, 1, formation)) {
+          const reach = Math.abs(slot.x) + slot.swayAmplitude;
+          expect(reach, `${formation} with ${count}`).toBeLessThanOrEqual(ISLAND_HALF_WIDTH);
+        }
+      }
+    }
+  });
+
+  it('never puts two monkeys on top of each other', () => {
+    for (const formation of FORMATIONS) {
+      for (let count = 1; count <= 10; count += 1) {
+        const slots = computeLaneLayout(count, 0.25, 1, formation);
+        for (let i = 0; i < slots.length; i += 1) {
+          for (let j = i + 1; j < slots.length; j += 1) {
+            const dx = slots[i].x - slots[j].x;
+            const dz = slots[i].z - slots[j].z;
+            expect(Math.hypot(dx, dz), `${formation} with ${count}, slots ${i}/${j}`)
+              .toBeGreaterThan(2);
+          }
+        }
+      }
+    }
+  });
+
+  it('gives every formation the same number of slots it was asked for', () => {
+    for (const formation of FORMATIONS) {
+      for (let count = 1; count <= 10; count += 1) {
+        expect(computeLaneLayout(count, 0.25, 1, formation)).toHaveLength(count);
+      }
+    }
   });
 });

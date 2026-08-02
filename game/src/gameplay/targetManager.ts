@@ -68,7 +68,12 @@ export function createTargetManager(
       ids.push(monkey.id);
       towerMonkeyIds.set(slot.towerIndex, ids);
     }
-    const layout = computeLaneLayout(laneMonkeyCount, params.monkeySpeed, params.monkeyScale);
+    const layout = computeLaneLayout(
+      laneMonkeyCount,
+      params.monkeySpeed,
+      params.monkeyScale,
+      composition.formation
+    );
     for (let i = 0; i < laneMonkeyCount; i++) {
       const slot = layout[i];
       const monkey = createMonkey({
