@@ -54,9 +54,20 @@ export function applyShot(scoreState: ScoreState, shotOutcome: ShotOutcome, conf
 
 // 라운드를 클리어할 때 미정산 점수를 골드로 바꾼다. 나머지는 버린다 —
 // 이월을 만들면 상태가 하나 더 늘고 체감 차이가 없다.
-export function settlementGold(pendingScore: number, scorePerGold: number): number {
+//
+// 나누기와 배율을 한 번에 곱하고 버림은 한 번만 한다. 나눈 뒤 버리고 곱하면
+// 라운드마다 최대 1골드씩 새고 낮은 라운드일수록 그 비율이 크다.
+export function roundSettlementGold(
+  pendingScore: number,
+  roundNumber: number,
+  config: { scorePerGold: number; goldRoundMultiplierPerRound: number }
+): number {
   if (pendingScore <= 0) return 0;
-  return Math.floor(pendingScore / scorePerGold);
+  const multiplier = 1 + (roundNumber - 1) * config.goldRoundMultiplierPerRound;
+  // 나누기를 배율 곱셈보다 먼저 하면(예: (score / spg) * multiplier) 부동소수점
+  // 오차로 200 * 2.05 가 409.99999999999994 로 나와 버림에서 1이 샌다. 곱셈을
+  // 먼저 하면 이 케이스들에서 정확히 떨어진다.
+  return Math.floor((pendingScore * multiplier) / config.scorePerGold);
 }
 
 export function createHighScoreStore(storage: Storage, key: string) {

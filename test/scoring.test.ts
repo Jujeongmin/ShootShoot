@@ -3,7 +3,7 @@ import {
   createScoreState,
   calculateShotScore,
   applyShot,
-  settlementGold,
+  roundSettlementGold,
   createHighScoreStore,
 } from '../game/src/gameplay/scoring';
 import { CONFIG } from '../game/src/config';
@@ -93,22 +93,32 @@ describe('applyShot', () => {
   });
 });
 
-describe('settlementGold', () => {
-  it('converts a whole multiple of the rate', () => {
-    expect(settlementGold(500, 10)).toBe(50);
+describe('roundSettlementGold', () => {
+  const config = { scorePerGold: 10, goldRoundMultiplierPerRound: 0.15 };
+
+  it('pays nothing for a round that scored nothing', () => {
+    expect(roundSettlementGold(0, 1, config)).toBe(0);
+    expect(roundSettlementGold(-50, 1, config)).toBe(0);
+  });
+
+  it('leaves round 1 on the plain conversion', () => {
+    expect(roundSettlementGold(330, 1, config)).toBe(33);
+  });
+
+  it('scales with the round', () => {
+    // 8라운드 배율은 1 + 7 x 0.15 = 2.05. 2000 / 10 x 2.05 = 410.
+    expect(roundSettlementGold(2000, 8, config)).toBe(410);
+    // 50라운드 배율은 1 + 49 x 0.15 = 8.35. 2000 / 10 x 8.35 = 1670.
+    expect(roundSettlementGold(2000, 50, config)).toBe(1670);
+  });
+
+  // 회귀 방어. 나눈 뒤 버리고 곱하면 6 x 2.05 = 12 가 나온다. 한 번만 버려야 13이다.
+  it('floors once, not twice', () => {
+    expect(roundSettlementGold(65, 8, config)).toBe(13);
   });
 
   it('drops the remainder rather than carrying it', () => {
-    expect(settlementGold(509, 10)).toBe(50);
-    expect(settlementGold(9, 10)).toBe(0);
-  });
-
-  it('pays nothing for a round that scored nothing', () => {
-    expect(settlementGold(0, 10)).toBe(0);
-  });
-
-  it('pays nothing rather than negative gold if the pending score is below zero', () => {
-    expect(settlementGold(-100, 10)).toBe(0);
+    expect(roundSettlementGold(19, 1, config)).toBe(1);
   });
 });
 

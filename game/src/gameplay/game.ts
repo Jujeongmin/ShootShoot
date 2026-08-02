@@ -4,7 +4,7 @@ import { createInputController } from '../core/input';
 import { createWorld } from './world';
 import { createTargetManager } from './targetManager';
 import { resolveShot, computeHitDamage, resolveKillOutcome, partitionShotPath } from './shooting';
-import { createScoreState, applyShot, calculateShotScore, settlementGold, createHighScoreStore } from './scoring';
+import { createScoreState, applyShot, calculateShotScore, roundSettlementGold, createHighScoreStore } from './scoring';
 import { createReloadState } from './reloadState';
 import { createScenery } from './scenery';
 import { createSkyDecor } from './skyDecor';
@@ -792,7 +792,7 @@ export function createGame(container: HTMLElement) {
           progressStore.submitCleared(round);
           // 이 라운드에서 번 만큼만 지급한다. 도중에 나가면 정산을 안 하므로
           // 그 라운드 점수는 그대로 버려진다.
-          currencyStore.earn(settlementGold(scoreState.score - settledScore, CONFIG.scorePerGold));
+          currencyStore.earn(roundSettlementGold(scoreState.score - settledScore, round, CONFIG));
           settledScore = scoreState.score;
           sfx.roundClear();
           stageBanner.show(round + 1);

@@ -41,6 +41,11 @@ export const CONFIG = {
     roundsPerMonkeyHpIncrease: 2,
   },
   scorePerGold: 10,
+  // 라운드가 올라가도 한 판 골드가 그대로였다. 원숭이 수가 10에서 멈춰서
+  // 8라운드나 100라운드나 같은 점수가 나오는데 체력은 무한히 올라 시간만 길어진다.
+  // 시간당 골드가 평평하려면 배율이 라운드/8 이어야 하고(50라운드에 6.25), 0.15는
+  // 그보다 위라 높은 라운드가 이득이 되되 극단적이지 않다.
+  goldRoundMultiplierPerRound: 0.15,
   reload: {
     // 일반 총과 바주카포가 같은 값을 쓴다.
     seconds: 0.8,
