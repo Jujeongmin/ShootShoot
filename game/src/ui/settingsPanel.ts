@@ -19,8 +19,8 @@ export function createSettingsPanel(container: HTMLElement) {
     overlay.innerHTML = '';
 
     const box = panel();
-    box.classList.add('responsive-panel');
-    box.style.cssText = 'position: relative; text-align: center; min-width: 300px;';
+    box.classList.add('responsive-panel', 'settings-panel');
+    box.style.cssText = 'position: relative; text-align: center; min-width: 260px;';
 
     const closeBtn = iconButton('cross', 'Close', onClose, 36);
     closeBtn.style.cssText += 'position: absolute; top: -14px; right: -14px;';
@@ -29,7 +29,7 @@ export function createSettingsPanel(container: HTMLElement) {
     box.appendChild(title('Settings'));
 
     const label = document.createElement('div');
-    label.style.cssText = `color: ${TOKENS.inkSoft}; font-size: 15px; margin: 10px 0 6px;`;
+    label.style.cssText = `color: ${TOKENS.inkSoft}; font-size: 15px; margin: 6px 0 4px;`;
     label.appendChild(document.createTextNode('Mouse sensitivity '));
     const value = num(`${sensitivity.toFixed(1)}x`);
     label.appendChild(value);
@@ -50,7 +50,7 @@ export function createSettingsPanel(container: HTMLElement) {
     box.appendChild(slider);
 
     const actions = document.createElement('div');
-    actions.style.cssText = 'display: flex; justify-content: center; gap: 12px; margin-top: 16px;';
+    actions.style.cssText = 'display: flex; justify-content: center; gap: 12px; margin-top: 10px;';
     if (typeof onReplayTutorial === 'function') {
       actions.appendChild(button('Replay tutorial', onReplayTutorial, 'ghost'));
     }

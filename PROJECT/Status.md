@@ -2,6 +2,8 @@
 
 ## Recent activity (2026-08-02)
 
+- **Settings panel tuning**: removed internal scroll + compacted size. Cause: shared `.responsive-panel` `overflow:auto` treated the out-of-panel close button (-14px) as scrollable overflow. Added `.settings-panel` override (overflow visible, no max-height) in `theme.css`; tightened title/slider/label/actions spacing; `min-width` 300→260px.
+
 - **Ad SDK integration** (`@verse8/ads` v0.4.0):
   - `game/src/gameplay/adSdk.ts`: replaced the 500ms always-`true` stub with a real `Verse8Ads.showRewarded({ placementId })` call; `rewarded` → `true`, everything else → `false`.
   - `game/src/config.ts`: added `CONFIG.adReward.placementId = 'shootshoot-rewarded'`.
