@@ -551,36 +551,44 @@ canvas { touch-action: none; }
     right: calc(8px + env(safe-area-inset-right)) !important;
   }
 
-  .menu-topbar > :first-child { font-size: 16px !important; }
+  .menu-topbar > :first-child {
+    transform: scale(var(--menu-scale));
+    transform-origin: left top;
+  }
+  .menu-topbar > :last-child {
+    transform: scale(var(--menu-scale));
+    transform-origin: right top;
+  }
   .k-scrim.menu-layout {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-content: start;
-    gap: 12px 8px;
-    padding-top: calc(68px + env(safe-area-inset-top));
+    --menu-scale: 0.58;
+    display: flex !important;
+    padding: 0;
+    overflow: hidden;
+    touch-action: none;
   }
   .menu-card {
-    position: static !important;
-    transform: none !important;
-    width: 100% !important;
     min-width: 0;
-    flex: 0 0 auto;
   }
   .menu-centre {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    gap: 8px !important;
-    width: min(320px, calc(100vw - 24px));
-    justify-self: center;
+    transform: scale(var(--menu-scale));
+    transform-origin: center;
   }
-  .menu-card:nth-of-type(3) { grid-column: 1; grid-row: 2; }
-  .menu-card:nth-of-type(4) { grid-column: 2; grid-row: 2; }
-  .menu-card:nth-of-type(5) { grid-column: 1; grid-row: 3; }
-  .menu-card:nth-of-type(6) { grid-column: 2; grid-row: 3; }
-  .menu-centre .k-btn { width: 100% !important; box-sizing: border-box; }
-  .menu-card .k-title { font-size: 18px; }
-  .menu-card .k-btn { padding-inline: 8px; font-size: 13px; }
-  .menu-card .k-meta { margin-bottom: 6px; }
+  .menu-card:nth-of-type(3) {
+    transform: translateY(-50%) scale(var(--menu-scale)) !important;
+    transform-origin: left center;
+  }
+  .menu-card:nth-of-type(4) {
+    transform: translateY(-50%) scale(var(--menu-scale)) !important;
+    transform-origin: right center;
+  }
+  .menu-card:nth-of-type(5) {
+    transform: scale(var(--menu-scale)) !important;
+    transform-origin: left bottom;
+  }
+  .menu-card:nth-of-type(6) {
+    transform: scale(var(--menu-scale)) !important;
+    transform-origin: right bottom;
+  }
   .k-panel { padding: 14px 12px; }
   .k-slider { width: min(240px, calc(100vw - 72px)); }
   .k-tutorial { bottom: calc(18px + env(safe-area-inset-bottom)); font-size: 17px; }
@@ -593,11 +601,12 @@ canvas { touch-action: none; }
   .game-settings-btn { display: grid; }
 }
 
+@media (max-width: 700px) and (orientation: portrait) {
+  .k-scrim.menu-layout { --menu-scale: 0.4; }
+}
+
 @media (max-width: 380px) and (orientation: portrait) {
-  .k-scrim.menu-layout { gap: 8px 6px; }
-  .menu-card { font-size: 12px; }
-  .menu-card .k-title { font-size: 16px; }
-  .menu-card .k-btn { font-size: 11px; }
+  .k-scrim.menu-layout { --menu-scale: 0.31; }
 }
 
 /* 설정 패널: 내용이 짧으니 항상 화면 안에 들어오게 만든다. 공용 .responsive-panel 이
