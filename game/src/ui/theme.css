@@ -466,6 +466,13 @@ canvas { touch-action: none; }
   margin-top: 2px;
 }
 
+.game-settings-btn {
+  display: none;
+  width: 48px;
+  height: 48px;
+  pointer-events: auto;
+}
+
 /* 튜토리얼 안내. 화면 하단 중앙에 둔다 — 중앙은 조준선이, 우측 상단은 P 힌트가
    쓰고 있어서 비켜야 한다. 3D 장면 위에 바로 얹히므로 외곽선 그림자로 띄운다. */
 .k-tutorial {
@@ -545,22 +552,50 @@ canvas { touch-action: none; }
   }
 
   .menu-topbar > :first-child { font-size: 16px !important; }
-  .k-scrim:has(.menu-centre) {
-    justify-content: flex-start;
-    gap: 16px;
-    padding-top: calc(72px + env(safe-area-inset-top));
+  .k-scrim.menu-layout {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 12px 8px;
+    padding-top: calc(68px + env(safe-area-inset-top));
   }
   .menu-card {
     position: static !important;
     transform: none !important;
-    width: min(320px, calc(100vw - 24px)) !important;
+    width: 100% !important;
+    min-width: 0;
     flex: 0 0 auto;
   }
-  .menu-centre { gap: 8px !important; width: min(320px, calc(100vw - 24px)); }
+  .menu-centre {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    gap: 8px !important;
+    width: min(320px, calc(100vw - 24px));
+    justify-self: center;
+  }
+  .menu-card:nth-of-type(3) { grid-column: 1; grid-row: 2; }
+  .menu-card:nth-of-type(4) { grid-column: 2; grid-row: 2; }
+  .menu-card:nth-of-type(5) { grid-column: 1; grid-row: 3; }
+  .menu-card:nth-of-type(6) { grid-column: 2; grid-row: 3; }
   .menu-centre .k-btn { width: 100% !important; box-sizing: border-box; }
+  .menu-card .k-title { font-size: 18px; }
+  .menu-card .k-btn { padding-inline: 8px; font-size: 13px; }
+  .menu-card .k-meta { margin-bottom: 6px; }
   .k-panel { padding: 14px 12px; }
   .k-slider { width: min(240px, calc(100vw - 72px)); }
   .k-tutorial { bottom: calc(18px + env(safe-area-inset-bottom)); font-size: 17px; }
   .k-round { font-size: 34px; }
-  .k-hint-key, .k-hint-text { display: none; }
+  .game-controls {
+    top: calc(10px + env(safe-area-inset-top)) !important;
+    right: calc(10px + env(safe-area-inset-right)) !important;
+  }
+  .game-settings-key { display: none; }
+  .game-settings-btn { display: grid; }
+}
+
+@media (max-width: 380px) and (orientation: portrait) {
+  .k-scrim.menu-layout { gap: 8px 6px; }
+  .menu-card { font-size: 12px; }
+  .menu-card .k-title { font-size: 16px; }
+  .menu-card .k-btn { font-size: 11px; }
 }

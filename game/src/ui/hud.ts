@@ -6,7 +6,7 @@ import type { PopupTone } from './scorePopupTone';
 // 플레이한 라운드 값이 그대로 남는다. 이 초기값은 페이지를 처음 열었을 때만 보인다.
 const INITIAL_ROUND = '1';
 
-export function createHud(container: HTMLElement) {
+export function createHud(container: HTMLElement, onSettings: () => void) {
   const el = document.createElement('div');
   el.style.cssText = `
     position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
@@ -33,19 +33,28 @@ export function createHud(container: HTMLElement) {
   // 나가는 길이 P -> 설정 -> '메뉴로' 하나뿐이라, 첫 판을 하는 사람은 판을 끝낼
   // 방법을 찾지 못한다. 그래서 안내를 화면에 계속 띄운다.
   const hint = document.createElement('div');
+  hint.className = 'game-controls';
   hint.style.cssText = `
     position: absolute; top: 14px; right: 18px;
     pointer-events: none; z-index: 21; display: none;
   `;
   container.appendChild(hint);
 
+  const settingsButton = document.createElement('button');
+  settingsButton.type = 'button';
+  settingsButton.className = 'k-icon-btn game-settings-btn';
+  settingsButton.setAttribute('aria-label', 'Settings');
+  settingsButton.innerHTML = '<img src="/icons/white/gear.png" alt="">';
+  settingsButton.addEventListener('click', onSettings);
+  hint.appendChild(settingsButton);
+
   const hintKey = document.createElement('div');
-  hintKey.className = 'k-hint-key';
+  hintKey.className = 'k-hint-key game-settings-key';
   hintKey.textContent = 'P';
   hint.appendChild(hintKey);
 
   const hintText = document.createElement('div');
-  hintText.className = 'k-hint-text';
+  hintText.className = 'k-hint-text game-settings-key';
   hintText.textContent = 'exit to menu';
   hint.appendChild(hintText);
 

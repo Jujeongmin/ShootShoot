@@ -78,7 +78,7 @@ export function createGame(container: HTMLElement) {
   const skyDecor = createSkyDecor(engine.scene);
   const scenery = createScenery(engine.scene);
   const effects = createEffects(engine.scene);
-  const hud = createHud(container);
+  const hud = createHud(container, openSettingsFromPlay);
   const tutorialPrompt = createTutorialPrompt(container);
   const screens = createScreens(container);
   const scopeOverlay = createScopeOverlay(container);

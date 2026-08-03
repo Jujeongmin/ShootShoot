@@ -39,6 +39,7 @@ export function createScreens(container: HTMLElement) {
   container.appendChild(overlay);
 
   function clear() {
+    overlay.classList.remove('menu-layout');
     overlay.innerHTML = '';
   }
 
@@ -47,6 +48,7 @@ export function createScreens(container: HTMLElement) {
   }
 
   function hide() {
+    overlay.classList.remove('menu-layout');
     overlay.style.display = 'none';
   }
 
@@ -173,6 +175,7 @@ export function createScreens(container: HTMLElement) {
       offlineLevel, offlineCost, canAffordOffline, bazookaRounds, reachedRound,
     } = state;
     clear();
+    overlay.classList.add('menu-layout');
 
     overlay.appendChild(topBar(gold, handlers));
 
