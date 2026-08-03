@@ -188,8 +188,8 @@ export function createScreens(container: HTMLElement) {
     // 아직 아무것도 못 깬 플레이어에게 '이어하기'는 뜻이 없다. 그때는 예전처럼
     // 큰 버튼 하나만 둔다.
     if (reachedRound > 1) {
-      const continueBtn = button(`Continue (round ${reachedRound})`, handlers.onContinue, 'primary');
-      continueBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px;';
+      const continueBtn = button(`Continue\n(round${reachedRound})`, handlers.onContinue, 'primary');
+      continueBtn.style.cssText += 'width: 320px; font-size: 22px; padding: 14px 22px 10px; white-space: pre-line;';
       centre.appendChild(continueBtn);
       const selectBtn = button('Select round', handlers.onRoundSelect, 'ghost');
       selectBtn.style.cssText += 'width: 320px;';
