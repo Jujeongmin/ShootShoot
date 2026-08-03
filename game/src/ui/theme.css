@@ -602,11 +602,21 @@ canvas { touch-action: none; }
 }
 
 @media (max-width: 700px) and (orientation: portrait) {
-  .k-scrim.menu-layout { --menu-scale: 0.4; }
+  .k-scrim.menu-layout { --menu-scale: 0.52; }
+  .menu-centre {
+    position: absolute;
+    top: 36%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(var(--menu-scale));
+  }
+  .menu-card:nth-of-type(3),
+  .menu-card:nth-of-type(4) {
+    top: 55% !important;
+  }
 }
 
 @media (max-width: 380px) and (orientation: portrait) {
-  .k-scrim.menu-layout { --menu-scale: 0.31; }
+  .k-scrim.menu-layout { --menu-scale: 0.44; }
 }
 
 /* 설정 패널: 내용이 짧으니 항상 화면 안에 들어오게 만든다. 공용 .responsive-panel 이
